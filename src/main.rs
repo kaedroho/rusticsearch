@@ -20,6 +20,13 @@ impl Index {
 }
 
 
+fn index_not_found_response() -> Response {
+    let mut response = Response::with((status::NotFound, "{\"message\": \"Index not found\"}"));
+    response.headers.set_raw("Content-Type", vec![b"application/json".to_vec()]);
+    return response;
+}
+
+
 fn main() {
     let mut indices = Arc::new(Mutex::new(HashMap::new()));
     indices.lock().unwrap().insert("wagtail", Index::new());
@@ -35,6 +42,9 @@ fn main() {
 
         router.get("/:index/_count", move |req: &mut Request| -> IronResult<Response> {
             let ref index = req.extensions.get::<Router>().unwrap().find("index").unwrap_or("");
+            if !indices.lock().unwrap().contains_key(index) {
+                return Ok(index_not_found_response());
+            }
 
             let mut payload = String::new();
             req.body.read_to_string(&mut payload).unwrap();
@@ -52,6 +62,9 @@ fn main() {
 
         router.get("/:index/_search", move |req: &mut Request| -> IronResult<Response> {
             let ref index = req.extensions.get::<Router>().unwrap().find("index").unwrap_or("");
+            if !indices.lock().unwrap().contains_key(index) {
+                return Ok(index_not_found_response());
+            }
 
             let mut payload = String::new();
             req.body.read_to_string(&mut payload).unwrap();
@@ -69,6 +82,10 @@ fn main() {
 
         router.put("/:index/:mapping/:doc", move |req: &mut Request| -> IronResult<Response> {
             let ref index = req.extensions.get::<Router>().unwrap().find("index").unwrap_or("");
+            if !indices.lock().unwrap().contains_key(index) {
+                return Ok(index_not_found_response());
+            }
+
             let ref mapping = req.extensions.get::<Router>().unwrap().find("mapping").unwrap_or("");
             let ref doc = req.extensions.get::<Router>().unwrap().find("doc").unwrap_or("");
 
