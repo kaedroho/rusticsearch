@@ -108,7 +108,13 @@ fn main() {
 
             // TODO: Run query
 
-            let mut response = Response::with((status::Ok, "{\"count\": 0}"));
+            // Temporary count and return numbers
+            let mut count = 0;
+            for mapping in index.mappings.values() {
+                count += mapping.docs.len();
+            }
+
+            let mut response = Response::with((status::Ok, format!("{{\"count\": {}}}", count)));
             response.headers.set_raw("Content-Type", vec![b"application/json".to_vec()]);
             Ok(response)
         });
