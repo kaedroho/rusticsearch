@@ -2,13 +2,27 @@ extern crate iron;
 extern crate router;
 
 use std::io::Read;
+use std::collections::HashMap;
 
 use iron::prelude::*;
 use iron::status;
 use router::Router;
 
+#[derive(Debug)]
+struct Index;
+
+
+impl Index {
+    fn new() -> Index {
+        Index
+    }
+}
+
 
 fn main() {
+    let mut indices = HashMap::new();
+    indices.insert("wagtail", Index::new());
+
     let mut router = Router::new();
 
     fn index(_: &mut Request) -> IronResult<Response> {
