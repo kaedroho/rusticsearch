@@ -9,7 +9,7 @@ use std::collections::HashMap;
 use iron::prelude::*;
 use iron::status;
 use router::Router;
-use rustc_serialize::json::Json;
+use rustc_serialize::json::{self, Json};
 
 
 #[derive(Debug)]
@@ -155,6 +155,52 @@ fn main() {
             // TODO: Run query
 
             let mut response = Response::with((status::Ok, "{\"hits\": {\"total\": 0, \"hits\": []}}"));
+            response.headers.set_raw("Content-Type", vec![b"application/json".to_vec()]);
+            Ok(response)
+        });
+    }
+
+    {
+        let indices = indices.clone();
+
+        router.get("/:index/:mapping/:doc", move |req: &mut Request| -> IronResult<Response> {
+            // URL parameters
+            let index_name = req.extensions.get::<Router>().unwrap().find("index").unwrap_or("");
+            let mapping_name = req.extensions.get::<Router>().unwrap().find("mapping").unwrap_or("");
+            let doc_id = req.extensions.get::<Router>().unwrap().find("doc").unwrap_or("");
+
+            // Lock index array
+            let mut indices = indices.lock().unwrap();
+
+            // Find index
+            let mut index = match indices.get_mut(index_name) {
+                Some(index) => index,
+                None => {
+                    return Ok(index_not_found_response());
+                }
+            };
+
+            // Find mapping
+            let mut mapping = match index.mappings.get_mut(mapping_name) {
+                Some(mapping) => mapping,
+                None => {
+                    let mut response = Response::with((status::NotFound, "{\"message\": \"Mapping not found\"}"));
+                    response.headers.set_raw("Content-Type", vec![b"application/json".to_vec()]);
+                    return Ok(response);
+                }
+            };
+
+            // Find document
+            let mut doc = match mapping.docs.get_mut(doc_id) {
+                Some(doc) => doc,
+                None => {
+                    let mut response = Response::with((status::NotFound, "{\"message\": \"Document not found\"}"));
+                    response.headers.set_raw("Content-Type", vec![b"application/json".to_vec()]);
+                    return Ok(response);
+                }
+            };
+
+            let mut response = Response::with((status::Ok, json::encode(&doc.data).unwrap()));
             response.headers.set_raw("Content-Type", vec![b"application/json".to_vec()]);
             Ok(response)
         });
