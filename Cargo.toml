@@ -5,3 +5,4 @@ authors = ["Karl Hobley <karlhobley10@gmail.com>"]
 
 [dependencies]
 iron = "*"
+router = "*"

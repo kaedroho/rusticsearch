@@ -1,13 +1,19 @@
 extern crate iron;
+extern crate router;
 
 use iron::prelude::*;
 use iron::status;
+use router::Router;
 
 
 fn main() {
-    fn hello_world(_: &mut Request) -> IronResult<Response> {
+    let mut router = Router::new();
+
+    fn index(_: &mut Request) -> IronResult<Response> {
         Ok(Response::with((status::Ok, "Hello World!")))
     }
 
-    Iron::new(hello_world).http("localhost:9200").unwrap();
+    router.get("/", index);
+
+    Iron::new(router).http("localhost:9200").unwrap();
 }
