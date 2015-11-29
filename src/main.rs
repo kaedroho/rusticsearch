@@ -63,7 +63,7 @@ fn index_not_found_response() -> Response {
 
 
 fn main() {
-    let mut indices = Arc::new(Mutex::new(HashMap::new()));
+    let indices = Arc::new(Mutex::new(HashMap::new()));
     let mut wagtail_index = Index::new();
     wagtail_index.mappings.insert("wagtaildocs_document", Mapping::new());
     indices.lock().unwrap().insert("wagtail", wagtail_index);
@@ -82,10 +82,10 @@ fn main() {
             let ref index_name = req.extensions.get::<Router>().unwrap().find("index").unwrap_or("");
 
             // Lock index array
-            let mut indices = indices.lock().unwrap();
+            let indices = indices.lock().unwrap();
 
             // Find index
-            let mut index = match indices.get(index_name) {
+            let index = match indices.get(index_name) {
                 Some(index) => index,
                 None => {
                     return Ok(index_not_found_response());
@@ -128,10 +128,10 @@ fn main() {
             let ref index_name = req.extensions.get::<Router>().unwrap().find("index").unwrap_or("");
 
             // Lock index array
-            let mut indices = indices.lock().unwrap();
+            let indices = indices.lock().unwrap();
 
             // Find index
-            let mut index = match indices.get(index_name) {
+            let index = match indices.get(index_name) {
                 Some(index) => index,
                 None => {
                     return Ok(index_not_found_response());
@@ -170,10 +170,10 @@ fn main() {
             let doc_id = req.extensions.get::<Router>().unwrap().find("doc").unwrap_or("");
 
             // Lock index array
-            let mut indices = indices.lock().unwrap();
+            let indices = indices.lock().unwrap();
 
             // Find index
-            let mut index = match indices.get_mut(index_name) {
+            let index = match indices.get(index_name) {
                 Some(index) => index,
                 None => {
                     return Ok(index_not_found_response());
@@ -181,7 +181,7 @@ fn main() {
             };
 
             // Find mapping
-            let mut mapping = match index.mappings.get_mut(mapping_name) {
+            let mapping = match index.mappings.get(mapping_name) {
                 Some(mapping) => mapping,
                 None => {
                     let mut response = Response::with((status::NotFound, "{\"message\": \"Mapping not found\"}"));
@@ -191,7 +191,7 @@ fn main() {
             };
 
             // Find document
-            let mut doc = match mapping.docs.get_mut(doc_id) {
+            let doc = match mapping.docs.get(doc_id) {
                 Some(doc) => doc,
                 None => {
                     let mut response = Response::with((status::NotFound, "{\"message\": \"Document not found\"}"));
