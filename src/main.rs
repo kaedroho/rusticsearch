@@ -117,7 +117,15 @@ fn main() {
             let mut payload = String::new();
             req.body.read_to_string(&mut payload).unwrap();
 
-            let data = Json::from_str(&payload).unwrap();
+            let data = match Json::from_str(&payload) {
+                Ok(data) => data,
+                Err(error) => {
+                    // TODO: What specifically is bad about the JSON?
+                    let mut response = Response::with((status::BadRequest, "{\"message\": \"Couldn't parse JSON\"}"));
+                    response.headers.set_raw("Content-Type", vec![b"application/json".to_vec()]);
+                    return Ok(response);
+                }
+            };
 
             // TODO
 
