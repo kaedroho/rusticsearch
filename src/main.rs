@@ -13,6 +13,20 @@ use rustc_serialize::json::Json;
 
 
 #[derive(Debug)]
+struct Document {
+    data: Json,
+}
+
+impl Document {
+    fn from_json(data: Json) -> Document {
+        Document{
+            data: data,
+        }
+    }
+}
+
+
+#[derive(Debug)]
 struct Mapping;
 
 impl Mapping {
@@ -25,6 +39,7 @@ impl Mapping {
 #[derive(Debug)]
 struct Index {
     pub mappings: HashMap<&'static str, Mapping>,
+    pub docs: HashMap<String, Document>,
 }
 
 
@@ -32,6 +47,7 @@ impl Index {
     fn new() -> Index {
         Index{
             mappings: HashMap::new(),
+            docs: HashMap::new(),
         }
     }
 }
@@ -141,7 +157,7 @@ fn main() {
 
         router.put("/:index/:mapping/:doc", move |req: &mut Request| -> IronResult<Response> {
             // URL parameters
-            let ref index_name = req.extensions.get::<Router>().unwrap().find("index").unwrap_or("");
+            let index_name = req.extensions.get::<Router>().unwrap().find("index").unwrap_or("");
             let ref mapping_name = req.extensions.get::<Router>().unwrap().find("mapping").unwrap_or("");
             let ref doc_id = req.extensions.get::<Router>().unwrap().find("doc").unwrap_or("");
 
@@ -149,7 +165,7 @@ fn main() {
             let mut indices = indices.lock().unwrap();
 
             // Find index
-            let mut index = match indices.get(index_name) {
+            let ref mut index = match indices.get_mut(index_name) {
                 Some(index) => index,
                 None => {
                     return Ok(index_not_found_response());
@@ -180,7 +196,9 @@ fn main() {
                 }
             };
 
-            // TODO: Validate and insert document
+            // Create and insert document
+            let doc = Document::from_json(data);
+            index.docs.insert(doc_id.clone().to_owned(), doc);
 
             let mut response = Response::with((status::Ok, "{}"));
             response.headers.set_raw("Content-Type", vec![b"application/json".to_vec()]);
