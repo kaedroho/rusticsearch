@@ -1,0 +1,4 @@
+[package]
+name = "rsearch"
+version = "0.1.0"
+authors = ["Karl Hobley <karlhobley10@gmail.com>"]
