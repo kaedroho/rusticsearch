@@ -11,12 +11,26 @@ use router::Router;
 
 
 #[derive(Debug)]
-struct Index;
+struct Mapping;
+
+impl Mapping {
+    fn new() -> Mapping {
+        Mapping
+    }
+}
+
+
+#[derive(Debug)]
+struct Index {
+    pub mappings: HashMap<&'static str, Mapping>,
+}
 
 
 impl Index {
     fn new() -> Index {
-        Index
+        Index{
+            mappings: HashMap::new(),
+        }
     }
 }
 
@@ -30,7 +44,9 @@ fn index_not_found_response() -> Response {
 
 fn main() {
     let mut indices = Arc::new(Mutex::new(HashMap::new()));
-    indices.lock().unwrap().insert("wagtail", Index::new());
+    let mut wagtail_index = Index::new();
+    wagtail_index.mappings.insert("wagtaildocs_document", Mapping::new());
+    indices.lock().unwrap().insert("wagtail", wagtail_index);
 
     let mut router = Router::new();
 
@@ -88,6 +104,12 @@ fn main() {
             }
 
             let ref mapping = req.extensions.get::<Router>().unwrap().find("mapping").unwrap_or("");
+            if !indices.lock().unwrap().get(index).unwrap().mappings.contains_key(mapping) {
+                let mut response = Response::with((status::NotFound, "{\"message\": \"Mapping not found\"}"));
+                response.headers.set_raw("Content-Type", vec![b"application/json".to_vec()]);
+                return Ok(response);
+            }
+
             let ref doc = req.extensions.get::<Router>().unwrap().find("doc").unwrap_or("");
 
             let mut payload = String::new();
