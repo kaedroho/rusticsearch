@@ -60,15 +60,25 @@ fn main() {
         let indices = indices.clone();
 
         router.get("/:index/_count", move |req: &mut Request| -> IronResult<Response> {
-            let ref index = req.extensions.get::<Router>().unwrap().find("index").unwrap_or("");
-            if !indices.lock().unwrap().contains_key(index) {
-                return Ok(index_not_found_response());
-            }
+            // URL parameters
+            let ref index_name = req.extensions.get::<Router>().unwrap().find("index").unwrap_or("");
 
+            // Lock index array
+            let mut indices = indices.lock().unwrap();
+
+            // Find index
+            let mut index = match indices.get(index_name) {
+                Some(index) => index,
+                None => {
+                    return Ok(index_not_found_response());
+                }
+            };
+
+            // Load query from body
             let mut payload = String::new();
             req.body.read_to_string(&mut payload).unwrap();
 
-            // TODO
+            // TODO: Run query
 
             let mut response = Response::with((status::Ok, "{\"count\": 0}"));
             response.headers.set_raw("Content-Type", vec![b"application/json".to_vec()]);
@@ -80,15 +90,25 @@ fn main() {
         let indices = indices.clone();
 
         router.get("/:index/_search", move |req: &mut Request| -> IronResult<Response> {
-            let ref index = req.extensions.get::<Router>().unwrap().find("index").unwrap_or("");
-            if !indices.lock().unwrap().contains_key(index) {
-                return Ok(index_not_found_response());
-            }
+            // URL parameters
+            let ref index_name = req.extensions.get::<Router>().unwrap().find("index").unwrap_or("");
 
+            // Lock index array
+            let mut indices = indices.lock().unwrap();
+
+            // Find index
+            let mut index = match indices.get(index_name) {
+                Some(index) => index,
+                None => {
+                    return Ok(index_not_found_response());
+                }
+            };
+
+            // Load query from body
             let mut payload = String::new();
             req.body.read_to_string(&mut payload).unwrap();
 
-            // TODO
+            // TODO: Run query
 
             let mut response = Response::with((status::Ok, "{\"hits\": {\"total\": 0, \"hits\": []}}"));
             response.headers.set_raw("Content-Type", vec![b"application/json".to_vec()]);
@@ -100,20 +120,33 @@ fn main() {
         let indices = indices.clone();
 
         router.put("/:index/:mapping/:doc", move |req: &mut Request| -> IronResult<Response> {
-            let ref index = req.extensions.get::<Router>().unwrap().find("index").unwrap_or("");
-            if !indices.lock().unwrap().contains_key(index) {
-                return Ok(index_not_found_response());
-            }
+            // URL parameters
+            let ref index_name = req.extensions.get::<Router>().unwrap().find("index").unwrap_or("");
+            let ref mapping_name = req.extensions.get::<Router>().unwrap().find("mapping").unwrap_or("");
+            let ref doc_id = req.extensions.get::<Router>().unwrap().find("doc").unwrap_or("");
 
-            let ref mapping = req.extensions.get::<Router>().unwrap().find("mapping").unwrap_or("");
-            if !indices.lock().unwrap().get(index).unwrap().mappings.contains_key(mapping) {
-                let mut response = Response::with((status::NotFound, "{\"message\": \"Mapping not found\"}"));
-                response.headers.set_raw("Content-Type", vec![b"application/json".to_vec()]);
-                return Ok(response);
-            }
+            // Lock index array
+            let mut indices = indices.lock().unwrap();
 
-            let ref doc = req.extensions.get::<Router>().unwrap().find("doc").unwrap_or("");
+            // Find index
+            let mut index = match indices.get(index_name) {
+                Some(index) => index,
+                None => {
+                    return Ok(index_not_found_response());
+                }
+            };
 
+            // Find mapping
+            let mut mapping = match index.mappings.get(mapping_name) {
+                Some(mapping) => mapping,
+                None => {
+                    let mut response = Response::with((status::NotFound, "{\"message\": \"Mapping not found\"}"));
+                    response.headers.set_raw("Content-Type", vec![b"application/json".to_vec()]);
+                    return Ok(response);
+                }
+            };
+
+            // Load data from body
             let mut payload = String::new();
             req.body.read_to_string(&mut payload).unwrap();
 
@@ -127,7 +160,7 @@ fn main() {
                 }
             };
 
-            // TODO
+            // TODO: Validate and insert document
 
             let mut response = Response::with((status::Ok, "{}"));
             response.headers.set_raw("Content-Type", vec![b"application/json".to_vec()]);
