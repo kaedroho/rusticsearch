@@ -2,6 +2,7 @@ extern crate iron;
 extern crate router;
 
 use std::io::Read;
+use std::sync::{Arc, Mutex};
 use std::collections::HashMap;
 
 use iron::prelude::*;
@@ -20,8 +21,8 @@ impl Index {
 
 
 fn main() {
-    let mut indices = HashMap::new();
-    indices.insert("wagtail", Index::new());
+    let mut indices = Arc::new(Mutex::new(HashMap::new()));
+    indices.lock().unwrap().insert("wagtail", Index::new());
 
     let mut router = Router::new();
 
@@ -29,46 +30,58 @@ fn main() {
         Ok(Response::with((status::Ok, "Hello World!")))
     });
 
-    router.get("/:index/_count", |req: &mut Request| -> IronResult<Response> {
-        let ref index = req.extensions.get::<Router>().unwrap().find("index").unwrap_or("");
+    {
+        let indices = indices.clone();
 
-        let mut payload = String::new();
-        req.body.read_to_string(&mut payload).unwrap();
+        router.get("/:index/_count", move |req: &mut Request| -> IronResult<Response> {
+            let ref index = req.extensions.get::<Router>().unwrap().find("index").unwrap_or("");
 
-        // TODO
+            let mut payload = String::new();
+            req.body.read_to_string(&mut payload).unwrap();
 
-        let mut response = Response::with((status::Ok, "{\"count\": 0}"));
-        response.headers.set_raw("Content-Type", vec![b"application/json".to_vec()]);
-        Ok(response)
-    });
+            // TODO
 
-    router.get("/:index/_search", |req: &mut Request| -> IronResult<Response> {
-        let ref index = req.extensions.get::<Router>().unwrap().find("index").unwrap_or("");
+            let mut response = Response::with((status::Ok, "{\"count\": 0}"));
+            response.headers.set_raw("Content-Type", vec![b"application/json".to_vec()]);
+            Ok(response)
+        });
+    }
 
-        let mut payload = String::new();
-        req.body.read_to_string(&mut payload).unwrap();
+    {
+        let indices = indices.clone();
 
-        // TODO
+        router.get("/:index/_search", move |req: &mut Request| -> IronResult<Response> {
+            let ref index = req.extensions.get::<Router>().unwrap().find("index").unwrap_or("");
 
-        let mut response = Response::with((status::Ok, "{\"hits\": {\"total\": 0, \"hits\": []}}"));
-        response.headers.set_raw("Content-Type", vec![b"application/json".to_vec()]);
-        Ok(response)
-    });
+            let mut payload = String::new();
+            req.body.read_to_string(&mut payload).unwrap();
 
-    router.put("/:index/:mapping/:doc", |req: &mut Request| -> IronResult<Response> {
-        let ref index = req.extensions.get::<Router>().unwrap().find("index").unwrap_or("");
-        let ref mapping = req.extensions.get::<Router>().unwrap().find("mapping").unwrap_or("");
-        let ref doc = req.extensions.get::<Router>().unwrap().find("doc").unwrap_or("");
+            // TODO
 
-        let mut payload = String::new();
-        req.body.read_to_string(&mut payload).unwrap();
+            let mut response = Response::with((status::Ok, "{\"hits\": {\"total\": 0, \"hits\": []}}"));
+            response.headers.set_raw("Content-Type", vec![b"application/json".to_vec()]);
+            Ok(response)
+        });
+    }
 
-        // TODO
+    {
+        let indices = indices.clone();
 
-        let mut response = Response::with((status::Ok, "{}"));
-        response.headers.set_raw("Content-Type", vec![b"application/json".to_vec()]);
-        Ok(response)
-    });
+        router.put("/:index/:mapping/:doc", move |req: &mut Request| -> IronResult<Response> {
+            let ref index = req.extensions.get::<Router>().unwrap().find("index").unwrap_or("");
+            let ref mapping = req.extensions.get::<Router>().unwrap().find("mapping").unwrap_or("");
+            let ref doc = req.extensions.get::<Router>().unwrap().find("doc").unwrap_or("");
+
+            let mut payload = String::new();
+            req.body.read_to_string(&mut payload).unwrap();
+
+            // TODO
+
+            let mut response = Response::with((status::Ok, "{}"));
+            response.headers.set_raw("Content-Type", vec![b"application/json".to_vec()]);
+            Ok(response)
+        });
+    }
 
     Iron::new(router).http("localhost:9200").unwrap();
 }
