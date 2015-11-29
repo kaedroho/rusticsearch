@@ -1,5 +1,6 @@
 extern crate iron;
 extern crate router;
+extern crate rustc_serialize;
 
 use std::io::Read;
 use std::sync::{Arc, Mutex};
@@ -8,6 +9,7 @@ use std::collections::HashMap;
 use iron::prelude::*;
 use iron::status;
 use router::Router;
+use rustc_serialize::json::Json;
 
 
 #[derive(Debug)]
@@ -114,6 +116,8 @@ fn main() {
 
             let mut payload = String::new();
             req.body.read_to_string(&mut payload).unwrap();
+
+            let data = Json::from_str(&payload).unwrap();
 
             // TODO
 
