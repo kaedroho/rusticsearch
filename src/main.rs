@@ -96,14 +96,18 @@ fn main() {
             let mut payload = String::new();
             req.body.read_to_string(&mut payload).unwrap();
 
-            let data = match Json::from_str(&payload) {
-                Ok(data) => data,
-                Err(error) => {
-                    // TODO: What specifically is bad about the JSON?
-                    let mut response = Response::with((status::BadRequest, "{\"message\": \"Couldn't parse JSON\"}"));
-                    response.headers.set_raw("Content-Type", vec![b"application/json".to_vec()]);
-                    return Ok(response);
-                }
+            let data = if !payload.is_empty() {
+                Some(match Json::from_str(&payload) {
+                    Ok(data) => data,
+                    Err(error) => {
+                        // TODO: What specifically is bad about the JSON?
+                        let mut response = Response::with((status::BadRequest, "{\"message\": \"Couldn't parse JSON\"}"));
+                        response.headers.set_raw("Content-Type", vec![b"application/json".to_vec()]);
+                        return Ok(response);
+                    }
+                })
+            } else {
+                None
             };
 
             // TODO: Run query
@@ -142,14 +146,18 @@ fn main() {
             let mut payload = String::new();
             req.body.read_to_string(&mut payload).unwrap();
 
-            let data = match Json::from_str(&payload) {
-                Ok(data) => data,
-                Err(error) => {
-                    // TODO: What specifically is bad about the JSON?
-                    let mut response = Response::with((status::BadRequest, "{\"message\": \"Couldn't parse JSON\"}"));
-                    response.headers.set_raw("Content-Type", vec![b"application/json".to_vec()]);
-                    return Ok(response);
-                }
+            let data = if !payload.is_empty() {
+                Some(match Json::from_str(&payload) {
+                    Ok(data) => data,
+                    Err(error) => {
+                        // TODO: What specifically is bad about the JSON?
+                        let mut response = Response::with((status::BadRequest, "{\"message\": \"Couldn't parse JSON\"}"));
+                        response.headers.set_raw("Content-Type", vec![b"application/json".to_vec()]);
+                        return Ok(response);
+                    }
+                })
+            } else {
+                None
             };
 
             // TODO: Run query
@@ -240,19 +248,25 @@ fn main() {
             let mut payload = String::new();
             req.body.read_to_string(&mut payload).unwrap();
 
-            let data = match Json::from_str(&payload) {
-                Ok(data) => data,
-                Err(error) => {
-                    // TODO: What specifically is bad about the JSON?
-                    let mut response = Response::with((status::BadRequest, "{\"message\": \"Couldn't parse JSON\"}"));
-                    response.headers.set_raw("Content-Type", vec![b"application/json".to_vec()]);
-                    return Ok(response);
-                }
+            let data = if !payload.is_empty() {
+                Some(match Json::from_str(&payload) {
+                    Ok(data) => data,
+                    Err(error) => {
+                        // TODO: What specifically is bad about the JSON?
+                        let mut response = Response::with((status::BadRequest, "{\"message\": \"Couldn't parse JSON\"}"));
+                        response.headers.set_raw("Content-Type", vec![b"application/json".to_vec()]);
+                        return Ok(response);
+                    }
+                })
+            } else {
+                None
             };
 
             // Create and insert document
-            let doc = Document::from_json(data);
-            mapping.docs.insert(doc_id.clone().to_owned(), doc);
+            if let Some(data) = data {
+                let doc = Document::from_json(data);
+                mapping.docs.insert(doc_id.clone().to_owned(), doc);
+            }
 
             let mut response = Response::with((status::Ok, "{}"));
             response.headers.set_raw("Content-Type", vec![b"application/json".to_vec()]);
