@@ -66,7 +66,7 @@ fn main() {
     let indices = Arc::new(Mutex::new(HashMap::new()));
     let mut wagtail_index = Index::new();
     wagtail_index.mappings.insert("wagtaildocs_document", Mapping::new());
-    indices.lock().unwrap().insert("wagtail", wagtail_index);
+    indices.lock().unwrap().insert("wagtail".to_owned(), wagtail_index);
 
     let mut router = Router::new();
 
@@ -79,7 +79,7 @@ fn main() {
 
         router.get("/:index/_count", move |req: &mut Request| -> IronResult<Response> {
             // URL parameters
-            let ref index_name = req.extensions.get::<Router>().unwrap().find("index").unwrap_or("");
+            let index_name = req.extensions.get::<Router>().unwrap().find("index").unwrap_or("");
 
             // Lock index array
             let indices = indices.lock().unwrap();
@@ -129,7 +129,7 @@ fn main() {
 
         router.get("/:index/_search", move |req: &mut Request| -> IronResult<Response> {
             // URL parameters
-            let ref index_name = req.extensions.get::<Router>().unwrap().find("index").unwrap_or("");
+            let index_name = req.extensions.get::<Router>().unwrap().find("index").unwrap_or("");
 
             // Lock index array
             let indices = indices.lock().unwrap();
@@ -269,6 +269,43 @@ fn main() {
             }
 
             let mut response = Response::with((status::Ok, "{}"));
+            response.headers.set_raw("Content-Type", vec![b"application/json".to_vec()]);
+            Ok(response)
+        });
+    }
+
+    {
+        let indices = indices.clone();
+
+        router.put("/:index/", move |req: &mut Request| -> IronResult<Response> {
+            // URL parameters
+            let ref index_name = req.extensions.get::<Router>().unwrap().find("index").unwrap_or("");
+
+            // Lock index array
+            let mut indices = indices.lock().unwrap();
+
+            // Load data from body
+            let mut payload = String::new();
+            req.body.read_to_string(&mut payload).unwrap();
+
+            let data = if !payload.is_empty() {
+                Some(match Json::from_str(&payload) {
+                    Ok(data) => data,
+                    Err(error) => {
+                        // TODO: What specifically is bad about the JSON?
+                        let mut response = Response::with((status::BadRequest, "{\"message\": \"Couldn't parse JSON\"}"));
+                        response.headers.set_raw("Content-Type", vec![b"application/json".to_vec()]);
+                        return Ok(response);
+                    }
+                })
+            } else {
+                None
+            };
+
+            // Create index
+            indices.insert(index_name.clone().to_owned(), Index::new());
+
+            let mut response = Response::with((status::Ok, "{\"acknowledged\": true}"));
             response.headers.set_raw("Content-Type", vec![b"application/json".to_vec()]);
             Ok(response)
         });
