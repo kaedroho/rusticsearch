@@ -27,6 +27,53 @@ impl Document {
 
 
 #[derive(Debug)]
+enum Filter {
+    Not(Box<Filter>),
+    Or(Vec<Filter>),
+    And(Vec<Filter>),
+    Term(String, String),
+}
+
+
+impl Filter {
+    fn matches(&self, doc: &Document) -> bool {
+        match *self {
+            Filter::Not(ref filter) => !filter.matches(doc),
+            Filter::Or(ref filters) => {
+                for filter in filters.iter() {
+                    if (filter.matches(doc)) {
+                        return true;
+                    }
+                }
+
+                false
+            },
+            Filter::And(ref filters) => {
+                for filter in filters.iter() {
+                    if (!filter.matches(doc)) {
+                        return false;
+                    }
+                }
+
+                true
+            },
+            Filter::Term(ref field, ref value) => {
+                let obj = doc.data.as_object().unwrap();
+
+                if let Some(field_value) = obj.get(field) {
+                    if let Json::String(ref field_value) = *field_value {
+                        return field_value == value
+                    }
+                }
+
+                false
+            }
+        }
+    }
+}
+
+
+#[derive(Debug)]
 struct Mapping {
     pub docs: HashMap<String, Document>,
 }
@@ -66,7 +113,14 @@ fn main() {
     let indices = Arc::new(Mutex::new(HashMap::new()));
     let mut wagtail_index = Index::new();
     wagtail_index.mappings.insert("wagtaildocs_document", Mapping::new());
-    indices.lock().unwrap().insert("wagtail".to_owned(), wagtail_index);
+    indices.lock().unwrap().insert("wagtaildemo".to_owned(), wagtail_index);
+
+    let f = Filter::Or(vec![
+        Filter::Term("title".to_owned(), "test".to_owned()),
+        Filter::Term("title".to_owned(), "foo".to_owned()),
+    ]);
+
+    println!("{:?}", f);
 
     let mut router = Router::new();
 
@@ -265,6 +319,7 @@ fn main() {
             // Create and insert document
             if let Some(data) = data {
                 let doc = Document::from_json(data);
+                println!("{:?}", f.matches(&doc));
                 mapping.docs.insert(doc_id.clone().to_owned(), doc);
             }
 
