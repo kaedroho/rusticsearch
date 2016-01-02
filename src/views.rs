@@ -49,7 +49,8 @@ pub fn view_count(req: &mut Request) -> IronResult<Response> {
             Ok(data) => data,
             Err(error) => {
                 // TODO: What specifically is bad about the JSON?
-                let mut response = Response::with((status::BadRequest, "{\"message\": \"Couldn't parse JSON\"}"));
+                let mut response = Response::with((status::BadRequest,
+                                                   "{\"message\": \"Couldn't parse JSON\"}"));
                 response.headers.set_raw("Content-Type", vec![b"application/json".to_vec()]);
                 return Ok(response);
             }
@@ -98,7 +99,8 @@ pub fn view_search(req: &mut Request) -> IronResult<Response> {
             Ok(data) => data,
             Err(error) => {
                 // TODO: What specifically is bad about the JSON?
-                let mut response = Response::with((status::BadRequest, "{\"message\": \"Couldn't parse JSON\"}"));
+                let mut response = Response::with((status::BadRequest,
+                                                   "{\"message\": \"Couldn't parse JSON\"}"));
                 response.headers.set_raw("Content-Type", vec![b"application/json".to_vec()]);
                 return Ok(response);
             }
@@ -138,7 +140,8 @@ pub fn view_get_doc(req: &mut Request) -> IronResult<Response> {
     let mapping = match index.mappings.get(mapping_name) {
         Some(mapping) => mapping,
         None => {
-            let mut response = Response::with((status::NotFound, "{\"message\": \"Mapping not found\"}"));
+            let mut response = Response::with((status::NotFound,
+                                               "{\"message\": \"Mapping not found\"}"));
             response.headers.set_raw("Content-Type", vec![b"application/json".to_vec()]);
             return Ok(response);
         }
@@ -148,7 +151,8 @@ pub fn view_get_doc(req: &mut Request) -> IronResult<Response> {
     let doc = match mapping.docs.get(doc_id) {
         Some(doc) => doc,
         None => {
-            let mut response = Response::with((status::NotFound, "{\"message\": \"Document not found\"}"));
+            let mut response = Response::with((status::NotFound,
+                                               "{\"message\": \"Document not found\"}"));
             response.headers.set_raw("Content-Type", vec![b"application/json".to_vec()]);
             return Ok(response);
         }
@@ -183,7 +187,8 @@ pub fn view_put_doc(req: &mut Request) -> IronResult<Response> {
     let mut mapping = match index.mappings.get_mut(mapping_name) {
         Some(mapping) => mapping,
         None => {
-            let mut response = Response::with((status::NotFound, "{\"message\": \"Mapping not found\"}"));
+            let mut response = Response::with((status::NotFound,
+                                               "{\"message\": \"Mapping not found\"}"));
             response.headers.set_raw("Content-Type", vec![b"application/json".to_vec()]);
             return Ok(response);
         }
@@ -198,7 +203,8 @@ pub fn view_put_doc(req: &mut Request) -> IronResult<Response> {
             Ok(data) => data,
             Err(error) => {
                 // TODO: What specifically is bad about the JSON?
-                let mut response = Response::with((status::BadRequest, "{\"message\": \"Couldn't parse JSON\"}"));
+                let mut response = Response::with((status::BadRequest,
+                                                   "{\"message\": \"Couldn't parse JSON\"}"));
                 response.headers.set_raw("Content-Type", vec![b"application/json".to_vec()]);
                 return Ok(response);
             }
@@ -237,7 +243,8 @@ pub fn view_put_index(req: &mut Request) -> IronResult<Response> {
             Ok(data) => data,
             Err(error) => {
                 // TODO: What specifically is bad about the JSON?
-                let mut response = Response::with((status::BadRequest, "{\"message\": \"Couldn't parse JSON\"}"));
+                let mut response = Response::with((status::BadRequest,
+                                                   "{\"message\": \"Couldn't parse JSON\"}"));
                 response.headers.set_raw("Content-Type", vec![b"application/json".to_vec()]);
                 return Ok(response);
             }
@@ -282,7 +289,8 @@ pub fn view_put_mapping(req: &mut Request) -> IronResult<Response> {
             Ok(data) => data,
             Err(error) => {
                 // TODO: What specifically is bad about the JSON?
-                let mut response = Response::with((status::BadRequest, "{\"message\": \"Couldn't parse JSON\"}"));
+                let mut response = Response::with((status::BadRequest,
+                                                   "{\"message\": \"Couldn't parse JSON\"}"));
                 response.headers.set_raw("Content-Type", vec![b"application/json".to_vec()]);
                 return Ok(response);
             }

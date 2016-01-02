@@ -22,9 +22,7 @@ struct Document {
 
 impl Document {
     fn from_json(data: Json) -> Document {
-        Document{
-            data: data,
-        }
+        Document { data: data }
     }
 }
 
@@ -36,9 +34,7 @@ struct Mapping {
 
 impl Mapping {
     fn new() -> Mapping {
-        Mapping{
-            docs: HashMap::new(),
-        }
+        Mapping { docs: HashMap::new() }
     }
 }
 
@@ -51,9 +47,7 @@ struct Index {
 
 impl Index {
     fn new() -> Index {
-        Index{
-            mappings: HashMap::new(),
-        }
+        Index { mappings: HashMap::new() }
     }
 }
 
@@ -65,9 +59,7 @@ struct Globals {
 
 impl Globals {
     fn new() -> Globals {
-        Globals {
-            indices: Mutex::new(HashMap::new())
-        }
+        Globals { indices: Mutex::new(HashMap::new()) }
     }
 }
 

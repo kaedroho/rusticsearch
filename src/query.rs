@@ -24,7 +24,7 @@ impl Filter {
                 }
 
                 false
-            },
+            }
             Filter::And(ref filters) => {
                 for filter in filters.iter() {
                     if (!filter.matches(doc)) {
@@ -33,13 +33,13 @@ impl Filter {
                 }
 
                 true
-            },
+            }
             Filter::Term(ref field, ref value) => {
                 let obj = doc.data.as_object().unwrap();
 
                 if let Some(field_value) = obj.get(field) {
                     if let Json::String(ref field_value) = *field_value {
-                        return field_value == value
+                        return field_value == value;
                     }
                 }
 
