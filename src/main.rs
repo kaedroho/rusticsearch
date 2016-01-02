@@ -106,9 +106,11 @@ impl Index {
     }
 }
 
+
 struct Globals {
     pub indices: Mutex<HashMap<String, Index>>,
 }
+
 
 impl Globals {
     fn new() -> Globals {
@@ -118,8 +120,10 @@ impl Globals {
     }
 }
 
-impl Key for Globals { type Value = Globals; }
 
+impl Key for Globals {
+    type Value = Globals;
+}
 
 
 fn main() {
