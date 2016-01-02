@@ -127,13 +127,6 @@ impl Key for Globals {
 
 
 fn main() {
-    let f = Filter::Or(vec![
-        Filter::Term("title".to_owned(), "test".to_owned()),
-        Filter::Term("title".to_owned(), "foo".to_owned()),
-    ]);
-
-    println!("{:?}", f);
-
     let router = views::get_router();
     let mut chain = Chain::new(router);
     chain.link(persistent::Read::<Globals>::both(Globals::new()));
