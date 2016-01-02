@@ -101,6 +101,17 @@ impl Index {
     }
 }
 
+struct Globals {
+    pub indices: Mutex<HashMap<String, Index>>,
+}
+
+impl Globals {
+    fn new() -> Globals {
+        Globals {
+            indices: Mutex::new(HashMap::new())
+        }
+    }
+}
 
 fn index_not_found_response() -> Response {
     let mut response = Response::with((status::NotFound, "{\"message\": \"Index not found\"}"));
@@ -110,10 +121,10 @@ fn index_not_found_response() -> Response {
 
 
 fn main() {
-    let indices = Arc::new(Mutex::new(HashMap::new()));
+    let glob = Arc::new(Globals::new());
     let mut wagtail_index = Index::new();
     wagtail_index.mappings.insert("wagtaildocs_document".to_owned(), Mapping::new());
-    indices.lock().unwrap().insert("wagtaildemo".to_owned(), wagtail_index);
+    glob.indices.lock().unwrap().insert("wagtaildemo".to_owned(), wagtail_index);
 
     let f = Filter::Or(vec![
         Filter::Term("title".to_owned(), "test".to_owned()),
@@ -129,14 +140,14 @@ fn main() {
     });
 
     {
-        let indices = indices.clone();
+        let glob = glob.clone();
 
         router.get("/:index/_count", move |req: &mut Request| -> IronResult<Response> {
             // URL parameters
             let index_name = req.extensions.get::<Router>().unwrap().find("index").unwrap_or("");
 
             // Lock index array
-            let indices = indices.lock().unwrap();
+            let indices = glob.indices.lock().unwrap();
 
             // Find index
             let index = match indices.get(index_name) {
@@ -179,14 +190,14 @@ fn main() {
     }
 
     {
-        let indices = indices.clone();
+        let glob = glob.clone();
 
         router.get("/:index/_search", move |req: &mut Request| -> IronResult<Response> {
             // URL parameters
             let index_name = req.extensions.get::<Router>().unwrap().find("index").unwrap_or("");
 
             // Lock index array
-            let indices = indices.lock().unwrap();
+            let indices = glob.indices.lock().unwrap();
 
             // Find index
             let index = match indices.get(index_name) {
@@ -223,7 +234,7 @@ fn main() {
     }
 
     {
-        let indices = indices.clone();
+        let glob = glob.clone();
 
         router.get("/:index/:mapping/:doc", move |req: &mut Request| -> IronResult<Response> {
             // URL parameters
@@ -232,7 +243,7 @@ fn main() {
             let doc_id = req.extensions.get::<Router>().unwrap().find("doc").unwrap_or("");
 
             // Lock index array
-            let indices = indices.lock().unwrap();
+            let indices = glob.indices.lock().unwrap();
 
             // Find index
             let index = match indices.get(index_name) {
@@ -269,7 +280,7 @@ fn main() {
     }
 
     {
-        let indices = indices.clone();
+        let glob = glob.clone();
 
         router.put("/:index/:mapping/:doc", move |req: &mut Request| -> IronResult<Response> {
             // URL parameters
@@ -278,7 +289,7 @@ fn main() {
             let ref doc_id = req.extensions.get::<Router>().unwrap().find("doc").unwrap_or("");
 
             // Lock index array
-            let mut indices = indices.lock().unwrap();
+            let mut indices = glob.indices.lock().unwrap();
 
             // Find index
             let mut index = match indices.get_mut(index_name) {
@@ -330,14 +341,14 @@ fn main() {
     }
 
     {
-        let indices = indices.clone();
+        let glob = glob.clone();
 
         router.put("/:index", move |req: &mut Request| -> IronResult<Response> {
             // URL parameters
             let ref index_name = req.extensions.get::<Router>().unwrap().find("index").unwrap_or("");
 
             // Lock index array
-            let mut indices = indices.lock().unwrap();
+            let mut indices = glob.indices.lock().unwrap();
 
             // Load data from body
             let mut payload = String::new();
@@ -367,7 +378,7 @@ fn main() {
     }
 
     {
-        let indices = indices.clone();
+        let glob = glob.clone();
 
         router.put("/:index/_mapping/:mapping", move |req: &mut Request| -> IronResult<Response> {
             // URL parameters
@@ -375,7 +386,7 @@ fn main() {
             let ref mapping_name = req.extensions.get::<Router>().unwrap().find("mapping").unwrap_or("");
 
             // Lock index array
-            let mut indices = indices.lock().unwrap();
+            let mut indices = glob.indices.lock().unwrap();
 
             // Find index
             let mut index = match indices.get_mut(index_name) {
@@ -413,11 +424,11 @@ fn main() {
     }
 
     {
-        let indices = indices.clone();
+        let glob = glob.clone();
 
         router.post("/_bulk", move |req: &mut Request| -> IronResult<Response> {
             // Lock index array
-            let mut indices = indices.lock().unwrap();
+            let mut indices = glob.indices.lock().unwrap();
 
             // Load data from body
             let mut payload = String::new();
