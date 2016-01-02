@@ -5,7 +5,7 @@ extern crate persistent;
 extern crate rustc_serialize;
 
 mod views;
-mod filters;
+mod query;
 
 use std::io::Read;
 use std::sync::{Arc, Mutex};
