@@ -6,4 +6,5 @@ authors = ["Karl Hobley <karlhobley10@gmail.com>"]
 [dependencies]
 iron = "*"
 router = "*"
+persistent = "*"
 rustc-serialize = "0.3"

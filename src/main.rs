@@ -1,5 +1,6 @@
 extern crate iron;
 extern crate router;
+extern crate persistent;
 extern crate rustc_serialize;
 
 use std::io::Read;
@@ -7,6 +8,7 @@ use std::sync::{Arc, Mutex};
 use std::collections::HashMap;
 
 use iron::prelude::*;
+use iron::typemap::Key;
 use iron::status;
 use router::Router;
 use rustc_serialize::json::{self, Json};
@@ -113,6 +115,8 @@ impl Globals {
     }
 }
 
+impl Key for Globals { type Value = Globals; }
+
 fn index_not_found_response() -> Response {
     let mut response = Response::with((status::NotFound, "{\"message\": \"Index not found\"}"));
     response.headers.set_raw("Content-Type", vec![b"application/json".to_vec()]);
@@ -121,11 +125,6 @@ fn index_not_found_response() -> Response {
 
 
 fn main() {
-    let glob = Arc::new(Globals::new());
-    let mut wagtail_index = Index::new();
-    wagtail_index.mappings.insert("wagtaildocs_document".to_owned(), Mapping::new());
-    glob.indices.lock().unwrap().insert("wagtaildemo".to_owned(), wagtail_index);
-
     let f = Filter::Or(vec![
         Filter::Term("title".to_owned(), "test".to_owned()),
         Filter::Term("title".to_owned(), "foo".to_owned()),
@@ -139,314 +138,303 @@ fn main() {
         Ok(Response::with((status::Ok, "Hello World!")))
     });
 
-    {
-        let glob = glob.clone();
+    router.get("/:index/_count", move |req: &mut Request| -> IronResult<Response> {
+        let ref glob = req.get::<persistent::Read<Globals>>().unwrap();
 
-        router.get("/:index/_count", move |req: &mut Request| -> IronResult<Response> {
-            // URL parameters
-            let index_name = req.extensions.get::<Router>().unwrap().find("index").unwrap_or("");
+        // URL parameters
+        let index_name = req.extensions.get::<Router>().unwrap().find("index").unwrap_or("");
 
-            // Lock index array
-            let indices = glob.indices.lock().unwrap();
+        // Lock index array
+        let indices = glob.indices.lock().unwrap();
 
-            // Find index
-            let index = match indices.get(index_name) {
-                Some(index) => index,
-                None => {
-                    return Ok(index_not_found_response());
-                }
-            };
-
-            // Load query from body
-            let mut payload = String::new();
-            req.body.read_to_string(&mut payload).unwrap();
-
-            let data = if !payload.is_empty() {
-                Some(match Json::from_str(&payload) {
-                    Ok(data) => data,
-                    Err(error) => {
-                        // TODO: What specifically is bad about the JSON?
-                        let mut response = Response::with((status::BadRequest, "{\"message\": \"Couldn't parse JSON\"}"));
-                        response.headers.set_raw("Content-Type", vec![b"application/json".to_vec()]);
-                        return Ok(response);
-                    }
-                })
-            } else {
-                None
-            };
-
-            // TODO: Run query
-
-            // Temporary count and return numbers
-            let mut count = 0;
-            for mapping in index.mappings.values() {
-                count += mapping.docs.len();
+        // Find index
+        let index = match indices.get(index_name) {
+            Some(index) => index,
+            None => {
+                return Ok(index_not_found_response());
             }
+        };
 
-            let mut response = Response::with((status::Ok, format!("{{\"count\": {}}}", count)));
-            response.headers.set_raw("Content-Type", vec![b"application/json".to_vec()]);
-            Ok(response)
-        });
-    }
+        // Load query from body
+        let mut payload = String::new();
+        req.body.read_to_string(&mut payload).unwrap();
 
-    {
-        let glob = glob.clone();
-
-        router.get("/:index/_search", move |req: &mut Request| -> IronResult<Response> {
-            // URL parameters
-            let index_name = req.extensions.get::<Router>().unwrap().find("index").unwrap_or("");
-
-            // Lock index array
-            let indices = glob.indices.lock().unwrap();
-
-            // Find index
-            let index = match indices.get(index_name) {
-                Some(index) => index,
-                None => {
-                    return Ok(index_not_found_response());
-                }
-            };
-
-            // Load query from body
-            let mut payload = String::new();
-            req.body.read_to_string(&mut payload).unwrap();
-
-            let data = if !payload.is_empty() {
-                Some(match Json::from_str(&payload) {
-                    Ok(data) => data,
-                    Err(error) => {
-                        // TODO: What specifically is bad about the JSON?
-                        let mut response = Response::with((status::BadRequest, "{\"message\": \"Couldn't parse JSON\"}"));
-                        response.headers.set_raw("Content-Type", vec![b"application/json".to_vec()]);
-                        return Ok(response);
-                    }
-                })
-            } else {
-                None
-            };
-
-            // TODO: Run query
-
-            let mut response = Response::with((status::Ok, "{\"hits\": {\"total\": 0, \"hits\": []}}"));
-            response.headers.set_raw("Content-Type", vec![b"application/json".to_vec()]);
-            Ok(response)
-        });
-    }
-
-    {
-        let glob = glob.clone();
-
-        router.get("/:index/:mapping/:doc", move |req: &mut Request| -> IronResult<Response> {
-            // URL parameters
-            let index_name = req.extensions.get::<Router>().unwrap().find("index").unwrap_or("");
-            let mapping_name = req.extensions.get::<Router>().unwrap().find("mapping").unwrap_or("");
-            let doc_id = req.extensions.get::<Router>().unwrap().find("doc").unwrap_or("");
-
-            // Lock index array
-            let indices = glob.indices.lock().unwrap();
-
-            // Find index
-            let index = match indices.get(index_name) {
-                Some(index) => index,
-                None => {
-                    return Ok(index_not_found_response());
-                }
-            };
-
-            // Find mapping
-            let mapping = match index.mappings.get(mapping_name) {
-                Some(mapping) => mapping,
-                None => {
-                    let mut response = Response::with((status::NotFound, "{\"message\": \"Mapping not found\"}"));
+        let data = if !payload.is_empty() {
+            Some(match Json::from_str(&payload) {
+                Ok(data) => data,
+                Err(error) => {
+                    // TODO: What specifically is bad about the JSON?
+                    let mut response = Response::with((status::BadRequest, "{\"message\": \"Couldn't parse JSON\"}"));
                     response.headers.set_raw("Content-Type", vec![b"application/json".to_vec()]);
                     return Ok(response);
                 }
-            };
+            })
+        } else {
+            None
+        };
 
-            // Find document
-            let doc = match mapping.docs.get(doc_id) {
-                Some(doc) => doc,
-                None => {
-                    let mut response = Response::with((status::NotFound, "{\"message\": \"Document not found\"}"));
+        // TODO: Run query
+
+        // Temporary count and return numbers
+        let mut count = 0;
+        for mapping in index.mappings.values() {
+            count += mapping.docs.len();
+        }
+
+        let mut response = Response::with((status::Ok, format!("{{\"count\": {}}}", count)));
+        response.headers.set_raw("Content-Type", vec![b"application/json".to_vec()]);
+        Ok(response)
+    });
+
+    router.get("/:index/_search", move |req: &mut Request| -> IronResult<Response> {
+        let ref glob = req.get::<persistent::Read<Globals>>().unwrap();
+
+        // URL parameters
+        let index_name = req.extensions.get::<Router>().unwrap().find("index").unwrap_or("");
+
+        // Lock index array
+        let indices = glob.indices.lock().unwrap();
+
+        // Find index
+        let index = match indices.get(index_name) {
+            Some(index) => index,
+            None => {
+                return Ok(index_not_found_response());
+            }
+        };
+
+        // Load query from body
+        let mut payload = String::new();
+        req.body.read_to_string(&mut payload).unwrap();
+
+        let data = if !payload.is_empty() {
+            Some(match Json::from_str(&payload) {
+                Ok(data) => data,
+                Err(error) => {
+                    // TODO: What specifically is bad about the JSON?
+                    let mut response = Response::with((status::BadRequest, "{\"message\": \"Couldn't parse JSON\"}"));
                     response.headers.set_raw("Content-Type", vec![b"application/json".to_vec()]);
                     return Ok(response);
                 }
-            };
+            })
+        } else {
+            None
+        };
 
-            let mut response = Response::with((status::Ok, json::encode(&doc.data).unwrap()));
-            response.headers.set_raw("Content-Type", vec![b"application/json".to_vec()]);
-            Ok(response)
-        });
-    }
+        // TODO: Run query
 
-    {
-        let glob = glob.clone();
+        let mut response = Response::with((status::Ok, "{\"hits\": {\"total\": 0, \"hits\": []}}"));
+        response.headers.set_raw("Content-Type", vec![b"application/json".to_vec()]);
+        Ok(response)
+    });
 
-        router.put("/:index/:mapping/:doc", move |req: &mut Request| -> IronResult<Response> {
-            // URL parameters
-            let index_name = req.extensions.get::<Router>().unwrap().find("index").unwrap_or("");
-            let mapping_name = req.extensions.get::<Router>().unwrap().find("mapping").unwrap_or("");
-            let ref doc_id = req.extensions.get::<Router>().unwrap().find("doc").unwrap_or("");
+    router.get("/:index/:mapping/:doc", move |req: &mut Request| -> IronResult<Response> {
+        let ref glob = req.get::<persistent::Read<Globals>>().unwrap();
 
-            // Lock index array
-            let mut indices = glob.indices.lock().unwrap();
+        // URL parameters
+        let index_name = req.extensions.get::<Router>().unwrap().find("index").unwrap_or("");
+        let mapping_name = req.extensions.get::<Router>().unwrap().find("mapping").unwrap_or("");
+        let doc_id = req.extensions.get::<Router>().unwrap().find("doc").unwrap_or("");
 
-            // Find index
-            let mut index = match indices.get_mut(index_name) {
-                Some(index) => index,
-                None => {
-                    return Ok(index_not_found_response());
-                }
-            };
+        // Lock index array
+        let indices = glob.indices.lock().unwrap();
 
-            // Find mapping
-            let mut mapping = match index.mappings.get_mut(mapping_name) {
-                Some(mapping) => mapping,
-                None => {
-                    let mut response = Response::with((status::NotFound, "{\"message\": \"Mapping not found\"}"));
+        // Find index
+        let index = match indices.get(index_name) {
+            Some(index) => index,
+            None => {
+                return Ok(index_not_found_response());
+            }
+        };
+
+        // Find mapping
+        let mapping = match index.mappings.get(mapping_name) {
+            Some(mapping) => mapping,
+            None => {
+                let mut response = Response::with((status::NotFound, "{\"message\": \"Mapping not found\"}"));
+                response.headers.set_raw("Content-Type", vec![b"application/json".to_vec()]);
+                return Ok(response);
+            }
+        };
+
+        // Find document
+        let doc = match mapping.docs.get(doc_id) {
+            Some(doc) => doc,
+            None => {
+                let mut response = Response::with((status::NotFound, "{\"message\": \"Document not found\"}"));
+                response.headers.set_raw("Content-Type", vec![b"application/json".to_vec()]);
+                return Ok(response);
+            }
+        };
+
+        let mut response = Response::with((status::Ok, json::encode(&doc.data).unwrap()));
+        response.headers.set_raw("Content-Type", vec![b"application/json".to_vec()]);
+        Ok(response)
+    });
+
+    router.put("/:index/:mapping/:doc", move |req: &mut Request| -> IronResult<Response> {
+        let ref glob = req.get::<persistent::Read<Globals>>().unwrap();
+
+        // URL parameters
+        let index_name = req.extensions.get::<Router>().unwrap().find("index").unwrap_or("");
+        let mapping_name = req.extensions.get::<Router>().unwrap().find("mapping").unwrap_or("");
+        let ref doc_id = req.extensions.get::<Router>().unwrap().find("doc").unwrap_or("");
+
+        // Lock index array
+        let mut indices = glob.indices.lock().unwrap();
+
+        // Find index
+        let mut index = match indices.get_mut(index_name) {
+            Some(index) => index,
+            None => {
+                return Ok(index_not_found_response());
+            }
+        };
+
+        // Find mapping
+        let mut mapping = match index.mappings.get_mut(mapping_name) {
+            Some(mapping) => mapping,
+            None => {
+                let mut response = Response::with((status::NotFound, "{\"message\": \"Mapping not found\"}"));
+                response.headers.set_raw("Content-Type", vec![b"application/json".to_vec()]);
+                return Ok(response);
+            }
+        };
+
+        // Load data from body
+        let mut payload = String::new();
+        req.body.read_to_string(&mut payload).unwrap();
+
+        let data = if !payload.is_empty() {
+            Some(match Json::from_str(&payload) {
+                Ok(data) => data,
+                Err(error) => {
+                    // TODO: What specifically is bad about the JSON?
+                    let mut response = Response::with((status::BadRequest, "{\"message\": \"Couldn't parse JSON\"}"));
                     response.headers.set_raw("Content-Type", vec![b"application/json".to_vec()]);
                     return Ok(response);
                 }
-            };
+            })
+        } else {
+            None
+        };
 
-            // Load data from body
-            let mut payload = String::new();
-            req.body.read_to_string(&mut payload).unwrap();
+        // Create and insert document
+        if let Some(data) = data {
+            let doc = Document::from_json(data);
+            println!("{:?}", f.matches(&doc));
+            mapping.docs.insert(doc_id.clone().to_owned(), doc);
+        }
 
-            let data = if !payload.is_empty() {
-                Some(match Json::from_str(&payload) {
-                    Ok(data) => data,
-                    Err(error) => {
-                        // TODO: What specifically is bad about the JSON?
-                        let mut response = Response::with((status::BadRequest, "{\"message\": \"Couldn't parse JSON\"}"));
-                        response.headers.set_raw("Content-Type", vec![b"application/json".to_vec()]);
-                        return Ok(response);
-                    }
-                })
-            } else {
-                None
-            };
+        let mut response = Response::with((status::Ok, "{}"));
+        response.headers.set_raw("Content-Type", vec![b"application/json".to_vec()]);
+        Ok(response)
+    });
 
-            // Create and insert document
-            if let Some(data) = data {
-                let doc = Document::from_json(data);
-                println!("{:?}", f.matches(&doc));
-                mapping.docs.insert(doc_id.clone().to_owned(), doc);
-            }
+    router.put("/:index", move |req: &mut Request| -> IronResult<Response> {
+        let ref glob = req.get::<persistent::Read<Globals>>().unwrap();
 
-            let mut response = Response::with((status::Ok, "{}"));
-            response.headers.set_raw("Content-Type", vec![b"application/json".to_vec()]);
-            Ok(response)
-        });
-    }
+        // URL parameters
+        let ref index_name = req.extensions.get::<Router>().unwrap().find("index").unwrap_or("");
 
-    {
-        let glob = glob.clone();
+        // Lock index array
+        let mut indices = glob.indices.lock().unwrap();
 
-        router.put("/:index", move |req: &mut Request| -> IronResult<Response> {
-            // URL parameters
-            let ref index_name = req.extensions.get::<Router>().unwrap().find("index").unwrap_or("");
+        // Load data from body
+        let mut payload = String::new();
+        req.body.read_to_string(&mut payload).unwrap();
 
-            // Lock index array
-            let mut indices = glob.indices.lock().unwrap();
-
-            // Load data from body
-            let mut payload = String::new();
-            req.body.read_to_string(&mut payload).unwrap();
-
-            let data = if !payload.is_empty() {
-                Some(match Json::from_str(&payload) {
-                    Ok(data) => data,
-                    Err(error) => {
-                        // TODO: What specifically is bad about the JSON?
-                        let mut response = Response::with((status::BadRequest, "{\"message\": \"Couldn't parse JSON\"}"));
-                        response.headers.set_raw("Content-Type", vec![b"application/json".to_vec()]);
-                        return Ok(response);
-                    }
-                })
-            } else {
-                None
-            };
-
-            // Create index
-            indices.insert(index_name.clone().to_owned(), Index::new());
-
-            let mut response = Response::with((status::Ok, "{\"acknowledged\": true}"));
-            response.headers.set_raw("Content-Type", vec![b"application/json".to_vec()]);
-            Ok(response)
-        });
-    }
-
-    {
-        let glob = glob.clone();
-
-        router.put("/:index/_mapping/:mapping", move |req: &mut Request| -> IronResult<Response> {
-            // URL parameters
-            let index_name = req.extensions.get::<Router>().unwrap().find("index").unwrap_or("");
-            let ref mapping_name = req.extensions.get::<Router>().unwrap().find("mapping").unwrap_or("");
-
-            // Lock index array
-            let mut indices = glob.indices.lock().unwrap();
-
-            // Find index
-            let mut index = match indices.get_mut(index_name) {
-                Some(index) => index,
-                None => {
-                    return Ok(index_not_found_response());
+        let data = if !payload.is_empty() {
+            Some(match Json::from_str(&payload) {
+                Ok(data) => data,
+                Err(error) => {
+                    // TODO: What specifically is bad about the JSON?
+                    let mut response = Response::with((status::BadRequest, "{\"message\": \"Couldn't parse JSON\"}"));
+                    response.headers.set_raw("Content-Type", vec![b"application/json".to_vec()]);
+                    return Ok(response);
                 }
-            };
+            })
+        } else {
+            None
+        };
 
-            // Load data from body
-            let mut payload = String::new();
-            req.body.read_to_string(&mut payload).unwrap();
+        // Create index
+        indices.insert(index_name.clone().to_owned(), Index::new());
 
+        let mut response = Response::with((status::Ok, "{\"acknowledged\": true}"));
+        response.headers.set_raw("Content-Type", vec![b"application/json".to_vec()]);
+        Ok(response)
+    });
+
+    router.put("/:index/_mapping/:mapping", move |req: &mut Request| -> IronResult<Response> {
+        let ref glob = req.get::<persistent::Read<Globals>>().unwrap();
+
+        // URL parameters
+        let index_name = req.extensions.get::<Router>().unwrap().find("index").unwrap_or("");
+        let ref mapping_name = req.extensions.get::<Router>().unwrap().find("mapping").unwrap_or("");
+
+        // Lock index array
+        let mut indices = glob.indices.lock().unwrap();
+
+        // Find index
+        let mut index = match indices.get_mut(index_name) {
+            Some(index) => index,
+            None => {
+                return Ok(index_not_found_response());
+            }
+        };
+
+        // Load data from body
+        let mut payload = String::new();
+        req.body.read_to_string(&mut payload).unwrap();
+
+        let data = if !payload.is_empty() {
+            Some(match Json::from_str(&payload) {
+                Ok(data) => data,
+                Err(error) => {
+                    // TODO: What specifically is bad about the JSON?
+                    let mut response = Response::with((status::BadRequest, "{\"message\": \"Couldn't parse JSON\"}"));
+                    response.headers.set_raw("Content-Type", vec![b"application/json".to_vec()]);
+                    return Ok(response);
+                }
+            })
+        } else {
+            None
+        };
+
+        // Insert mapping
+        index.mappings.insert(mapping_name.clone().to_owned(), Mapping::new());
+
+        let mut response = Response::with((status::Ok, "{\"acknowledged\": true}"));
+        response.headers.set_raw("Content-Type", vec![b"application/json".to_vec()]);
+        Ok(response)
+    });
+
+    router.post("/_bulk", move |req: &mut Request| -> IronResult<Response> {
+        let ref glob = req.get::<persistent::Read<Globals>>().unwrap();
+
+        // Lock index array
+        let mut indices = glob.indices.lock().unwrap();
+
+        // Load data from body
+        let mut payload = String::new();
+        req.body.read_to_string(&mut payload).unwrap();
+
+        for payload_part in payload.split('\n') {
             let data = if !payload.is_empty() {
-                Some(match Json::from_str(&payload) {
-                    Ok(data) => data,
-                    Err(error) => {
-                        // TODO: What specifically is bad about the JSON?
-                        let mut response = Response::with((status::BadRequest, "{\"message\": \"Couldn't parse JSON\"}"));
-                        response.headers.set_raw("Content-Type", vec![b"application/json".to_vec()]);
-                        return Ok(response);
-                    }
-                })
+                Some(Json::from_str(&payload))
             } else {
                 None
             };
+        }
 
-            // Insert mapping
-            index.mappings.insert(mapping_name.clone().to_owned(), Mapping::new());
+        let mut response = Response::with((status::Ok, "{\"acknowledged\": true}"));
+        response.headers.set_raw("Content-Type", vec![b"application/json".to_vec()]);
+        Ok(response)
+    });
 
-            let mut response = Response::with((status::Ok, "{\"acknowledged\": true}"));
-            response.headers.set_raw("Content-Type", vec![b"application/json".to_vec()]);
-            Ok(response)
-        });
-    }
+    let mut chain = Chain::new(router);
+    chain.link(persistent::Read::<Globals>::both(Globals::new()));
 
-    {
-        let glob = glob.clone();
-
-        router.post("/_bulk", move |req: &mut Request| -> IronResult<Response> {
-            // Lock index array
-            let mut indices = glob.indices.lock().unwrap();
-
-            // Load data from body
-            let mut payload = String::new();
-            req.body.read_to_string(&mut payload).unwrap();
-
-            for payload_part in payload.split('\n') {
-                let data = if !payload.is_empty() {
-                    Some(Json::from_str(&payload))
-                } else {
-                    None
-                };
-            }
-
-            let mut response = Response::with((status::Ok, "{\"acknowledged\": true}"));
-            response.headers.set_raw("Content-Type", vec![b"application/json".to_vec()]);
-            Ok(response)
-        });
-    }
-
-    Iron::new(router).http("localhost:9200").unwrap();
+    Iron::new(chain).http("localhost:9200").unwrap();
 }
