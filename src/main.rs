@@ -89,7 +89,7 @@ impl Mapping {
 
 #[derive(Debug)]
 struct Index {
-    pub mappings: HashMap<&'static str, Mapping>,
+    pub mappings: HashMap<String, Mapping>,
 }
 
 
@@ -112,7 +112,7 @@ fn index_not_found_response() -> Response {
 fn main() {
     let indices = Arc::new(Mutex::new(HashMap::new()));
     let mut wagtail_index = Index::new();
-    wagtail_index.mappings.insert("wagtaildocs_document", Mapping::new());
+    wagtail_index.mappings.insert("wagtaildocs_document".to_owned(), Mapping::new());
     indices.lock().unwrap().insert("wagtaildemo".to_owned(), wagtail_index);
 
     let f = Filter::Or(vec![
@@ -359,6 +359,52 @@ fn main() {
 
             // Create index
             indices.insert(index_name.clone().to_owned(), Index::new());
+
+            let mut response = Response::with((status::Ok, "{\"acknowledged\": true}"));
+            response.headers.set_raw("Content-Type", vec![b"application/json".to_vec()]);
+            Ok(response)
+        });
+    }
+
+    {
+        let indices = indices.clone();
+
+        router.put("/:index/_mapping/:mapping", move |req: &mut Request| -> IronResult<Response> {
+            // URL parameters
+            let index_name = req.extensions.get::<Router>().unwrap().find("index").unwrap_or("");
+            let ref mapping_name = req.extensions.get::<Router>().unwrap().find("mapping").unwrap_or("");
+
+            // Lock index array
+            let mut indices = indices.lock().unwrap();
+
+            // Find index
+            let mut index = match indices.get_mut(index_name) {
+                Some(index) => index,
+                None => {
+                    return Ok(index_not_found_response());
+                }
+            };
+
+            // Load data from body
+            let mut payload = String::new();
+            req.body.read_to_string(&mut payload).unwrap();
+
+            let data = if !payload.is_empty() {
+                Some(match Json::from_str(&payload) {
+                    Ok(data) => data,
+                    Err(error) => {
+                        // TODO: What specifically is bad about the JSON?
+                        let mut response = Response::with((status::BadRequest, "{\"message\": \"Couldn't parse JSON\"}"));
+                        response.headers.set_raw("Content-Type", vec![b"application/json".to_vec()]);
+                        return Ok(response);
+                    }
+                })
+            } else {
+                None
+            };
+
+            // Insert mapping
+            index.mappings.insert(mapping_name.clone().to_owned(), Mapping::new());
 
             let mut response = Response::with((status::Ok, "{\"acknowledged\": true}"));
             response.headers.set_raw("Content-Type", vec![b"application/json".to_vec()]);
