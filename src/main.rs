@@ -332,7 +332,7 @@ fn main() {
     {
         let indices = indices.clone();
 
-        router.put("/:index/", move |req: &mut Request| -> IronResult<Response> {
+        router.put("/:index", move |req: &mut Request| -> IronResult<Response> {
             // URL parameters
             let ref index_name = req.extensions.get::<Router>().unwrap().find("index").unwrap_or("");
 
