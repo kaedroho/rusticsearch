@@ -1,6 +1,6 @@
-use super::Document;
-
 use rustc_serialize::json::Json;
+
+use super::Document;
 
 
 #[derive(Debug)]
