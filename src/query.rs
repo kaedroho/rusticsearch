@@ -18,7 +18,7 @@ impl Filter {
             Filter::Not(ref filter) => !filter.matches(doc),
             Filter::Or(ref filters) => {
                 for filter in filters.iter() {
-                    if (filter.matches(doc)) {
+                    if filter.matches(doc) {
                         return true;
                     }
                 }
@@ -27,7 +27,7 @@ impl Filter {
             }
             Filter::And(ref filters) => {
                 for filter in filters.iter() {
-                    if (!filter.matches(doc)) {
+                    if !filter.matches(doc) {
                         return false;
                     }
                 }
