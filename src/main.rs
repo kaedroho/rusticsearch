@@ -7,15 +7,12 @@ extern crate rustc_serialize;
 mod views;
 mod query;
 
-use std::io::Read;
-use std::sync::{Arc, Mutex};
+use std::sync::Mutex;
 use std::collections::HashMap;
 
 use iron::prelude::*;
 use iron::typemap::Key;
-use iron::status;
-use router::Router;
-use rustc_serialize::json::{self, Json};
+use rustc_serialize::json::Json;
 
 
 #[derive(Debug)]
