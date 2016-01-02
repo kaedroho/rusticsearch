@@ -412,5 +412,30 @@ fn main() {
         });
     }
 
+    {
+        let indices = indices.clone();
+
+        router.post("/_bulk", move |req: &mut Request| -> IronResult<Response> {
+            // Lock index array
+            let mut indices = indices.lock().unwrap();
+
+            // Load data from body
+            let mut payload = String::new();
+            req.body.read_to_string(&mut payload).unwrap();
+
+            for payload_part in payload.split('\n') {
+                let data = if !payload.is_empty() {
+                    Some(Json::from_str(&payload))
+                } else {
+                    None
+                };
+            }
+
+            let mut response = Response::with((status::Ok, "{\"acknowledged\": true}"));
+            response.headers.set_raw("Content-Type", vec![b"application/json".to_vec()]);
+            Ok(response)
+        });
+    }
+
     Iron::new(router).http("localhost:9200").unwrap();
 }
