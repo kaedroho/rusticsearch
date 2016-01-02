@@ -8,7 +8,7 @@ use iron::status;
 use router::Router;
 use rustc_serialize::json::{self, Json};
 
-use super::{Globals, Index, Mapping, Document};
+use super::{Globals, Index, Mapping, Document, query};
 
 
 fn index_not_found_response() -> Response {
@@ -59,6 +59,8 @@ pub fn view_count(req: &mut Request) -> IronResult<Response> {
         None
     };
 
+    println!("{:?}", query::parse_query(data.unwrap().as_object().unwrap().get("query").unwrap()));
+
     // TODO: Run query
 
     // Temporary count and return numbers
@@ -108,6 +110,8 @@ pub fn view_search(req: &mut Request) -> IronResult<Response> {
     } else {
         None
     };
+
+    println!("{:?}", query::parse_query(data.unwrap().as_object().unwrap().get("query").unwrap()));
 
     // TODO: Run query
 
