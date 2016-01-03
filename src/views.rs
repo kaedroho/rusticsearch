@@ -2,6 +2,7 @@ extern crate router;
 extern crate persistent;
 
 use std::io::Read;
+use std::collections::HashMap;
 
 use iron::prelude::*;
 use iron::status;
@@ -329,15 +330,88 @@ pub fn view_post_bulk(req: &mut Request) -> IronResult<Response> {
     let mut payload = String::new();
     req.body.read_to_string(&mut payload).unwrap();
 
-    for payload_part in payload.split('\n') {
-        let data = if !payload.is_empty() {
-            Some(Json::from_str(&payload))
-        } else {
-            None
+    let mut items = Vec::new();
+
+    // Iterate
+    let mut payload_lines = payload.split('\n');
+    loop {
+        let action_line = payload_lines.next();
+
+        // Check if end of input
+        if action_line == None || action_line == Some("") { break; }
+
+        // Parse action line
+        let action_json = match Json::from_str(&action_line.unwrap()) {
+            Ok(data) => data,
+            Err(error) => {
+                // TODO: What specifically is bad about the JSON?
+                let mut response = Response::with((status::BadRequest,
+                                                   "{\"message\": \"Couldn't parse JSON\"}"));
+                response.headers.set_raw("Content-Type", vec![b"application/json".to_vec()]);
+                return Ok(response);
+            }
         };
+
+        // Check action
+        // Action should be an object with only one key, the key name indicates the action and
+        // the value is the parameters for that action
+        let action_name = action_json.as_object().unwrap().keys().nth(0).unwrap();
+        let action_params = action_json.as_object().unwrap().get(action_name).unwrap()
+                                                            .as_object().unwrap();
+
+        let doc_id = action_params.get("_id").unwrap().as_string().unwrap();
+        let doc_type = action_params.get("_type").unwrap().as_string().unwrap();
+        let doc_index = action_params.get("_index").unwrap().as_string().unwrap();
+
+        match action_name.as_ref() {
+            "index" => {
+                let doc_line = payload_lines.next();
+                let doc_json =  match Json::from_str(&doc_line.unwrap()) {
+                    Ok(data) => data,
+                    Err(error) => {
+                        // TODO: What specifically is bad about the JSON?
+                        let mut response = Response::with((status::BadRequest,
+                                                           "{\"message\": \"Couldn't parse JSON\"}"));
+                        response.headers.set_raw("Content-Type", vec![b"application/json".to_vec()]);
+                        return Ok(response);
+                    }
+                };
+
+                // Find index
+                let mut index = match indices.get_mut(doc_index) {
+                    Some(index) => index,
+                    None => {
+                        return Ok(index_not_found_response());
+                    }
+                };
+
+                // Find mapping
+                let mut mapping = match index.mappings.get_mut(doc_type) {
+                    Some(mapping) => mapping,
+                    None => {
+                        let mut response = Response::with((status::NotFound,
+                                                           "{\"message\": \"Mapping not found\"}"));
+                        response.headers.set_raw("Content-Type", vec![b"application/json".to_vec()]);
+                        return Ok(response);
+                    }
+                };
+
+                // Create and insert document
+                let doc = Document::from_json(doc_json);
+                mapping.docs.insert(doc_id.clone().to_owned(), doc);
+
+                // Insert into "items" array
+                let mut item = HashMap::new();
+                item.insert("create", action_params.clone());
+                items.push(item);
+            }
+            _ => {
+                println!("Unrecognised action! {}", action_name);
+            }
+        }
     }
 
-    let mut response = Response::with((status::Ok, "{\"acknowledged\": true}"));
+    let mut response = Response::with((status::Ok, format!("{{\"took\": {}, \"items\": {}}}", items.len(), json::encode(&items).unwrap())));
     response.headers.set_raw("Content-Type", vec![b"application/json".to_vec()]);
     Ok(response)
 }
