@@ -5,21 +5,34 @@ use super::Document;
 
 #[derive(Debug)]
 pub enum Filter {
-    Not(Box<Filter>),
-    Or(Vec<Filter>),
-    And(Vec<Filter>),
     Term(String, String),
+    Prefix(String, String),
+    And(Vec<Filter>),
+    Or(Vec<Filter>),
+    Not(Box<Filter>),
 }
 
 
 impl Filter {
     pub fn matches(&self, doc: &Document) -> bool {
         match *self {
-            Filter::Not(ref filter) => !filter.matches(doc),
-            Filter::Or(ref filters) => {
-                for filter in filters.iter() {
-                    if filter.matches(doc) {
-                        return true;
+            Filter::Term(ref field, ref value) => {
+                let obj = doc.data.as_object().unwrap();
+
+                if let Some(field_value) = obj.get(field) {
+                    if let Json::String(ref field_value) = *field_value {
+                        return field_value == value;
+                    }
+                }
+
+                false
+            }
+            Filter::Prefix(ref field, ref value) => {
+                let obj = doc.data.as_object().unwrap();
+
+                if let Some(field_value) = obj.get(field) {
+                    if let Json::String(ref field_value) = *field_value {
+                        return field_value.starts_with(value);
                     }
                 }
 
@@ -34,32 +47,58 @@ impl Filter {
 
                 true
             }
-            Filter::Term(ref field, ref value) => {
-                let obj = doc.data.as_object().unwrap();
-
-                if let Some(field_value) = obj.get(field) {
-                    if let Json::String(ref field_value) = *field_value {
-                        return field_value == value;
+            Filter::Or(ref filters) => {
+                for filter in filters.iter() {
+                    if filter.matches(doc) {
+                        return true;
                     }
                 }
 
                 false
             }
+            Filter::Not(ref filter) => !filter.matches(doc),
         }
     }
 }
 
+pub fn parse_filter(json: &Json) -> Filter {
+    let filter_json = json.as_object().unwrap();
+    let first_key = filter_json.keys().nth(0).unwrap();
+
+    if first_key == "term" {
+        let filter_json = filter_json.get("term").unwrap().as_object().unwrap();
+        let first_key = filter_json.keys().nth(0).unwrap();
+
+        // TODO: needs a type system
+        Filter::Term(first_key.clone(), "not implemented".to_owned())
+    } else if first_key == "prefix" {
+        let filter_json = filter_json.get("prefix").unwrap().as_object().unwrap();
+        let first_key = filter_json.keys().nth(0).unwrap();
+        let value = filter_json.get(first_key).unwrap().as_string().unwrap();
+
+        Filter::Prefix(first_key.clone(), value.to_owned())
+    } else if first_key == "and" {
+        Filter::And(filter_json.get("and").unwrap()
+                               .as_array().unwrap()
+                               .iter().map(|f| parse_filter(f))
+                               .collect::<Vec<_>>(),)
+    } else if first_key == "or" {
+        Filter::Or(filter_json.get("or").unwrap()
+                               .as_array().unwrap()
+                               .iter().map(|f| parse_filter(f))
+                               .collect::<Vec<_>>(),)
+    } else if first_key == "not" {
+        Filter::Not(Box::new(parse_filter(filter_json.get("not").unwrap())))
+    } else {
+        Filter::Term("not".to_owned(), "implemented".to_owned())
+    }
+}
 
 #[derive(Debug)]
 pub enum Query {
     Match{field: String, query: String},
     MultiMatch{fields: Vec<String>, query: String},
     Filtered{query: Box<Query>, filter: Box<Filter>},
-}
-
-
-pub fn parse_filter(json: &Json) -> Filter {
-    Filter::Term("not".to_owned(), "implemented".to_owned())
 }
 
 pub fn parse_match_query(json: &Json) -> Query {
