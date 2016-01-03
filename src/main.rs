@@ -6,6 +6,8 @@ extern crate rustc_serialize;
 
 mod views;
 mod query;
+mod types;
+mod mapping;
 
 use std::sync::Mutex;
 use std::collections::HashMap;
@@ -30,11 +32,24 @@ impl Document {
 #[derive(Debug)]
 struct Mapping {
     pub docs: HashMap<String, Document>,
+    pub fields: HashMap<String, mapping::FieldMapping>,
 }
 
 impl Mapping {
-    fn new() -> Mapping {
-        Mapping { docs: HashMap::new() }
+    fn from_json(json: &Json) -> Mapping {
+        let json = json.as_object().unwrap();
+        let properties_json = json.get("properties").unwrap().as_object().unwrap();
+
+        // Parse fields
+        let mut fields = HashMap::new();
+        for (field_name, field_mapping_json) in properties_json.iter() {
+            fields.insert(field_name.clone(), mapping::FieldMapping::from_json(field_mapping_json));
+        }
+
+        Mapping {
+            docs: HashMap::new(),
+            fields: fields,
+        }
     }
 }
 
