@@ -26,6 +26,28 @@ impl Default for FieldMapping {
 }
 
 
+fn parse_boolean(json: &Json) -> bool {
+    match *json {
+        Json::Boolean(val) => val,
+        Json::String(ref s) => {
+            match s.as_ref() {
+                "yes" => true,
+                "no" => false,
+                _ => {
+                    println!("bad boolean value {:?}", s);
+                    false
+                }
+            }
+        }
+        _ => {
+            // TODO: Raise error
+            println!("bad boolean value {:?}", json);
+            false
+        }
+    }
+}
+
+
 impl FieldMapping {
     pub fn from_json(json: &Json) -> FieldMapping {
         let json = json.as_object().unwrap();
@@ -49,19 +71,25 @@ impl FieldMapping {
                     };
                 }
                 "index" => {
-
+                    let index = value.as_string().unwrap();
+                    if index == "not_analyzed" {
+                        field_mapping.is_indexed = false;
+                    } else {
+                        // TODO: Implement other variants and make this an error
+                        println!("unimplemented index setting! {}", index);
+                    }
                 }
                 "index_analyzer" => {
-
+                    // TODO
                 }
                 "boost" => {
-
+                    field_mapping.boost = value.as_f64().unwrap();
                 }
                 "store" => {
-
+                    field_mapping.is_stored = parse_boolean(value);
                 }
                 "include_in_all" => {
-
+                    field_mapping.is_in_all = parse_boolean(value);
                 }
                 _ => println!("unimplemented field mapping key! {}", key)
             }
