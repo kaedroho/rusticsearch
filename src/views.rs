@@ -343,6 +343,18 @@ pub fn view_post_bulk(req: &mut Request) -> IronResult<Response> {
 }
 
 
+pub fn view_post_refresh(req: &mut Request) -> IronResult<Response> {
+    let ref glob = req.get::<persistent::Read<Globals>>().unwrap();
+
+    // Lock index array
+    let mut indices = glob.indices.lock().unwrap();
+
+    let mut response = Response::with((status::Ok, "{\"acknowledged\": true}"));
+    response.headers.set_raw("Content-Type", vec![b"application/json".to_vec()]);
+    Ok(response)
+}
+
+
 pub fn get_router() -> Router {
     router!(get "/" => view_home,
             get "/:index/_count" => view_count,
@@ -351,5 +363,6 @@ pub fn get_router() -> Router {
             put "/:index/:mapping/:doc" => view_put_doc,
             put "/:index" => view_put_index,
             put "/:index/_mapping/:mapping" => view_put_mapping,
-            post "/_bulk" => view_post_bulk)
+            post "/_bulk" => view_post_bulk,
+            post ":index/_refresh" => view_post_refresh)
 }
