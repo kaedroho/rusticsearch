@@ -6,7 +6,6 @@ extern crate rustc_serialize;
 
 mod views;
 mod query;
-mod types;
 mod mapping;
 
 use std::sync::Mutex;

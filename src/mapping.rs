@@ -1,11 +1,25 @@
 use rustc_serialize::json::Json;
 
-use super::types::ESType;
+
+#[derive(Debug)]
+pub enum FieldType {
+    String,
+    Binary,
+    Number{bits: u8, is_float: bool},
+    Boolean,
+    Date,
+}
+
+
+impl Default for FieldType {
+    fn default() -> FieldType { FieldType::String }
+}
+
 
 
 #[derive(Debug)]
 pub struct FieldMapping {
-    data_type: ESType,
+    data_type: FieldType,
     is_indexed: bool,
     is_stored: bool,
     is_in_all: bool,
@@ -16,7 +30,7 @@ pub struct FieldMapping {
 impl Default for FieldMapping {
     fn default() -> FieldMapping {
         FieldMapping {
-            data_type: ESType::default(),
+            data_type: FieldType::default(),
             is_indexed: true,
             is_stored: false,
             is_in_all: true,
@@ -59,14 +73,14 @@ impl FieldMapping {
                     let type_name = value.as_string().unwrap();
 
                     field_mapping.data_type = match type_name.as_ref() {
-                        "string" => ESType::String,
-                        "integer" => ESType::Number{bits: 64, is_float: false},
-                        "boolean" => ESType::Boolean,
-                        "date" => ESType::Date,
+                        "string" => FieldType::String,
+                        "integer" => FieldType::Number{bits: 64, is_float: false},
+                        "boolean" => FieldType::Boolean,
+                        "date" => FieldType::Date,
                         _ => {
                             // TODO; make this an error
                             println!("unimplemented type name! {}", type_name);
-                            ESType::default()
+                            FieldType::default()
                         }
                     };
                 }
