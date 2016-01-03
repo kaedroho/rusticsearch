@@ -59,7 +59,7 @@ pub fn view_count(req: &mut Request) -> IronResult<Response> {
         None
     };
 
-    println!("{:?}", query::parse_query(data.unwrap().as_object().unwrap().get("query").unwrap()));
+    println!("{:#?}", query::parse_query(data.unwrap().as_object().unwrap().get("query").unwrap()));
 
     // TODO: Run query
 
@@ -111,7 +111,7 @@ pub fn view_search(req: &mut Request) -> IronResult<Response> {
         None
     };
 
-    println!("{:?}", query::parse_query(data.unwrap().as_object().unwrap().get("query").unwrap()));
+    println!("{:#?}", query::parse_query(data.unwrap().as_object().unwrap().get("query").unwrap()));
 
     // TODO: Run query
 
