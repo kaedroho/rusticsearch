@@ -5,7 +5,7 @@ use super::Document;
 
 #[derive(Debug)]
 pub enum Filter {
-    Term(String, String),
+    Term(String, Json),
     Prefix(String, String),
     And(Vec<Filter>),
     Or(Vec<Filter>),
@@ -20,9 +20,7 @@ impl Filter {
                 let obj = doc.data.as_object().unwrap();
 
                 if let Some(field_value) = obj.get(field) {
-                    if let Json::String(ref field_value) = *field_value {
-                        return field_value == value;
-                    }
+                    return field_value == value;
                 }
 
                 false
@@ -69,8 +67,7 @@ pub fn parse_filter(json: &Json) -> Filter {
         let filter_json = filter_json.get("term").unwrap().as_object().unwrap();
         let first_key = filter_json.keys().nth(0).unwrap();
 
-        // TODO: needs a type system
-        Filter::Term(first_key.clone(), "not implemented".to_owned())
+        Filter::Term(first_key.clone(), filter_json.get(first_key).unwrap().clone())
     } else if first_key == "prefix" {
         let filter_json = filter_json.get("prefix").unwrap().as_object().unwrap();
         let first_key = filter_json.keys().nth(0).unwrap();
@@ -90,7 +87,7 @@ pub fn parse_filter(json: &Json) -> Filter {
     } else if first_key == "not" {
         Filter::Not(Box::new(parse_filter(filter_json.get("not").unwrap())))
     } else {
-        Filter::Term("not".to_owned(), "implemented".to_owned())
+        Filter::Term("not".to_owned(), Json::String("implemented".to_owned()))
     }
 }
 

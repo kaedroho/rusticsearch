@@ -11,15 +11,3 @@ pub enum ESType {
 impl Default for ESType {
     fn default() -> ESType { ESType::String }
 }
-
-
-#[derive(Debug)]
-pub enum ESValue {
-    None,
-    String(String),
-    Binary(Vec<u8>),
-    Integer(i64),
-    Float(f64),
-    Boolean(bool),
-    // Date
-}
