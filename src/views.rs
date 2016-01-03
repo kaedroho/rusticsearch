@@ -402,6 +402,7 @@ pub fn view_post_bulk(req: &mut Request) -> IronResult<Response> {
 
                 // Insert into "items" array
                 let mut item = HashMap::new();
+                // TODO: "create" may not always be right
                 item.insert("create", action_params.clone());
                 items.push(item);
             }
