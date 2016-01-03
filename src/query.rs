@@ -101,8 +101,13 @@ pub enum Query {
 pub fn parse_match_query(json: &Json) -> Query {
     let query_json = json.as_object().unwrap();
 
+    let field = match query_json.get("field") {
+        Some(val) => val.as_string().unwrap().to_owned(),
+        None => "_all".to_owned(),
+    };
+
     Query::Match {
-        field: query_json.get("field").unwrap().as_string().unwrap().to_owned(),
+        field: field,
         query: query_json.get("query").unwrap().as_string().unwrap().to_owned(),
     }
 }
@@ -143,6 +148,8 @@ pub fn parse_query(json: &Json) -> Query {
         let inner_query = query_json.get("filtered").unwrap();
         parse_filtered_query(inner_query)
     } else {
+        println!("not implmented query type! {:?}", first_key);
+
         // TODO
         Query::Match {
             field: "not".to_owned(),
