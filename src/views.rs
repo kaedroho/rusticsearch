@@ -440,5 +440,5 @@ pub fn get_router() -> Router {
             put "/:index" => view_put_index,
             put "/:index/_mapping/:mapping" => view_put_mapping,
             post "/_bulk" => view_post_bulk,
-            post ":index/_refresh" => view_post_refresh)
+            post "/:index/_refresh" => view_post_refresh)
 }
