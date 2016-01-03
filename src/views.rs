@@ -359,6 +359,8 @@ pub fn get_router() -> Router {
     router!(get "/" => view_home,
             get "/:index/_count" => view_count,
             get "/:index/_search" => view_search,
+            post "/:index/_count" => view_count,
+            post "/:index/_search" => view_search,
             get "/:index/:mapping/:doc" => view_get_doc,
             put "/:index/:mapping/:doc" => view_put_doc,
             put "/:index" => view_put_index,
