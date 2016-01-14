@@ -4,6 +4,20 @@ use super::Document;
 
 
 #[derive(Debug)]
+pub enum QuerySyntaxError {
+    ExpectedObject,
+    ExpectedString,
+    ExpectedArray,
+    UnknownQueryType(String),
+    NoQuery,
+    FilteredNoFilter,
+    FilteredNoQuery,
+    MissingQueryString,
+    MultiMatchMissingFields,
+}
+
+
+#[derive(Debug)]
 pub enum Filter {
     Term(String, Json),
     Prefix(String, String),
@@ -98,62 +112,70 @@ pub enum Query {
     Filtered{query: Box<Query>, filter: Box<Filter>},
 }
 
-pub fn parse_match_query(json: &Json) -> Query {
-    let query_json = json.as_object().unwrap();
+pub fn parse_match_query(json: &Json) -> Result<Query, QuerySyntaxError> {
+    let json_object = try!(json.as_object().ok_or(QuerySyntaxError::ExpectedObject));
 
-    let field = match query_json.get("field") {
-        Some(val) => val.as_string().unwrap().to_owned(),
+    let field = match json_object.get("field") {
+        Some(val) => try!(val.as_string().ok_or(QuerySyntaxError::ExpectedString)).to_owned(),
         None => "_all".to_owned(),
     };
 
-    Query::Match {
+    let query_json = try!(json_object.get("query").ok_or(QuerySyntaxError::MissingQueryString));
+    let query = try!(query_json.as_string().ok_or(QuerySyntaxError::ExpectedString)).to_owned();
+
+    Ok(Query::Match {
         field: field,
-        query: query_json.get("query").unwrap().as_string().unwrap().to_owned(),
-    }
+        query: query,
+    })
 }
 
-pub fn parse_multi_match_query(json: &Json) -> Query {
-    let query_json = json.as_object().unwrap();
+pub fn parse_multi_match_query(json: &Json) -> Result<Query, QuerySyntaxError> {
+    let json_object = try!(json.as_object().ok_or(QuerySyntaxError::ExpectedObject));
 
-    Query::MultiMatch {
-        // Convert "fields" into a Vec<String>
-        fields: query_json.get("fields").unwrap()
-                          .as_array().unwrap()
-                          .iter().map(|s| s.as_string().unwrap().to_owned())
-                          .collect::<Vec<_>>(),
-        query: query_json.get("query").unwrap().as_string().unwrap().to_owned(),
-    }
+    // Convert "fields" into a Vec<String>
+    let fields_json = try!(json_object.get("fields").ok_or(QuerySyntaxError::MultiMatchMissingFields));
+    let fields = try!(fields_json.as_array().ok_or(QuerySyntaxError::ExpectedArray))
+                      .iter().map(|s| s.as_string().unwrap().to_owned())
+                      .collect::<Vec<_>>();
+
+    let query_json = try!(json_object.get("query").ok_or(QuerySyntaxError::MissingQueryString));
+    let query = try!(query_json.as_string().ok_or(QuerySyntaxError::ExpectedString)).to_owned();
+
+    Ok(Query::MultiMatch {
+        fields: fields,
+        query: query,
+    })
 }
 
-pub fn parse_filtered_query(json: &Json) -> Query {
-    let query_json = json.as_object().unwrap();
+pub fn parse_filtered_query(json: &Json) -> Result<Query, QuerySyntaxError> {
+    let json_object = try!(json.as_object().ok_or(QuerySyntaxError::ExpectedObject));
 
-    Query::Filtered {
-        filter: Box::new(parse_filter(query_json.get("filter").unwrap())),
-        query: Box::new(parse_query(query_json.get("query").unwrap())),
-    }
+    let filter_json = try!(json_object.get("filter").ok_or(QuerySyntaxError::FilteredNoFilter));
+    let filter = parse_filter(filter_json);
+
+    let query_json = try!(json_object.get("query").ok_or(QuerySyntaxError::FilteredNoQuery));
+    let query = try!(parse_query(query_json));
+
+    Ok(Query::Filtered {
+        filter: Box::new(filter),
+        query: Box::new(query),
+    })
 }
 
-pub fn parse_query(json: &Json) -> Query {
-    let query_json = json.as_object().unwrap();
-    let first_key = query_json.keys().nth(0).unwrap();
+pub fn parse_query(json: &Json) -> Result<Query, QuerySyntaxError> {
+    let json_object = try!(json.as_object().ok_or(QuerySyntaxError::ExpectedObject));
+    let first_key = try!(json_object.keys().nth(0).ok_or(QuerySyntaxError::NoQuery));
 
     if first_key == "match" {
-        let inner_query = query_json.get("match").unwrap();
-        parse_match_query(inner_query)
+        let inner_query = json_object.get("match").unwrap();
+        Ok(try!(parse_match_query(inner_query)))
     } else if first_key == "multi_match" {
-        let inner_query = query_json.get("multi_match").unwrap();
-        parse_multi_match_query(inner_query)
+        let inner_query = json_object.get("multi_match").unwrap();
+        Ok(try!(parse_multi_match_query(inner_query)))
     } else if first_key == "filtered" {
-        let inner_query = query_json.get("filtered").unwrap();
-        parse_filtered_query(inner_query)
+        let inner_query = json_object.get("filtered").unwrap();
+        Ok(try!(parse_filtered_query(inner_query)))
     } else {
-        println!("not implmented query type! {:?}", first_key);
-
-        // TODO
-        Query::Match {
-            field: "not".to_owned(),
-            query: "implemented".to_owned(),
-        }
+        Err(QuerySyntaxError::UnknownQueryType(first_key.clone()))
     }
 }
