@@ -34,7 +34,6 @@ impl Document {
 
 #[derive(Debug)]
 struct Mapping {
-    pub docs: HashMap<String, Document>,
     pub fields: HashMap<String, mapping::FieldMapping>,
 }
 
@@ -50,7 +49,6 @@ impl Mapping {
         }
 
         Mapping {
-            docs: HashMap::new(),
             fields: fields,
         }
     }
@@ -61,6 +59,7 @@ impl Mapping {
 struct Index {
     pub connection: Connection,
     pub mappings: HashMap<String, Mapping>,
+    pub docs: HashMap<String, Document>,
 }
 
 
@@ -69,6 +68,7 @@ impl Index {
         Index {
             connection: connection,
             mappings: HashMap::new(),
+            docs: HashMap::new(),
         }
     }
 

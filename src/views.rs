@@ -66,10 +66,7 @@ pub fn view_count(req: &mut Request) -> IronResult<Response> {
     // TODO: Run query
 
     // Temporary count and return numbers
-    let mut count = 0;
-    for mapping in index.mappings.values() {
-        count += mapping.docs.len();
-    }
+    let mut count = index.docs.len();
 
     let mut response = Response::with((status::Ok, format!("{{\"count\": {}}}", count)));
     response.headers.set_raw("Content-Type", vec![b"application/json".to_vec()]);
@@ -154,7 +151,7 @@ pub fn view_get_doc(req: &mut Request) -> IronResult<Response> {
     };
 
     // Find document
-    let doc = match mapping.docs.get(doc_id) {
+    let doc = match index.docs.get(doc_id) {
         Some(doc) => doc,
         None => {
             let mut response = Response::with((status::NotFound,
@@ -222,7 +219,7 @@ pub fn view_put_doc(req: &mut Request) -> IronResult<Response> {
     // Create and insert document
     if let Some(data) = data {
         let doc = Document::from_json(data);
-        mapping.docs.insert(doc_id.clone().to_owned(), doc);
+        index.docs.insert(doc_id.clone().to_owned(), doc);
     }
 
     let mut response = Response::with((status::Ok, "{}"));
@@ -404,7 +401,7 @@ pub fn view_post_bulk(req: &mut Request) -> IronResult<Response> {
 
                 // Create and insert document
                 let doc = Document::from_json(doc_json);
-                mapping.docs.insert(doc_id.clone().to_owned(), doc);
+                index.docs.insert(doc_id.clone().to_owned(), doc);
 
                 // Insert into "items" array
                 let mut item = HashMap::new();
