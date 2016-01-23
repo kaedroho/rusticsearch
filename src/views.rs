@@ -32,7 +32,7 @@ pub fn view_count(req: &mut Request) -> IronResult<Response> {
     let index_name = req.extensions.get::<Router>().unwrap().find("index").unwrap_or("");
 
     // Lock index array
-    let indices = glob.indices.lock().unwrap();
+    let indices = glob.indices.read().unwrap();
 
     // Find index
     let index = match indices.get(index_name) {
@@ -81,7 +81,7 @@ pub fn view_search(req: &mut Request) -> IronResult<Response> {
     let index_name = req.extensions.get::<Router>().unwrap().find("index").unwrap_or("");
 
     // Lock index array
-    let indices = glob.indices.lock().unwrap();
+    let indices = glob.indices.read().unwrap();
 
     // Find index
     let index = match indices.get(index_name) {
@@ -126,10 +126,11 @@ pub fn view_get_doc(req: &mut Request) -> IronResult<Response> {
     // URL parameters
     let index_name = req.extensions.get::<Router>().unwrap().find("index").unwrap_or("");
     let mapping_name = req.extensions.get::<Router>().unwrap().find("mapping").unwrap_or("");
+
     let doc_id = req.extensions.get::<Router>().unwrap().find("doc").unwrap_or("");
 
     // Lock index array
-    let indices = glob.indices.lock().unwrap();
+    let indices = glob.indices.read().unwrap();
 
     // Find index
     let index = match indices.get(index_name) {
@@ -176,7 +177,7 @@ pub fn view_put_doc(req: &mut Request) -> IronResult<Response> {
     let ref doc_id = req.extensions.get::<Router>().unwrap().find("doc").unwrap_or("");
 
     // Lock index array
-    let mut indices = glob.indices.lock().unwrap();
+    let mut indices = glob.indices.write().unwrap();
 
     // Find index
     let mut index = match indices.get_mut(index_name) {
@@ -216,6 +217,9 @@ pub fn view_put_doc(req: &mut Request) -> IronResult<Response> {
         None
     };
 
+    // Lock index array
+    let mut indices = glob.indices.read().unwrap();
+
     // Create and insert document
     if let Some(data) = data {
         let doc = Document::from_json(data);
@@ -235,7 +239,7 @@ pub fn view_put_index(req: &mut Request) -> IronResult<Response> {
     let ref index_name = req.extensions.get::<Router>().unwrap().find("index").unwrap_or("");
 
     // Lock index array
-    let mut indices = glob.indices.lock().unwrap();
+    let mut indices = glob.indices.write().unwrap();
 
     // Load data from body
     let mut payload = String::new();
@@ -278,7 +282,7 @@ pub fn view_put_mapping(req: &mut Request) -> IronResult<Response> {
     let ref mapping_name = req.extensions.get::<Router>().unwrap().find("mapping").unwrap_or("");
 
     // Lock index array
-    let mut indices = glob.indices.lock().unwrap();
+    let mut indices = glob.indices.write().unwrap();
 
     // Find index
     let mut index = match indices.get_mut(index_name) {
@@ -327,7 +331,7 @@ pub fn view_post_bulk(req: &mut Request) -> IronResult<Response> {
     let ref glob = req.get::<persistent::Read<Globals>>().unwrap();
 
     // Lock index array
-    let mut indices = glob.indices.lock().unwrap();
+    let mut indices = glob.indices.write().unwrap();
 
     // Load data from body
     let mut payload = String::new();
@@ -425,7 +429,7 @@ pub fn view_post_refresh(req: &mut Request) -> IronResult<Response> {
     let ref glob = req.get::<persistent::Read<Globals>>().unwrap();
 
     // Lock index array
-    let mut indices = glob.indices.lock().unwrap();
+    let mut indices = glob.indices.write().unwrap();
 
     let mut response = Response::with((status::Ok, "{\"acknowledged\": true}"));
     response.headers.set_raw("Content-Type", vec![b"application/json".to_vec()]);

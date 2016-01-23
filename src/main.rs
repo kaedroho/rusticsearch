@@ -9,7 +9,7 @@ mod views;
 mod query;
 mod mapping;
 
-use std::sync::Mutex;
+use std::sync::{Mutex, RwLock};
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::fs;
@@ -57,7 +57,7 @@ impl Mapping {
 
 #[derive(Debug)]
 struct Index {
-    pub connection: Connection,
+    pub connection: Mutex<Connection>,
     pub mappings: HashMap<String, Mapping>,
     pub docs: HashMap<String, Document>,
 }
@@ -66,14 +66,16 @@ struct Index {
 impl Index {
     fn new(connection: Connection) -> Index {
         Index {
-            connection: connection,
+            connection: Mutex::new(connection),
             mappings: HashMap::new(),
             docs: HashMap::new(),
         }
     }
 
     fn initialise(&mut self) {
-        self.connection.execute("CREATE TABLE document (
+        let connection = self.connection.lock().unwrap();
+
+        connection.execute("CREATE TABLE document (
               id              INTEGER PRIMARY KEY,
               mapping         TEXT NOT NULL,
               data            BLOB
@@ -84,7 +86,7 @@ impl Index {
 
 struct Globals {
     pub indices_path: PathBuf,
-    pub indices: Mutex<HashMap<String, Index>>,
+    pub indices: RwLock<HashMap<String, Index>>,
 }
 
 
@@ -92,7 +94,7 @@ impl Globals {
     fn new(indices_path: PathBuf, indices: HashMap<String, Index>) -> Globals {
         Globals {
             indices_path: indices_path,
-            indices: Mutex::new(indices),
+            indices: RwLock::new(indices),
         }
     }
 }
