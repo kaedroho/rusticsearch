@@ -5,7 +5,7 @@ use rustc_serialize::json::Json;
 pub enum FieldType {
     String,
     Binary,
-    Number{bits: u8, is_float: bool},
+    Number{size: u8, is_float: bool},
     Boolean,
     Date,
 }
@@ -74,7 +74,7 @@ impl FieldMapping {
 
                     field_mapping.data_type = match type_name.as_ref() {
                         "string" => FieldType::String,
-                        "integer" => FieldType::Number{bits: 64, is_float: false},
+                        "integer" => FieldType::Number{size: 64, is_float: false},
                         "boolean" => FieldType::Boolean,
                         "date" => FieldType::Date,
                         _ => {
