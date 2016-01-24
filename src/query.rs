@@ -114,18 +114,11 @@ pub enum Query {
 
 pub fn parse_match_query(json: &Json) -> Result<Query, QuerySyntaxError> {
     let json_object = try!(json.as_object().ok_or(QuerySyntaxError::ExpectedObject));
-
-    let field = match json_object.get("field") {
-        Some(val) => try!(val.as_string().ok_or(QuerySyntaxError::ExpectedString)).to_owned(),
-        None => "_all".to_owned(),
-    };
-
-    let query_json = try!(json_object.get("query").ok_or(QuerySyntaxError::MissingQueryString));
-    let query = try!(query_json.as_string().ok_or(QuerySyntaxError::ExpectedString)).to_owned();
+    let first_key = try!(json_object.keys().nth(0).ok_or(QuerySyntaxError::NoQuery));
 
     Ok(Query::Match {
-        field: field,
-        query: query,
+        field: first_key.clone(),
+        query: json_object.get(first_key).unwrap().as_string().unwrap().to_owned(),
     })
 }
 
