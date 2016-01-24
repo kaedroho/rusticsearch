@@ -61,7 +61,7 @@ pub fn view_count(req: &mut Request) -> IronResult<Response> {
         None
     };
 
-    println!("{:#?}", query::parse_query(data.unwrap().as_object().unwrap().get("query").unwrap()));
+    debug!("{:#?}", query::parse_query(data.unwrap().as_object().unwrap().get("query").unwrap()));
 
     // TODO: Run query
 
@@ -110,7 +110,7 @@ pub fn view_search(req: &mut Request) -> IronResult<Response> {
         None
     };
 
-    println!("{:#?}", query::parse_query(data.unwrap().as_object().unwrap().get("query").unwrap()));
+    debug!("{:#?}", query::parse_query(data.unwrap().as_object().unwrap().get("query").unwrap()));
 
     // TODO: Run query
 
@@ -318,7 +318,7 @@ pub fn view_put_mapping(req: &mut Request) -> IronResult<Response> {
 
     // Insert mapping
     let mapping = Mapping::from_json(&data);
-    println!("{:#?}", mapping);
+    debug!("{:#?}", mapping);
     index.mappings.insert(mapping_name.clone().to_owned(), mapping);
 
     let mut response = Response::with((status::Ok, "{\"acknowledged\": true}"));
@@ -414,7 +414,7 @@ pub fn view_post_bulk(req: &mut Request) -> IronResult<Response> {
                 items.push(item);
             }
             _ => {
-                println!("Unrecognised action! {}", action_name);
+                warn!("Unrecognised action! {}", action_name);
             }
         }
     }

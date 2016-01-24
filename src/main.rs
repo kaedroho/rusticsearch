@@ -4,10 +4,13 @@ extern crate router;
 extern crate persistent;
 extern crate rustc_serialize;
 extern crate rusqlite;
+#[macro_use]
+extern crate log;
 
 mod views;
 mod query;
 mod mapping;
+mod logger;
 
 use std::sync::{Mutex, RwLock};
 use std::collections::HashMap;
@@ -117,7 +120,7 @@ fn load_indices(indices_path: &Path) -> HashMap<String, Index> {
         let path = file.unwrap().path();
         let index_name: String = path.file_stem().unwrap().to_str().unwrap().to_owned();
         if path.extension().unwrap().to_str() == Some("rsi") {
-            println!("Loaded index: {}", index_name);
+            info!("Loaded index: {}", index_name);
             indices.insert(index_name, load_index(path.as_path()));
         }
     }
@@ -127,6 +130,8 @@ fn load_indices(indices_path: &Path) -> HashMap<String, Index> {
 
 
 fn main() {
+    logger::init().unwrap();
+
     let indices_path = Path::new("./indices").to_path_buf();
     let indices = load_indices(&indices_path.as_path());
     let router = views::get_router();
