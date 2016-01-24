@@ -112,6 +112,36 @@ pub enum Query {
     Filtered{query: Box<Query>, filter: Box<Filter>},
 }
 
+impl Query {
+    pub fn matches(&self, doc: &Document) -> bool {
+        match *self {
+            Query::Match{ref field, ref query} => {
+                let obj = doc.data.as_object().unwrap();
+
+                if let Some(field_value) = obj.get(field) {
+                    let mut field_value = field_value.as_string().unwrap().to_lowercase();
+                    let mut query = query.to_lowercase();
+
+                    return field_value.contains(&query);
+                }
+
+                false
+            }
+            Query::MultiMatch{ref fields, ref query} => {
+                // TODO
+                false
+            }
+            Query::Filtered{ref query, ref filter} => {
+                if filter.matches(doc) {
+                    query.matches(doc)
+                } else {
+                    false
+                }
+            }
+        }
+    }
+}
+
 pub fn parse_match_query(json: &Json) -> Result<Query, QuerySyntaxError> {
     let json_object = try!(json.as_object().ok_or(QuerySyntaxError::ExpectedObject));
     let first_key = try!(json_object.keys().nth(0).ok_or(QuerySyntaxError::NoQuery));
