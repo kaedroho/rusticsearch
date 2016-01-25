@@ -11,7 +11,7 @@ use router::Router;
 use rustc_serialize::json::{self, Json};
 use rusqlite::Connection;
 
-use super::{Globals, Index, Mapping, Document, query};
+use super::{Globals, Index, mapping, Document, query};
 
 
 fn index_not_found_response() -> Response {
@@ -369,7 +369,7 @@ pub fn view_put_mapping(req: &mut Request) -> IronResult<Response> {
     let data = data.as_object().unwrap().get(*mapping_name).unwrap();
 
     // Insert mapping
-    let mapping = Mapping::from_json(&data);
+    let mapping = mapping::Mapping::from_json(&data);
     debug!("{:#?}", mapping);
     index.mappings.insert(mapping_name.clone().to_owned(), mapping);
 

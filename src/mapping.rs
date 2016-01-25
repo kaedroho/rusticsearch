@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use rustc_serialize::json::Json;
 
 
@@ -35,6 +37,29 @@ impl Default for FieldMapping {
             is_stored: false,
             is_in_all: true,
             boost: 1.0f64,
+        }
+    }
+}
+
+
+#[derive(Debug)]
+pub struct Mapping {
+    pub fields: HashMap<String, FieldMapping>,
+}
+
+impl Mapping {
+    pub fn from_json(json: &Json) -> Mapping {
+        let json = json.as_object().unwrap();
+        let properties_json = json.get("properties").unwrap().as_object().unwrap();
+
+        // Parse fields
+        let mut fields = HashMap::new();
+        for (field_name, field_mapping_json) in properties_json.iter() {
+            fields.insert(field_name.clone(), FieldMapping::from_json(field_mapping_json));
+        }
+
+        Mapping {
+            fields: fields,
         }
     }
 }
