@@ -4,7 +4,17 @@ use super::Document;
 
 
 #[derive(Debug, PartialEq)]
-pub enum QuerySyntaxError {
+pub enum Filter {
+    Term(String, Json),
+    Prefix(String, String),
+    And(Vec<Filter>),
+    Or(Vec<Filter>),
+    Not(Box<Filter>),
+}
+
+
+#[derive(Debug, PartialEq)]
+pub enum QueryParseError {
     ExpectedObject,
     ExpectedString,
     ExpectedArray,
@@ -14,16 +24,6 @@ pub enum QuerySyntaxError {
     FilteredNoQuery,
     MissingQueryString,
     MultiMatchMissingFields,
-}
-
-
-#[derive(Debug, PartialEq)]
-pub enum Filter {
-    Term(String, Json),
-    Prefix(String, String),
-    And(Vec<Filter>),
-    Or(Vec<Filter>),
-    Not(Box<Filter>),
 }
 
 
@@ -145,9 +145,9 @@ impl Query {
     }
 }
 
-pub fn parse_match_query(json: &Json) -> Result<Query, QuerySyntaxError> {
-    let json_object = try!(json.as_object().ok_or(QuerySyntaxError::ExpectedObject));
-    let first_key = try!(json_object.keys().nth(0).ok_or(QuerySyntaxError::NoQuery));
+pub fn parse_match_query(json: &Json) -> Result<Query, QueryParseError> {
+    let json_object = try!(json.as_object().ok_or(QueryParseError::ExpectedObject));
+    let first_key = try!(json_object.keys().nth(0).ok_or(QueryParseError::NoQuery));
 
     Ok(Query::Match {
         field: first_key.clone(),
@@ -155,17 +155,17 @@ pub fn parse_match_query(json: &Json) -> Result<Query, QuerySyntaxError> {
     })
 }
 
-pub fn parse_multi_match_query(json: &Json) -> Result<Query, QuerySyntaxError> {
-    let json_object = try!(json.as_object().ok_or(QuerySyntaxError::ExpectedObject));
+pub fn parse_multi_match_query(json: &Json) -> Result<Query, QueryParseError> {
+    let json_object = try!(json.as_object().ok_or(QueryParseError::ExpectedObject));
 
     // Convert "fields" into a Vec<String>
-    let fields_json = try!(json_object.get("fields").ok_or(QuerySyntaxError::MultiMatchMissingFields));
-    let fields = try!(fields_json.as_array().ok_or(QuerySyntaxError::ExpectedArray))
+    let fields_json = try!(json_object.get("fields").ok_or(QueryParseError::MultiMatchMissingFields));
+    let fields = try!(fields_json.as_array().ok_or(QueryParseError::ExpectedArray))
                       .iter().map(|s| s.as_string().unwrap().to_owned())
                       .collect::<Vec<_>>();
 
-    let query_json = try!(json_object.get("query").ok_or(QuerySyntaxError::MissingQueryString));
-    let query = try!(query_json.as_string().ok_or(QuerySyntaxError::ExpectedString)).to_owned();
+    let query_json = try!(json_object.get("query").ok_or(QueryParseError::MissingQueryString));
+    let query = try!(query_json.as_string().ok_or(QueryParseError::ExpectedString)).to_owned();
 
     Ok(Query::MultiMatch {
         fields: fields,
@@ -173,13 +173,13 @@ pub fn parse_multi_match_query(json: &Json) -> Result<Query, QuerySyntaxError> {
     })
 }
 
-pub fn parse_filtered_query(json: &Json) -> Result<Query, QuerySyntaxError> {
-    let json_object = try!(json.as_object().ok_or(QuerySyntaxError::ExpectedObject));
+pub fn parse_filtered_query(json: &Json) -> Result<Query, QueryParseError> {
+    let json_object = try!(json.as_object().ok_or(QueryParseError::ExpectedObject));
 
-    let filter_json = try!(json_object.get("filter").ok_or(QuerySyntaxError::FilteredNoFilter));
+    let filter_json = try!(json_object.get("filter").ok_or(QueryParseError::FilteredNoFilter));
     let filter = parse_filter(filter_json);
 
-    let query_json = try!(json_object.get("query").ok_or(QuerySyntaxError::FilteredNoQuery));
+    let query_json = try!(json_object.get("query").ok_or(QueryParseError::FilteredNoQuery));
     let query = try!(parse_query(query_json));
 
     Ok(Query::Filtered {
@@ -188,9 +188,9 @@ pub fn parse_filtered_query(json: &Json) -> Result<Query, QuerySyntaxError> {
     })
 }
 
-pub fn parse_query(json: &Json) -> Result<Query, QuerySyntaxError> {
-    let json_object = try!(json.as_object().ok_or(QuerySyntaxError::ExpectedObject));
-    let first_key = try!(json_object.keys().nth(0).ok_or(QuerySyntaxError::NoQuery));
+pub fn parse_query(json: &Json) -> Result<Query, QueryParseError> {
+    let json_object = try!(json.as_object().ok_or(QueryParseError::ExpectedObject));
+    let first_key = try!(json_object.keys().nth(0).ok_or(QueryParseError::NoQuery));
 
     if first_key == "match_all" {
         Ok(Query::MatchAll)
@@ -204,7 +204,7 @@ pub fn parse_query(json: &Json) -> Result<Query, QuerySyntaxError> {
         let inner_query = json_object.get("filtered").unwrap();
         Ok(try!(parse_filtered_query(inner_query)))
     } else {
-        Err(QuerySyntaxError::UnknownQueryType(first_key.clone()))
+        Err(QueryParseError::UnknownQueryType(first_key.clone()))
     }
 }
 
@@ -212,7 +212,7 @@ pub fn parse_query(json: &Json) -> Result<Query, QuerySyntaxError> {
 #[cfg(test)]
 mod tests {
     use rustc_serialize::json::Json;
-    use super::{Query, Filter, QuerySyntaxError, parse_query};
+    use super::{Query, Filter, QueryParseError, parse_query};
 
     #[test]
     fn test_match_all_query() {
@@ -249,7 +249,7 @@ mod tests {
             }
         ").unwrap());
 
-        assert_eq!(query, Err(QuerySyntaxError::NoQuery))
+        assert_eq!(query, Err(QueryParseError::NoQuery))
     }
 
     #[test]
@@ -279,7 +279,7 @@ mod tests {
             }
         ").unwrap());
 
-        assert_eq!(query, Err(QuerySyntaxError::MultiMatchMissingFields))
+        assert_eq!(query, Err(QueryParseError::MultiMatchMissingFields))
     }
 
     #[test]
@@ -292,7 +292,7 @@ mod tests {
             }
         ").unwrap());
 
-        assert_eq!(query, Err(QuerySyntaxError::MissingQueryString))
+        assert_eq!(query, Err(QueryParseError::MissingQueryString))
     }
 
     #[test]
@@ -340,7 +340,7 @@ mod tests {
             }
         ").unwrap());
 
-        assert_eq!(query, Err(QuerySyntaxError::FilteredNoQuery))
+        assert_eq!(query, Err(QueryParseError::FilteredNoQuery))
     }
 
     #[test]
@@ -357,6 +357,6 @@ mod tests {
             }
         ").unwrap());
 
-        assert_eq!(query, Err(QuerySyntaxError::FilteredNoFilter))
+        assert_eq!(query, Err(QueryParseError::FilteredNoFilter))
     }
 }
