@@ -48,14 +48,14 @@ fn parse_boolean(json: &Json) -> bool {
                 "yes" => true,
                 "no" => false,
                 _ => {
-                    println!("bad boolean value {:?}", s);
+                    warn!("bad boolean value {:?}", s);
                     false
                 }
             }
         }
         _ => {
             // TODO: Raise error
-            println!("bad boolean value {:?}", json);
+            warn!("bad boolean value {:?}", json);
             false
         }
     }
@@ -79,7 +79,7 @@ impl FieldMapping {
                         "date" => FieldType::Date,
                         _ => {
                             // TODO; make this an error
-                            println!("unimplemented type name! {}", type_name);
+                            warn!("unimplemented type name! {}", type_name);
                             FieldType::default()
                         }
                     };
@@ -90,7 +90,7 @@ impl FieldMapping {
                         field_mapping.is_indexed = false;
                     } else {
                         // TODO: Implement other variants and make this an error
-                        println!("unimplemented index setting! {}", index);
+                        warn!("unimplemented index setting! {}", index);
                     }
                 }
                 "index_analyzer" => {
@@ -105,7 +105,7 @@ impl FieldMapping {
                 "include_in_all" => {
                     field_mapping.is_in_all = parse_boolean(value);
                 }
-                _ => println!("unimplemented field mapping key! {}", key)
+                _ => warn!("unimplemented field mapping key! {}", key)
             }
 
         }

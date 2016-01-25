@@ -287,6 +287,8 @@ pub fn view_put_index(req: &mut Request) -> IronResult<Response> {
     index.initialise();
     indices.insert(index_name.clone().to_owned(), index);
 
+    info!("Created index {}", index_name);
+
     let mut response = Response::with((status::Ok, "{\"acknowledged\": true}"));
     response.headers.set_raw("Content-Type", vec![b"application/json".to_vec()]);
     Ok(response)
@@ -310,6 +312,8 @@ pub fn view_delete_index(req: &mut Request) -> IronResult<Response> {
     index_path.push(index_name);
     index_path.set_extension("rsi");
     fs::remove_file(&index_path).unwrap();
+
+    info!("Deleted index {}", index_name);
 
     let mut response = Response::with((status::Ok, "{\"acknowledged\": true}"));
     response.headers.set_raw("Content-Type", vec![b"application/json".to_vec()]);
