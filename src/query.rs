@@ -131,7 +131,19 @@ impl Query {
                 false
             }
             Query::MultiMatch{ref fields, ref query} => {
-                // TODO
+                let obj = doc.data.as_object().unwrap();
+
+                for field in fields.iter() {
+                    if let Some(field_value) = obj.get(field) {
+                        let mut field_value = field_value.as_string().unwrap().to_lowercase();
+                        let mut query = query.to_lowercase();
+
+                        if field_value.contains(&query) {
+                            return true;
+                        }
+                    }
+                }
+
                 false
             }
             Query::Filtered{ref query, ref filter} => {
