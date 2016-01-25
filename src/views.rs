@@ -3,6 +3,7 @@ extern crate persistent;
 
 use std::io::Read;
 use std::collections::HashMap;
+use std::fs;
 
 use iron::prelude::*;
 use iron::status;
@@ -292,6 +293,30 @@ pub fn view_put_index(req: &mut Request) -> IronResult<Response> {
 }
 
 
+pub fn view_delete_index(req: &mut Request) -> IronResult<Response> {
+    let ref glob = req.get::<persistent::Read<Globals>>().unwrap();
+
+    // URL parameters
+    let ref index_name = req.extensions.get::<Router>().unwrap().find("index").unwrap_or("");
+
+    // Lock index array
+    let mut indices = glob.indices.write().unwrap();
+
+    // Remove index from array
+    indices.remove(index_name.to_owned());
+
+    // Delete file
+    let mut index_path = glob.indices_path.clone();
+    index_path.push(index_name);
+    index_path.set_extension("rsi");
+    fs::remove_file(&index_path).unwrap();
+
+    let mut response = Response::with((status::Ok, "{\"acknowledged\": true}"));
+    response.headers.set_raw("Content-Type", vec![b"application/json".to_vec()]);
+    Ok(response)
+}
+
+
 pub fn view_put_mapping(req: &mut Request) -> IronResult<Response> {
     let ref glob = req.get::<persistent::Read<Globals>>().unwrap();
 
@@ -464,6 +489,7 @@ pub fn get_router() -> Router {
             get "/:index/:mapping/:doc" => view_get_doc,
             put "/:index/:mapping/:doc" => view_put_doc,
             put "/:index" => view_put_index,
+            delete "/:index" => view_delete_index,
             put "/:index/_mapping/:mapping" => view_put_mapping,
             post "/_bulk" => view_post_bulk,
             post "/:index/_refresh" => view_post_refresh)
