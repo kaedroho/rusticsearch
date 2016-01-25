@@ -27,6 +27,14 @@ pub enum Filter {
 }
 
 
+#[derive(Debug, PartialEq)]
+pub enum Query {
+    Match{field: String, query: String},
+    MultiMatch{fields: Vec<String>, query: String},
+    Filtered{query: Box<Query>, filter: Box<Filter>},
+}
+
+
 impl Filter {
     pub fn matches(&self, doc: &Document) -> bool {
         match *self {
@@ -103,13 +111,6 @@ pub fn parse_filter(json: &Json) -> Filter {
     } else {
         Filter::Term("not".to_owned(), Json::String("implemented".to_owned()))
     }
-}
-
-#[derive(Debug, PartialEq)]
-pub enum Query {
-    Match{field: String, query: String},
-    MultiMatch{fields: Vec<String>, query: String},
-    Filtered{query: Box<Query>, filter: Box<Filter>},
 }
 
 impl Query {
