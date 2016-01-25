@@ -301,6 +301,11 @@ pub fn view_delete_index(req: &mut Request) -> IronResult<Response> {
     // URL parameters
     let ref index_name = req.extensions.get::<Router>().unwrap().find("index").unwrap_or("");
 
+    // Make sure the index exists
+    if !glob.indices.read().unwrap().contains_key(index_name.to_owned()) {
+        return Ok(index_not_found_response());
+    }
+
     // Lock index array
     let mut indices = glob.indices.write().unwrap();
 
