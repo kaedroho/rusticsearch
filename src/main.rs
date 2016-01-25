@@ -23,6 +23,9 @@ use rustc_serialize::json::Json;
 use rusqlite::Connection;
 
 
+const VERSION: &'static str = "0.1a0";
+
+
 #[derive(Debug)]
 struct Document {
     data: Json,
@@ -107,6 +110,9 @@ fn load_indices(indices_path: &Path) -> HashMap<String, Index> {
 
 
 fn main() {
+    println!("rsearch ({})", VERSION);
+    println!("");
+
     logger::init().unwrap();
 
     let indices_path = Path::new("./indices").to_path_buf();
