@@ -29,6 +29,7 @@ pub enum Filter {
 
 #[derive(Debug, PartialEq)]
 pub enum Query {
+    MatchAll,
     Match{field: String, query: String},
     MultiMatch{fields: Vec<String>, query: String},
     Filtered{query: Box<Query>, filter: Box<Filter>},
@@ -116,6 +117,7 @@ pub fn parse_filter(json: &Json) -> Filter {
 impl Query {
     pub fn matches(&self, doc: &Document) -> bool {
         match *self {
+            Query::MatchAll => true,
             Query::Match{ref field, ref query} => {
                 let obj = doc.data.as_object().unwrap();
 
@@ -190,7 +192,9 @@ pub fn parse_query(json: &Json) -> Result<Query, QuerySyntaxError> {
     let json_object = try!(json.as_object().ok_or(QuerySyntaxError::ExpectedObject));
     let first_key = try!(json_object.keys().nth(0).ok_or(QuerySyntaxError::NoQuery));
 
-    if first_key == "match" {
+    if first_key == "match_all" {
+        Ok(Query::MatchAll)
+    } else if first_key == "match" {
         let inner_query = json_object.get("match").unwrap();
         Ok(try!(parse_match_query(inner_query)))
     } else if first_key == "multi_match" {
@@ -209,6 +213,17 @@ pub fn parse_query(json: &Json) -> Result<Query, QuerySyntaxError> {
 mod tests {
     use rustc_serialize::json::Json;
     use super::{Query, Filter, QuerySyntaxError, parse_query};
+
+    #[test]
+    fn test_match_all_query() {
+        let query = parse_query(&Json::from_str("
+            {
+                \"match_all\": {}
+            }
+        ").unwrap());
+
+        assert_eq!(query, Ok(Query::MatchAll))
+    }
 
     #[test]
     fn test_match_query() {
