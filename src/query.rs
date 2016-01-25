@@ -3,7 +3,7 @@ use rustc_serialize::json::Json;
 use super::Document;
 
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum QuerySyntaxError {
     ExpectedObject,
     ExpectedString,
@@ -17,7 +17,7 @@ pub enum QuerySyntaxError {
 }
 
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum Filter {
     Term(String, Json),
     Prefix(String, String),
@@ -105,7 +105,7 @@ pub fn parse_filter(json: &Json) -> Filter {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum Query {
     Match{field: String, query: String},
     MultiMatch{fields: Vec<String>, query: String},
@@ -200,5 +200,147 @@ pub fn parse_query(json: &Json) -> Result<Query, QuerySyntaxError> {
         Ok(try!(parse_filtered_query(inner_query)))
     } else {
         Err(QuerySyntaxError::UnknownQueryType(first_key.clone()))
+    }
+}
+
+
+#[cfg(test)]
+mod tests {
+    use rustc_serialize::json::Json;
+    use super::{Query, Filter, QuerySyntaxError, parse_query};
+
+    #[test]
+    fn test_match_query() {
+        let query = parse_query(&Json::from_str("
+            {
+                \"match\": {
+                    \"title\": \"Hello world!\"
+                }
+            }
+        ").unwrap());
+
+        assert_eq!(query, Ok(Query::Match{
+            field: "title".to_owned(),
+            query: "Hello world!".to_owned(),
+        }))
+    }
+
+    #[test]
+    fn test_match_query_without_field() {
+        let query = parse_query(&Json::from_str("
+            {
+                \"match\": {}
+            }
+        ").unwrap());
+
+        assert_eq!(query, Err(QuerySyntaxError::NoQuery))
+    }
+
+    #[test]
+    fn test_multi_match_query() {
+        let query = parse_query(&Json::from_str("
+            {
+                \"multi_match\": {
+                    \"fields\": [\"title\", \"body\"],
+                    \"query\": \"Hello world!\"
+                }
+            }
+        ").unwrap());
+
+        assert_eq!(query, Ok(Query::MultiMatch{
+            fields: vec!["title".to_owned(), "body".to_owned()],
+            query: "Hello world!".to_owned(),
+        }))
+    }
+
+    #[test]
+    fn test_multi_match_query_without_fields() {
+        let query = parse_query(&Json::from_str("
+            {
+                \"multi_match\": {
+                    \"query\": \"Hello world!\"
+                }
+            }
+        ").unwrap());
+
+        assert_eq!(query, Err(QuerySyntaxError::MultiMatchMissingFields))
+    }
+
+    #[test]
+    fn test_multi_match_query_without_query() {
+        let query = parse_query(&Json::from_str("
+            {
+                \"multi_match\": {
+                    \"fields\": [\"title\", \"body\"]
+                }
+            }
+        ").unwrap());
+
+        assert_eq!(query, Err(QuerySyntaxError::MissingQueryString))
+    }
+
+    #[test]
+    fn test_filtered_query() {
+        let query = parse_query(&Json::from_str("
+            {
+                \"filtered\": {
+                    \"query\": {
+                        \"match\": {
+                            \"title\": \"Hello world!\"
+                        }
+                    },
+                    \"filter\": {
+                        \"term\": {
+                            \"date\": \"2016-01-25\"
+                        }
+                    }
+                }
+            }
+        ").unwrap());
+
+        assert_eq!(query, Ok(Query::Filtered{
+            query: Box::new(Query::Match{
+                field: "title".to_owned(),
+                query: "Hello world!".to_owned(),
+            }),
+            filter: Box::new(Filter::Term(
+                "date".to_owned(),
+                Json::from_str("\"2016-01-25\"").unwrap(),
+            ))
+        }))
+    }
+
+    #[test]
+    fn test_filtered_query_without_query() {
+        let query = parse_query(&Json::from_str("
+            {
+                \"filtered\": {
+                    \"filter\": {
+                        \"term\": {
+                            \"date\": \"2016-01-25\"
+                        }
+                    }
+                }
+            }
+        ").unwrap());
+
+        assert_eq!(query, Err(QuerySyntaxError::FilteredNoQuery))
+    }
+
+    #[test]
+    fn test_filtered_query_without_filter() {
+        let query = parse_query(&Json::from_str("
+            {
+                \"filtered\": {
+                    \"query\": {
+                        \"match\": {
+                            \"title\": \"Hello world!\"
+                        }
+                    }
+                }
+            }
+        ").unwrap());
+
+        assert_eq!(query, Err(QuerySyntaxError::FilteredNoFilter))
     }
 }
