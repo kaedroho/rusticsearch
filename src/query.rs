@@ -4,6 +4,16 @@ use super::Document;
 
 
 #[derive(Debug, PartialEq)]
+pub enum FilterParseError {
+    ExpectedObject,
+    ExpectedString,
+    ExpectedArray,
+    UnknownFilterType(String),
+    NoFilter,
+}
+
+
+#[derive(Debug, PartialEq)]
 pub enum Filter {
     Term(String, Json),
     Prefix(String, String),
@@ -22,6 +32,7 @@ pub enum QueryParseError {
     NoQuery,
     FilteredNoFilter,
     FilteredNoQuery,
+    FilterParseError(FilterParseError),
     MissingQueryString,
     MultiMatchMissingFields,
 }
@@ -82,35 +93,35 @@ impl Filter {
     }
 }
 
-pub fn parse_filter(json: &Json) -> Filter {
-    let filter_json = json.as_object().unwrap();
-    let first_key = filter_json.keys().nth(0).unwrap();
+pub fn parse_filter(json: &Json) -> Result<Filter, FilterParseError> {
+    let filter_json = try!(json.as_object().ok_or(FilterParseError::ExpectedObject));
+    let first_key = try!(filter_json.keys().nth(0).ok_or(FilterParseError::NoFilter));
 
     if first_key == "term" {
         let filter_json = filter_json.get("term").unwrap().as_object().unwrap();
         let first_key = filter_json.keys().nth(0).unwrap();
 
-        Filter::Term(first_key.clone(), filter_json.get(first_key).unwrap().clone())
+        Ok(Filter::Term(first_key.clone(), filter_json.get(first_key).unwrap().clone()))
     } else if first_key == "prefix" {
         let filter_json = filter_json.get("prefix").unwrap().as_object().unwrap();
         let first_key = filter_json.keys().nth(0).unwrap();
         let value = filter_json.get(first_key).unwrap().as_string().unwrap();
 
-        Filter::Prefix(first_key.clone(), value.to_owned())
+        Ok(Filter::Prefix(first_key.clone(), value.to_owned()))
     } else if first_key == "and" {
-        Filter::And(filter_json.get("and").unwrap()
+        Ok(Filter::And(filter_json.get("and").unwrap()
                                .as_array().unwrap()
-                               .iter().map(|f| parse_filter(f))
-                               .collect::<Vec<_>>(),)
+                               .iter().map(|f| parse_filter(f).unwrap())
+                               .collect::<Vec<_>>(),))
     } else if first_key == "or" {
-        Filter::Or(filter_json.get("or").unwrap()
+        Ok(Filter::Or(filter_json.get("or").unwrap()
                                .as_array().unwrap()
-                               .iter().map(|f| parse_filter(f))
-                               .collect::<Vec<_>>(),)
+                               .iter().map(|f| parse_filter(f).unwrap())
+                               .collect::<Vec<_>>(),))
     } else if first_key == "not" {
-        Filter::Not(Box::new(parse_filter(filter_json.get("not").unwrap())))
+        Ok(Filter::Not(Box::new(parse_filter(filter_json.get("not").unwrap()).unwrap())))
     } else {
-        Filter::Term("not".to_owned(), Json::String("implemented".to_owned()))
+        Err(FilterParseError::UnknownFilterType(first_key.clone()))
     }
 }
 
@@ -189,7 +200,10 @@ pub fn parse_filtered_query(json: &Json) -> Result<Query, QueryParseError> {
     let json_object = try!(json.as_object().ok_or(QueryParseError::ExpectedObject));
 
     let filter_json = try!(json_object.get("filter").ok_or(QueryParseError::FilteredNoFilter));
-    let filter = parse_filter(filter_json);
+    let filter = match parse_filter(filter_json) {
+        Ok(filter) => filter,
+        Err(err) => return Err(QueryParseError::FilterParseError(err)),
+    };
 
     let query_json = try!(json_object.get("query").ok_or(QueryParseError::FilteredNoQuery));
     let query = try!(parse_query(query_json));
