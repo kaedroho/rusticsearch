@@ -20,6 +20,36 @@ fn index_not_found_response() -> Response {
     return response;
 }
 
+macro_rules! parse_json {
+    ($string: expr) => {{
+        match Json::from_str($string) {
+            Ok(data) => data,
+            Err(error) => {
+                // TODO: What specifically is bad about the JSON?
+                let mut response = Response::with((status::BadRequest,
+                                                   "{\"message\": \"Couldn't parse JSON\"}"));
+                response.headers.set_raw("Content-Type", vec![b"application/json".to_vec()]);
+                return Ok(response);
+            }
+        }
+    }}
+}
+
+
+macro_rules! json_from_request_body {
+    ($req: expr) => {{
+        // Read request body to a string
+        let mut payload = String::new();
+        $req.body.read_to_string(&mut payload).unwrap();
+
+        if !payload.is_empty() {
+            Some(parse_json!(&payload))
+        } else {
+            None
+        }
+    }}
+}
+
 
 pub fn view_home(_: &mut Request) -> IronResult<Response> {
     Ok(Response::with((status::Ok, "Hello World!")))
@@ -110,25 +140,7 @@ pub fn view_search(req: &mut Request) -> IronResult<Response> {
         }
     };
 
-    // Load query from body
-    let mut payload = String::new();
-    req.body.read_to_string(&mut payload).unwrap();
-
-    let data = if !payload.is_empty() {
-        Some(match Json::from_str(&payload) {
-            Ok(data) => data,
-            Err(error) => {
-                // TODO: What specifically is bad about the JSON?
-                let mut response = Response::with((status::BadRequest,
-                                                   "{\"message\": \"Couldn't parse JSON\"}"));
-                response.headers.set_raw("Content-Type", vec![b"application/json".to_vec()]);
-                return Ok(response);
-            }
-        })
-    } else {
-        None
-    };
-
+    let data = json_from_request_body!(req);
     debug!("{:#?}", query::parse_query(data.unwrap().as_object().unwrap().get("query").unwrap()));
 
     // TODO: Run query
@@ -218,23 +230,7 @@ pub fn view_put_doc(req: &mut Request) -> IronResult<Response> {
     };
 
     // Load data from body
-    let mut payload = String::new();
-    req.body.read_to_string(&mut payload).unwrap();
-
-    let data = if !payload.is_empty() {
-        Some(match Json::from_str(&payload) {
-            Ok(data) => data,
-            Err(error) => {
-                // TODO: What specifically is bad about the JSON?
-                let mut response = Response::with((status::BadRequest,
-                                                   "{\"message\": \"Couldn't parse JSON\"}"));
-                response.headers.set_raw("Content-Type", vec![b"application/json".to_vec()]);
-                return Ok(response);
-            }
-        })
-    } else {
-        None
-    };
+    let data = json_from_request_body!(req);
 
     // Create and insert document
     if let Some(data) = data {
@@ -258,23 +254,7 @@ pub fn view_put_index(req: &mut Request) -> IronResult<Response> {
     let mut indices = glob.indices.write().unwrap();
 
     // Load data from body
-    let mut payload = String::new();
-    req.body.read_to_string(&mut payload).unwrap();
-
-    let data = if !payload.is_empty() {
-        Some(match Json::from_str(&payload) {
-            Ok(data) => data,
-            Err(error) => {
-                // TODO: What specifically is bad about the JSON?
-                let mut response = Response::with((status::BadRequest,
-                                                   "{\"message\": \"Couldn't parse JSON\"}"));
-                response.headers.set_raw("Content-Type", vec![b"application/json".to_vec()]);
-                return Ok(response);
-            }
-        })
-    } else {
-        None
-    };
+    let data = json_from_request_body!(req);
 
     // Create index
     let mut index_path = glob.indices_path.clone();
@@ -342,25 +322,16 @@ pub fn view_put_mapping(req: &mut Request) -> IronResult<Response> {
     };
 
     // Load data from body
-    let mut payload = String::new();
-    req.body.read_to_string(&mut payload).unwrap();
+    let data = json_from_request_body!(req);
 
-    if payload.is_empty() {
-        // TODO: Better error
-        let mut response = Response::with((status::Ok, "{\"acknowledged\": false}"));
-        response.headers.set_raw("Content-Type", vec![b"application/json".to_vec()]);
-        return Ok(response)
-    }
-
-    let data = match Json::from_str(&payload) {
-        Ok(data) => data,
-        Err(error) => {
-            // TODO: What specifically is bad about the JSON?
-            let mut response = Response::with((status::BadRequest,
-                                               "{\"message\": \"Couldn't parse JSON\"}"));
+    let data = match data {
+        Some(data) => data,
+        None => {
+            // TODO: Better error
+            let mut response = Response::with((status::Ok, "{\"acknowledged\": false}"));
             response.headers.set_raw("Content-Type", vec![b"application/json".to_vec()]);
-            return Ok(response);
-        }
+            return Ok(response)
+        },
     };
 
     let data = data.as_object().unwrap().get(*mapping_name).unwrap();
@@ -397,16 +368,7 @@ pub fn view_post_bulk(req: &mut Request) -> IronResult<Response> {
         if action_line == None || action_line == Some("") { break; }
 
         // Parse action line
-        let action_json = match Json::from_str(&action_line.unwrap()) {
-            Ok(data) => data,
-            Err(error) => {
-                // TODO: What specifically is bad about the JSON?
-                let mut response = Response::with((status::BadRequest,
-                                                   "{\"message\": \"Couldn't parse JSON\"}"));
-                response.headers.set_raw("Content-Type", vec![b"application/json".to_vec()]);
-                return Ok(response);
-            }
-        };
+        let action_json = parse_json!(&action_line.unwrap());
 
         // Check action
         // Action should be an object with only one key, the key name indicates the action and
@@ -422,16 +384,7 @@ pub fn view_post_bulk(req: &mut Request) -> IronResult<Response> {
         match action_name.as_ref() {
             "index" => {
                 let doc_line = payload_lines.next();
-                let doc_json =  match Json::from_str(&doc_line.unwrap()) {
-                    Ok(data) => data,
-                    Err(error) => {
-                        // TODO: What specifically is bad about the JSON?
-                        let mut response = Response::with((status::BadRequest,
-                                                           "{\"message\": \"Couldn't parse JSON\"}"));
-                        response.headers.set_raw("Content-Type", vec![b"application/json".to_vec()]);
-                        return Ok(response);
-                    }
-                };
+                let doc_json = parse_json!(&doc_line.unwrap());;
 
                 // Find index
                 let mut index = match indices.get_mut(doc_index) {
