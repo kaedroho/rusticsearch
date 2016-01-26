@@ -236,9 +236,6 @@ pub fn view_put_doc(req: &mut Request) -> IronResult<Response> {
         None
     };
 
-    // Lock index array
-    let mut indices = glob.indices.read().unwrap();
-
     // Create and insert document
     if let Some(data) = data {
         let doc = Document::from_json(data);
