@@ -244,6 +244,53 @@ pub fn view_put_doc(req: &mut Request) -> IronResult<Response> {
 }
 
 
+pub fn view_delete_doc(req: &mut Request) -> IronResult<Response> {
+    let ref glob = req.get::<persistent::Read<Globals>>().unwrap();
+
+    // URL parameters
+    let index_name = req.extensions.get::<Router>().unwrap().find("index").unwrap_or("");
+    let mapping_name = req.extensions.get::<Router>().unwrap().find("mapping").unwrap_or("");
+    let doc_id = req.extensions.get::<Router>().unwrap().find("doc").unwrap_or("");
+
+    // Lock index array
+    let mut indices = glob.indices.write().unwrap();
+
+    // Find index
+    let mut index = match indices.get_mut(index_name) {
+        Some(index) => index,
+        None => {
+            return Ok(index_not_found_response());
+        }
+    };
+
+    // Find mapping
+    let mut mapping = match index.mappings.get_mut(mapping_name) {
+        Some(mapping) => mapping,
+        None => {
+            let mut response = Response::with((status::NotFound,
+                                               "{\"message\": \"Mapping not found\"}"));
+            response.headers.set_raw("Content-Type", vec![b"application/json".to_vec()]);
+            return Ok(response);
+        }
+    };
+
+    // Make sure the document exists
+    if !index.docs.contains_key(doc_id.clone()) {
+        let mut response = Response::with((status::NotFound,
+                                           "{\"message\": \"Document not found\"}"));
+        response.headers.set_raw("Content-Type", vec![b"application/json".to_vec()]);
+        return Ok(response);
+    }
+
+    // Delete document
+    index.docs.remove(doc_id);
+
+    let mut response = Response::with((status::Ok, "{}"));
+    response.headers.set_raw("Content-Type", vec![b"application/json".to_vec()]);
+    Ok(response)
+}
+
+
 pub fn view_put_index(req: &mut Request) -> IronResult<Response> {
     let ref glob = req.get::<persistent::Read<Globals>>().unwrap();
 
@@ -447,6 +494,7 @@ pub fn get_router() -> Router {
             post "/:index/_search" => view_search,
             get "/:index/:mapping/:doc" => view_get_doc,
             put "/:index/:mapping/:doc" => view_put_doc,
+            delete "/:index/:mapping/:doc" => view_delete_doc,
             put "/:index" => view_put_index,
             delete "/:index" => view_delete_index,
             put "/:index/_mapping/:mapping" => view_put_mapping,
