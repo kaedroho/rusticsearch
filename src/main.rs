@@ -7,7 +7,7 @@ extern crate rusqlite;
 #[macro_use]
 extern crate log;
 
-mod views;
+mod api;
 mod query;
 mod mapping;
 mod logger;
@@ -119,7 +119,7 @@ fn main() {
 
     let indices_path = Path::new("./indices").to_path_buf();
     let indices = load_indices(&indices_path.as_path());
-    let router = views::get_router();
+    let router = api::get_router();
     let mut chain = Chain::new(router);
     chain.link(persistent::Read::<Globals>::both(Globals::new(indices_path, indices)));
     Iron::new(chain).http("localhost:9200").unwrap();
