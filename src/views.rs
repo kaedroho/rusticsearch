@@ -291,6 +291,29 @@ pub fn view_delete_doc(req: &mut Request) -> IronResult<Response> {
 }
 
 
+pub fn view_get_index(req: &mut Request) -> IronResult<Response> {
+    let ref glob = req.get::<persistent::Read<Globals>>().unwrap();
+
+    // URL parameters
+    let index_name = req.extensions.get::<Router>().unwrap().find("index").unwrap_or("");
+
+    // Lock index array
+    let indices = glob.indices.read().unwrap();
+
+    // Find index
+    let index = match indices.get(index_name) {
+        Some(index) => index,
+        None => {
+            return Ok(index_not_found_response());
+        }
+    };
+
+    let mut response = Response::with((status::Ok, "{}"));
+    response.headers.set_raw("Content-Type", vec![b"application/json".to_vec()]);
+    Ok(response)
+}
+
+
 pub fn view_put_index(req: &mut Request) -> IronResult<Response> {
     let ref glob = req.get::<persistent::Read<Globals>>().unwrap();
 
@@ -495,6 +518,7 @@ pub fn get_router() -> Router {
             get "/:index/:mapping/:doc" => view_get_doc,
             put "/:index/:mapping/:doc" => view_put_doc,
             delete "/:index/:mapping/:doc" => view_delete_doc,
+            get "/:index" => view_get_index,
             put "/:index" => view_put_index,
             delete "/:index" => view_delete_index,
             put "/:index/_mapping/:mapping" => view_put_mapping,
