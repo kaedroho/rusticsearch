@@ -13,7 +13,7 @@ mod mapping;
 mod logger;
 
 use std::sync::{Mutex, RwLock};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 use std::fs;
 
@@ -43,6 +43,7 @@ struct Index {
     pub connection: Mutex<Connection>,
     pub mappings: HashMap<String, mapping::Mapping>,
     pub docs: HashMap<String, Document>,
+    pub aliases: HashSet<String>,
 }
 
 
@@ -52,6 +53,7 @@ impl Index {
             connection: Mutex::new(connection),
             mappings: HashMap::new(),
             docs: HashMap::new(),
+            aliases: HashSet::new(),
         }
     }
 
