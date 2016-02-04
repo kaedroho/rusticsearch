@@ -14,9 +14,7 @@ use super::super::{Globals, Index, mapping, Document, query};
 
 pub fn view_get_global_alias(req: &mut Request) -> IronResult<Response> {
     let ref glob = get_globals!(req);
-
-    // URL parameters
-    let alias_name = req.extensions.get::<Router>().unwrap().find("alias").unwrap_or("");
+    let ref alias_name = read_path_parameter!(req, "alias").unwrap_or("");
 
     // Lock index array
     let indices = glob.indices.read().unwrap();
@@ -24,12 +22,12 @@ pub fn view_get_global_alias(req: &mut Request) -> IronResult<Response> {
     // Find alias
     let mut found_aliases = HashMap::new();
     for (index_name, index) in indices.iter() {
-        if index.aliases.contains(alias_name) {
+        if index.aliases.contains(*alias_name) {
             let mut inner_map = HashMap::new();
             let mut inner_inner_map = HashMap::new();
-            inner_inner_map.insert(alias_name.clone(), HashMap::<String, String>::new());
+            inner_inner_map.insert(alias_name, HashMap::<String, String>::new());
             inner_map.insert("aliases".to_owned(), inner_inner_map);
-            found_aliases.insert(index_name.clone(), inner_map);
+            found_aliases.insert(index_name, inner_map);
         }
     }
 
@@ -47,16 +45,14 @@ pub fn view_get_global_alias(req: &mut Request) -> IronResult<Response> {
 
 pub fn view_get_alias(req: &mut Request) -> IronResult<Response> {
     let ref glob = get_globals!(req);
-
-    // URL parameters
-    let index_name = req.extensions.get::<Router>().unwrap().find("index").unwrap_or("");
-    let alias_name = req.extensions.get::<Router>().unwrap().find("alias").unwrap_or("");
+    let ref index_name = read_path_parameter!(req, "index").unwrap_or("");
+    let ref alias_name = read_path_parameter!(req, "alias").unwrap_or("");
 
     // Lock index array
     let indices = glob.indices.read().unwrap();
 
     // Find index
-    let index = match indices.get(index_name) {
+    let index = match indices.get(*index_name) {
         Some(index) => index,
         None => {
             return Ok(index_not_found_response());
@@ -64,7 +60,7 @@ pub fn view_get_alias(req: &mut Request) -> IronResult<Response> {
     };
 
     // Find alias
-    if index.aliases.contains(alias_name) {
+    if index.aliases.contains(*alias_name) {
         let mut response = Response::with((status::Ok, ""));
         response.headers.set_raw("Content-Type", vec![b"application/json".to_vec()]);
         Ok(response)
@@ -78,16 +74,14 @@ pub fn view_get_alias(req: &mut Request) -> IronResult<Response> {
 
 pub fn view_put_alias(req: &mut Request) -> IronResult<Response> {
     let ref glob = get_globals!(req);
-
-    // URL parameters
-    let index_name = req.extensions.get::<Router>().unwrap().find("index").unwrap_or("");
-    let ref alias_name = req.extensions.get::<Router>().unwrap().find("alias").unwrap_or("");
+    let ref index_name = read_path_parameter!(req, "index").unwrap_or("");
+    let ref alias_name = read_path_parameter!(req, "alias").unwrap_or("");
 
     // Lock index array
     let mut indices = glob.indices.write().unwrap();
 
     // Find index
-    let mut index = match indices.get_mut(index_name) {
+    let mut index = match indices.get_mut(*index_name) {
         Some(index) => index,
         None => {
             return Ok(index_not_found_response());

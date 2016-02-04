@@ -14,15 +14,13 @@ use super::super::{Globals, Index, mapping, Document, query};
 
 pub fn view_count(req: &mut Request) -> IronResult<Response> {
     let ref glob = get_globals!(req);
-
-    // URL parameters
-    let index_name = req.extensions.get::<Router>().unwrap().find("index").unwrap_or("");
+    let ref index_name = read_path_parameter!(req, "index").unwrap_or("");
 
     // Lock index array
     let indices = glob.indices.read().unwrap();
 
     // Find index
-    let index = match indices.get(index_name) {
+    let index = match indices.get(*index_name) {
         Some(index) => index,
         None => {
             return Ok(index_not_found_response());
@@ -81,15 +79,13 @@ pub fn view_count(req: &mut Request) -> IronResult<Response> {
 
 pub fn view_search(req: &mut Request) -> IronResult<Response> {
     let ref glob = get_globals!(req);
-
-    // URL parameters
-    let index_name = req.extensions.get::<Router>().unwrap().find("index").unwrap_or("");
+    let ref index_name = read_path_parameter!(req, "index").unwrap_or("");
 
     // Lock index array
     let indices = glob.indices.read().unwrap();
 
     // Find index
-    let index = match indices.get(index_name) {
+    let index = match indices.get(*index_name) {
         Some(index) => index,
         None => {
             return Ok(index_not_found_response());

@@ -5,6 +5,13 @@ macro_rules! get_globals {
 }
 
 
+macro_rules! read_path_parameter {
+    ($req: expr, $name: expr) => {{
+        $req.extensions.get::<Router>().unwrap().find($name)
+    }}
+}
+
+
 macro_rules! parse_json {
     ($string: expr) => {{
         match Json::from_str($string) {

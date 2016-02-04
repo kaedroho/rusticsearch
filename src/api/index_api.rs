@@ -37,9 +37,7 @@ pub fn view_get_index(req: &mut Request) -> IronResult<Response> {
 
 pub fn view_put_index(req: &mut Request) -> IronResult<Response> {
     let ref glob = get_globals!(req);
-
-    // URL parameters
-    let ref index_name = req.extensions.get::<Router>().unwrap().find("index").unwrap_or("");
+    let ref index_name = read_path_parameter!(req, "index").unwrap_or("");
 
     // Lock index array
     let mut indices = glob.indices.write().unwrap();
@@ -65,9 +63,7 @@ pub fn view_put_index(req: &mut Request) -> IronResult<Response> {
 
 pub fn view_delete_index(req: &mut Request) -> IronResult<Response> {
     let ref glob = get_globals!(req);
-
-    // URL parameters
-    let ref index_name = req.extensions.get::<Router>().unwrap().find("index").unwrap_or("");
+    let ref index_name = read_path_parameter!(req, "index").unwrap_or("");
 
     // Make sure the index exists
     if !glob.indices.read().unwrap().contains_key(index_name.to_owned()) {
@@ -96,6 +92,7 @@ pub fn view_delete_index(req: &mut Request) -> IronResult<Response> {
 
 pub fn view_post_refresh_index(req: &mut Request) -> IronResult<Response> {
     let ref glob = get_globals!(req);
+    let ref index_name = read_path_parameter!(req, "index").unwrap_or("");
 
     // Lock index array
     let mut indices = glob.indices.write().unwrap();

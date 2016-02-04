@@ -14,16 +14,14 @@ use super::super::{Globals, Index, mapping, Document, query};
 
 pub fn view_put_mapping(req: &mut Request) -> IronResult<Response> {
     let ref glob = get_globals!(req);
-
-    // URL parameters
-    let index_name = req.extensions.get::<Router>().unwrap().find("index").unwrap_or("");
-    let ref mapping_name = req.extensions.get::<Router>().unwrap().find("mapping").unwrap_or("");
+    let ref index_name = read_path_parameter!(req, "index").unwrap_or("");
+    let ref mapping_name = read_path_parameter!(req, "mapping").unwrap_or("");
 
     // Lock index array
     let mut indices = glob.indices.write().unwrap();
 
     // Find index
-    let mut index = match indices.get_mut(index_name) {
+    let mut index = match indices.get_mut(*index_name) {
         Some(index) => index,
         None => {
             return Ok(index_not_found_response());
