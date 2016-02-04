@@ -46,9 +46,7 @@ pub fn view_get_doc(req: &mut Request) -> IronResult<Response> {
         }
     };
 
-    let mut response = Response::with((status::Ok, json::encode(&doc.data).unwrap()));
-    response.headers.set_raw("Content-Type", vec![b"application/json".to_vec()]);
-    Ok(response)
+    return json_response!(status::Ok, json::encode(&doc.data).unwrap());
 }
 
 
@@ -84,9 +82,7 @@ pub fn view_put_doc(req: &mut Request) -> IronResult<Response> {
         index.docs.insert(doc_id.clone().to_owned(), doc);
     }
 
-    let mut response = Response::with((status::Ok, "{}"));
-    response.headers.set_raw("Content-Type", vec![b"application/json".to_vec()]);
-    Ok(response)
+    return json_response!(status::Ok, "{}");
 }
 
 
@@ -124,7 +120,5 @@ pub fn view_delete_doc(req: &mut Request) -> IronResult<Response> {
     // Delete document
     index.docs.remove(*doc_id);
 
-    let mut response = Response::with((status::Ok, "{}"));
-    response.headers.set_raw("Content-Type", vec![b"application/json".to_vec()]);
-    Ok(response)
+    return json_response!(status::Ok, "{}");
 }

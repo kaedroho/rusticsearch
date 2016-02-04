@@ -43,7 +43,5 @@ pub fn view_put_mapping(req: &mut Request) -> IronResult<Response> {
     debug!("{:#?}", mapping);
     index.mappings.insert(mapping_name.clone().to_owned(), mapping);
 
-    let mut response = Response::with((status::Ok, "{\"acknowledged\": true}"));
-    response.headers.set_raw("Content-Type", vec![b"application/json".to_vec()]);
-    Ok(response)
+    return json_response!(status::Ok, "{\"acknowledged\": true}");
 }

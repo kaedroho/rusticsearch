@@ -66,9 +66,7 @@ pub fn view_count(req: &mut Request) -> IronResult<Response> {
         index.docs.len()
     };
 
-    let mut response = Response::with((status::Ok, format!("{{\"count\": {}}}", count)));
-    response.headers.set_raw("Content-Type", vec![b"application/json".to_vec()]);
-    Ok(response)
+    return json_response!(status::Ok, format!("{{\"count\": {}}}", count));
 }
 
 
@@ -87,7 +85,5 @@ pub fn view_search(req: &mut Request) -> IronResult<Response> {
 
     // TODO: Run query
 
-    let mut response = Response::with((status::Ok, "{\"hits\": {\"total\": 0, \"hits\": []}}"));
-    response.headers.set_raw("Content-Type", vec![b"application/json".to_vec()]);
-    Ok(response)
+    return json_response!(status::Ok, "{\"hits\": {\"total\": 0, \"hits\": []}}");
 }

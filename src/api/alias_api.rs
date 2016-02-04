@@ -32,13 +32,9 @@ pub fn view_get_global_alias(req: &mut Request) -> IronResult<Response> {
     }
 
     if !found_aliases.is_empty() {
-        let mut response = Response::with((status::Ok, json::encode(&found_aliases).unwrap()));
-        response.headers.set_raw("Content-Type", vec![b"application/json".to_vec()]);
-        Ok(response)
+        return json_response!(status::Ok, json::encode(&found_aliases).unwrap());
     } else {
-        let mut response = Response::with((status::NotFound, "{}"));
-        response.headers.set_raw("Content-Type", vec![b"application/json".to_vec()]);
-        Ok(response)
+        return json_response!(status::NotFound, "{}");
     }
 }
 
@@ -56,13 +52,9 @@ pub fn view_get_alias(req: &mut Request) -> IronResult<Response> {
 
     // Find alias
     if index.aliases.contains(*alias_name) {
-        let mut response = Response::with((status::Ok, ""));
-        response.headers.set_raw("Content-Type", vec![b"application/json".to_vec()]);
-        Ok(response)
+        return json_response!(status::Ok, "{}");
     } else {
-        let mut response = Response::with((status::NotFound, ""));
-        response.headers.set_raw("Content-Type", vec![b"application/json".to_vec()]);
-        Ok(response)
+        return json_response!(status::NotFound, "{}");
     }
 }
 
@@ -81,7 +73,5 @@ pub fn view_put_alias(req: &mut Request) -> IronResult<Response> {
     // Insert alias
     index.aliases.insert(alias_name.clone().to_owned());
 
-    let mut response = Response::with((status::Ok, "{\"acknowledged\": true}"));
-    response.headers.set_raw("Content-Type", vec![b"application/json".to_vec()]);
-    Ok(response)
+    return json_response!(status::Ok, "{\"acknowledged\": true}");
 }

@@ -22,9 +22,7 @@ pub fn view_get_index(req: &mut Request) -> IronResult<Response> {
     // Get index
     let index = get_index_or_404!(indices, *index_name);
 
-    let mut response = Response::with((status::Ok, "{}"));
-    response.headers.set_raw("Content-Type", vec![b"application/json".to_vec()]);
-    Ok(response)
+    return json_response!(status::Ok, "{}");
 }
 
 
@@ -48,9 +46,7 @@ pub fn view_put_index(req: &mut Request) -> IronResult<Response> {
 
     info!("Created index {}", index_name);
 
-    let mut response = Response::with((status::Ok, "{\"acknowledged\": true}"));
-    response.headers.set_raw("Content-Type", vec![b"application/json".to_vec()]);
-    Ok(response)
+    return json_response!(status::Ok, "{\"acknowledged\": true}");
 }
 
 
@@ -75,9 +71,7 @@ pub fn view_delete_index(req: &mut Request) -> IronResult<Response> {
 
     info!("Deleted index {}", index_name);
 
-    let mut response = Response::with((status::Ok, "{\"acknowledged\": true}"));
-    response.headers.set_raw("Content-Type", vec![b"application/json".to_vec()]);
-    Ok(response)
+    return json_response!(status::Ok, "{\"acknowledged\": true}");
 }
 
 
@@ -88,7 +82,5 @@ pub fn view_post_refresh_index(req: &mut Request) -> IronResult<Response> {
     // Lock index array
     let mut indices = glob.indices.write().unwrap();
 
-    let mut response = Response::with((status::Ok, "{\"acknowledged\": true}"));
-    response.headers.set_raw("Content-Type", vec![b"application/json".to_vec()]);
-    Ok(response)
+    return json_response!(status::Ok, "{\"acknowledged\": true}");
 }

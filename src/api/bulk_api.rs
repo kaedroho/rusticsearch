@@ -86,7 +86,5 @@ pub fn view_post_bulk(req: &mut Request) -> IronResult<Response> {
         }
     }
 
-    let mut response = Response::with((status::Ok, format!("{{\"took\": {}, \"items\": {}}}", items.len(), json::encode(&items).unwrap())));
-    response.headers.set_raw("Content-Type", vec![b"application/json".to_vec()]);
-    Ok(response)
+    return json_response!(status::Ok, format!("{{\"took\": {}, \"items\": {}}}", items.len(), json::encode(&items).unwrap()));
 }

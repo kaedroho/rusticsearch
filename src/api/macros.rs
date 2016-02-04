@@ -12,17 +12,25 @@ macro_rules! read_path_parameter {
 }
 
 
+macro_rules! json_response {
+    ($status: expr, $content: expr) => {{
+        use iron::response::Response;
+
+        let mut response = Response::with(($status, $content));
+        response.headers.set_raw("Content-Type", vec![b"application/json".to_vec()]);
+        Ok(response)
+    }}
+}
+
+
 macro_rules! get_index_or_404 {
     ($indices: expr, $index_name: expr) => {{
-        use iron::response::Response;
         use iron::status;
 
         match $indices.get($index_name) {
             Some(index) => index,
             None => {
-                let mut response = Response::with((status::NotFound, "{\"message\": \"Index not found\"}"));
-                response.headers.set_raw("Content-Type", vec![b"application/json".to_vec()]);
-                return Ok(response);
+                return json_response!(status::NotFound, "{\"message\": \"Index not found\"}");
             }
         }
     }}
@@ -37,9 +45,7 @@ macro_rules! get_index_or_404_mut {
         match $indices.get_mut($index_name) {
             Some(index) => index,
             None => {
-                let mut response = Response::with((status::NotFound, "{\"message\": \"Index not found\"}"));
-                response.headers.set_raw("Content-Type", vec![b"application/json".to_vec()]);
-                return Ok(response);
+                return json_response!(status::NotFound, "{\"message\": \"Index not found\"}");
             }
         }
     }}
@@ -51,11 +57,7 @@ macro_rules! parse_json {
         match Json::from_str($string) {
             Ok(data) => data,
             Err(error) => {
-                // TODO: What specifically is bad about the JSON?
-                let mut response = Response::with((status::BadRequest,
-                                                   "{\"message\": \"Couldn't parse JSON\"}"));
-                response.headers.set_raw("Content-Type", vec![b"application/json".to_vec()]);
-                return Ok(response);
+                return json_response!(status::BadRequest, "{\"message\": \"Couldn't parse JSON\"}");
             }
         }
     }}
