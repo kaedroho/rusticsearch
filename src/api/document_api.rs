@@ -82,6 +82,7 @@ pub fn view_put_doc(req: &mut Request) -> IronResult<Response> {
         index.docs.insert(doc_id.clone().to_owned(), doc);
     }
 
+    // TODO: {"_index":"wagtail","_type":"searchtests_searchtest","_id":"searchtests_searchtest:5378","_version":1,"created":true}
     return json_response!(status::Ok, "{}");
 }
 

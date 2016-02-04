@@ -82,5 +82,6 @@ pub fn view_post_refresh_index(req: &mut Request) -> IronResult<Response> {
     // Lock index array
     let mut indices = glob.indices.write().unwrap();
 
+    // TODO: {"_shards":{"total":10,"successful":5,"failed":0}}
     return json_response!(status::Ok, "{\"acknowledged\": true}");
 }
