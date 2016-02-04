@@ -30,9 +30,7 @@ pub fn view_put_mapping(req: &mut Request) -> IronResult<Response> {
         Some(data) => data,
         None => {
             // TODO: Better error
-            let mut response = Response::with((status::Ok, "{\"acknowledged\": false}"));
-            response.headers.set_raw("Content-Type", vec![b"application/json".to_vec()]);
-            return Ok(response)
+            return json_response!(status::BadRequest, "{\"acknowledged\": false}");
         },
     };
 

@@ -31,10 +31,7 @@ pub fn view_count(req: &mut Request) -> IronResult<Response> {
             Ok(data) => data,
             Err(error) => {
                 // TODO: What specifically is bad about the JSON?
-                let mut response = Response::with((status::BadRequest,
-                                                   "{\"message\": \"Couldn't parse JSON\"}"));
-                response.headers.set_raw("Content-Type", vec![b"application/json".to_vec()]);
-                return Ok(response);
+                return json_response!(status::BadRequest, "{\"message\": \"Couldn't parse JSON\"}");
             }
         };
 

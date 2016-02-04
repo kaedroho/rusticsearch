@@ -28,10 +28,7 @@ pub fn view_get_doc(req: &mut Request) -> IronResult<Response> {
     let mapping = match index.mappings.get(*mapping_name) {
         Some(mapping) => mapping,
         None => {
-            let mut response = Response::with((status::NotFound,
-                                               "{\"message\": \"Mapping not found\"}"));
-            response.headers.set_raw("Content-Type", vec![b"application/json".to_vec()]);
-            return Ok(response);
+            return json_response!(status::NotFound, "{\"message\": \"Mapping not found\"}");
         }
     };
 
@@ -39,10 +36,7 @@ pub fn view_get_doc(req: &mut Request) -> IronResult<Response> {
     let doc = match index.docs.get(*doc_id) {
         Some(doc) => doc,
         None => {
-            let mut response = Response::with((status::NotFound,
-                                               "{\"message\": \"Document not found\"}"));
-            response.headers.set_raw("Content-Type", vec![b"application/json".to_vec()]);
-            return Ok(response);
+            return json_response!(status::NotFound, "{\"message\": \"Document not found\"}");
         }
     };
 
@@ -66,10 +60,7 @@ pub fn view_put_doc(req: &mut Request) -> IronResult<Response> {
     let mut mapping = match index.mappings.get_mut(*mapping_name) {
         Some(mapping) => mapping,
         None => {
-            let mut response = Response::with((status::NotFound,
-                                               "{\"message\": \"Mapping not found\"}"));
-            response.headers.set_raw("Content-Type", vec![b"application/json".to_vec()]);
-            return Ok(response);
+            return json_response!(status::NotFound, "{\"message\": \"Mapping not found\"}");
         }
     };
 
@@ -103,19 +94,13 @@ pub fn view_delete_doc(req: &mut Request) -> IronResult<Response> {
     let mut mapping = match index.mappings.get_mut(*mapping_name) {
         Some(mapping) => mapping,
         None => {
-            let mut response = Response::with((status::NotFound,
-                                               "{\"message\": \"Mapping not found\"}"));
-            response.headers.set_raw("Content-Type", vec![b"application/json".to_vec()]);
-            return Ok(response);
+            return json_response!(status::NotFound, "{\"message\": \"Mapping not found\"}");
         }
     };
 
     // Make sure the document exists
     if !index.docs.contains_key(*doc_id) {
-        let mut response = Response::with((status::NotFound,
-                                           "{\"message\": \"Document not found\"}"));
-        response.headers.set_raw("Content-Type", vec![b"application/json".to_vec()]);
-        return Ok(response);
+        return json_response!(status::NotFound, "{\"message\": \"Document not found\"}");
     }
 
     // Delete document

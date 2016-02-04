@@ -63,10 +63,7 @@ pub fn view_post_bulk(req: &mut Request) -> IronResult<Response> {
                 let mut mapping = match index.mappings.get_mut(doc_type) {
                     Some(mapping) => mapping,
                     None => {
-                        let mut response = Response::with((status::NotFound,
-                                                           "{\"message\": \"Mapping not found\"}"));
-                        response.headers.set_raw("Content-Type", vec![b"application/json".to_vec()]);
-                        return Ok(response);
+                        return json_response!(status::NotFound, "{\"message\": \"Mapping not found\"}");
                     }
                 };
 
