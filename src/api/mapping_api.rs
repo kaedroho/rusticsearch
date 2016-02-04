@@ -20,13 +20,8 @@ pub fn view_put_mapping(req: &mut Request) -> IronResult<Response> {
     // Lock index array
     let mut indices = glob.indices.write().unwrap();
 
-    // Find index
-    let mut index = match indices.get_mut(*index_name) {
-        Some(index) => index,
-        None => {
-            return Ok(index_not_found_response());
-        }
-    };
+    // Get index
+    let mut index = get_index_or_404_mut!(indices, *index_name);
 
     // Load data from body
     let data = json_from_request_body!(req);

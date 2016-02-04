@@ -51,13 +51,8 @@ pub fn view_get_alias(req: &mut Request) -> IronResult<Response> {
     // Lock index array
     let indices = glob.indices.read().unwrap();
 
-    // Find index
-    let index = match indices.get(*index_name) {
-        Some(index) => index,
-        None => {
-            return Ok(index_not_found_response());
-        }
-    };
+    // Get index
+    let index = get_index_or_404!(indices, *index_name);
 
     // Find alias
     if index.aliases.contains(*alias_name) {
@@ -80,13 +75,8 @@ pub fn view_put_alias(req: &mut Request) -> IronResult<Response> {
     // Lock index array
     let mut indices = glob.indices.write().unwrap();
 
-    // Find index
-    let mut index = match indices.get_mut(*index_name) {
-        Some(index) => index,
-        None => {
-            return Ok(index_not_found_response());
-        }
-    };
+    // Get index
+    let mut index = get_index_or_404_mut!(indices, *index_name);
 
     // Insert alias
     index.aliases.insert(alias_name.clone().to_owned());

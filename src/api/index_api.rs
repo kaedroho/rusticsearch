@@ -14,20 +14,13 @@ use super::super::{Globals, Index, mapping, Document, query};
 
 pub fn view_get_index(req: &mut Request) -> IronResult<Response> {
     let ref glob = get_globals!(req);
-
-    // URL parameters
-    let index_name = req.extensions.get::<Router>().unwrap().find("index").unwrap_or("");
+    let ref index_name = read_path_parameter!(req, "index").unwrap_or("");
 
     // Lock index array
     let indices = glob.indices.read().unwrap();
 
-    // Find index
-    let index = match indices.get(index_name) {
-        Some(index) => index,
-        None => {
-            return Ok(index_not_found_response());
-        }
-    };
+    // Get index
+    let index = get_index_or_404!(indices, *index_name);
 
     let mut response = Response::with((status::Ok, "{}"));
     response.headers.set_raw("Content-Type", vec![b"application/json".to_vec()]);
@@ -66,9 +59,7 @@ pub fn view_delete_index(req: &mut Request) -> IronResult<Response> {
     let ref index_name = read_path_parameter!(req, "index").unwrap_or("");
 
     // Make sure the index exists
-    if !glob.indices.read().unwrap().contains_key(index_name.to_owned()) {
-        return Ok(index_not_found_response());
-    }
+    get_index_or_404!(glob.indices.read().unwrap(), *index_name);
 
     // Lock index array
     let mut indices = glob.indices.write().unwrap();

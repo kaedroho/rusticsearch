@@ -19,13 +19,8 @@ pub fn view_count(req: &mut Request) -> IronResult<Response> {
     // Lock index array
     let indices = glob.indices.read().unwrap();
 
-    // Find index
-    let index = match indices.get(*index_name) {
-        Some(index) => index,
-        None => {
-            return Ok(index_not_found_response());
-        }
-    };
+    // Get index
+    let index = get_index_or_404!(indices, *index_name);
 
     // Load query from body
     let mut payload = String::new();
@@ -84,13 +79,8 @@ pub fn view_search(req: &mut Request) -> IronResult<Response> {
     // Lock index array
     let indices = glob.indices.read().unwrap();
 
-    // Find index
-    let index = match indices.get(*index_name) {
-        Some(index) => index,
-        None => {
-            return Ok(index_not_found_response());
-        }
-    };
+    // Get index
+    let index = get_index_or_404!(indices, *index_name);
 
     let data = json_from_request_body!(req);
     debug!("{:#?}", query::parse_query(data.unwrap().as_object().unwrap().get("query").unwrap()));

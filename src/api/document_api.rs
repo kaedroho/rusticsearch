@@ -21,13 +21,8 @@ pub fn view_get_doc(req: &mut Request) -> IronResult<Response> {
     // Lock index array
     let indices = glob.indices.read().unwrap();
 
-    // Find index
-    let index = match indices.get(*index_name) {
-        Some(index) => index,
-        None => {
-            return Ok(index_not_found_response());
-        }
-    };
+    // Get index
+    let index = get_index_or_404!(indices, *index_name);
 
     // Find mapping
     let mapping = match index.mappings.get(*mapping_name) {
@@ -66,13 +61,8 @@ pub fn view_put_doc(req: &mut Request) -> IronResult<Response> {
     // Lock index array
     let mut indices = glob.indices.write().unwrap();
 
-    // Find index
-    let mut index = match indices.get_mut(*index_name) {
-        Some(index) => index,
-        None => {
-            return Ok(index_not_found_response());
-        }
-    };
+    // Get index
+    let mut index = get_index_or_404_mut!(indices, *index_name);
 
     // Find mapping
     let mut mapping = match index.mappings.get_mut(*mapping_name) {
@@ -109,13 +99,8 @@ pub fn view_delete_doc(req: &mut Request) -> IronResult<Response> {
     // Lock index array
     let mut indices = glob.indices.write().unwrap();
 
-    // Find index
-    let mut index = match indices.get_mut(*index_name) {
-        Some(index) => index,
-        None => {
-            return Ok(index_not_found_response());
-        }
-    };
+    // Get index
+    let mut index = get_index_or_404_mut!(indices, *index_name);
 
     // Find mapping
     let mut mapping = match index.mappings.get_mut(*mapping_name) {

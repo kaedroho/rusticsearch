@@ -12,6 +12,40 @@ macro_rules! read_path_parameter {
 }
 
 
+macro_rules! get_index_or_404 {
+    ($indices: expr, $index_name: expr) => {{
+        use iron::response::Response;
+        use iron::status;
+
+        match $indices.get($index_name) {
+            Some(index) => index,
+            None => {
+                let mut response = Response::with((status::NotFound, "{\"message\": \"Index not found\"}"));
+                response.headers.set_raw("Content-Type", vec![b"application/json".to_vec()]);
+                return Ok(response);
+            }
+        }
+    }}
+}
+
+
+macro_rules! get_index_or_404_mut {
+    ($indices: expr, $index_name: expr) => {{
+        use iron::response::Response;
+        use iron::status;
+
+        match $indices.get_mut($index_name) {
+            Some(index) => index,
+            None => {
+                let mut response = Response::with((status::NotFound, "{\"message\": \"Index not found\"}"));
+                response.headers.set_raw("Content-Type", vec![b"application/json".to_vec()]);
+                return Ok(response);
+            }
+        }
+    }}
+}
+
+
 macro_rules! parse_json {
     ($string: expr) => {{
         match Json::from_str($string) {
