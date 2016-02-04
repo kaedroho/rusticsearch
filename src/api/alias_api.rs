@@ -13,7 +13,7 @@ use super::super::{Globals, Index, mapping, Document, query};
 
 
 pub fn view_get_global_alias(req: &mut Request) -> IronResult<Response> {
-    let ref glob = req.get::<persistent::Read<Globals>>().unwrap();
+    let ref glob = get_globals!(req);
 
     // URL parameters
     let alias_name = req.extensions.get::<Router>().unwrap().find("alias").unwrap_or("");
@@ -46,7 +46,7 @@ pub fn view_get_global_alias(req: &mut Request) -> IronResult<Response> {
 
 
 pub fn view_get_alias(req: &mut Request) -> IronResult<Response> {
-    let ref glob = req.get::<persistent::Read<Globals>>().unwrap();
+    let ref glob = get_globals!(req);
 
     // URL parameters
     let index_name = req.extensions.get::<Router>().unwrap().find("index").unwrap_or("");
@@ -77,7 +77,7 @@ pub fn view_get_alias(req: &mut Request) -> IronResult<Response> {
 
 
 pub fn view_put_alias(req: &mut Request) -> IronResult<Response> {
-    let ref glob = req.get::<persistent::Read<Globals>>().unwrap();
+    let ref glob = get_globals!(req);
 
     // URL parameters
     let index_name = req.extensions.get::<Router>().unwrap().find("index").unwrap_or("");

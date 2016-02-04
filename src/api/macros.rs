@@ -1,3 +1,10 @@
+macro_rules! get_globals {
+    ($req: expr) => {{
+        $req.get::<persistent::Read<Globals>>().unwrap()
+    }}
+}
+
+
 macro_rules! parse_json {
     ($string: expr) => {{
         match Json::from_str($string) {

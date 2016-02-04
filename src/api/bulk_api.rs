@@ -13,7 +13,7 @@ use super::super::{Globals, Index, mapping, Document, query};
 
 
 pub fn view_post_bulk(req: &mut Request) -> IronResult<Response> {
-    let ref glob = req.get::<persistent::Read<Globals>>().unwrap();
+    let ref glob = get_globals!(req);
 
     // Lock index array
     let mut indices = glob.indices.write().unwrap();

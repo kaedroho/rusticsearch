@@ -13,7 +13,7 @@ use super::super::{Globals, Index, mapping, Document, query};
 
 
 pub fn view_get_index(req: &mut Request) -> IronResult<Response> {
-    let ref glob = req.get::<persistent::Read<Globals>>().unwrap();
+    let ref glob = get_globals!(req);
 
     // URL parameters
     let index_name = req.extensions.get::<Router>().unwrap().find("index").unwrap_or("");
@@ -36,7 +36,7 @@ pub fn view_get_index(req: &mut Request) -> IronResult<Response> {
 
 
 pub fn view_put_index(req: &mut Request) -> IronResult<Response> {
-    let ref glob = req.get::<persistent::Read<Globals>>().unwrap();
+    let ref glob = get_globals!(req);
 
     // URL parameters
     let ref index_name = req.extensions.get::<Router>().unwrap().find("index").unwrap_or("");
@@ -64,7 +64,7 @@ pub fn view_put_index(req: &mut Request) -> IronResult<Response> {
 
 
 pub fn view_delete_index(req: &mut Request) -> IronResult<Response> {
-    let ref glob = req.get::<persistent::Read<Globals>>().unwrap();
+    let ref glob = get_globals!(req);
 
     // URL parameters
     let ref index_name = req.extensions.get::<Router>().unwrap().find("index").unwrap_or("");
@@ -95,7 +95,7 @@ pub fn view_delete_index(req: &mut Request) -> IronResult<Response> {
 
 
 pub fn view_post_refresh_index(req: &mut Request) -> IronResult<Response> {
-    let ref glob = req.get::<persistent::Read<Globals>>().unwrap();
+    let ref glob = get_globals!(req);
 
     // Lock index array
     let mut indices = glob.indices.write().unwrap();
