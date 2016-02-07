@@ -16,6 +16,7 @@ pub enum FilterParseError {
 #[derive(Debug, PartialEq)]
 pub enum Filter {
     Term{field: String, value: Json},
+    Terms{field: String, values: Vec<Json>},
     Prefix{field: String, value: String},
     Missing{field: String},
     And{children: Vec<Filter>},
@@ -56,6 +57,19 @@ impl Filter {
 
                 if let Some(field_value) = obj.get(field) {
                     return field_value == value;
+                }
+
+                false
+            }
+            Filter::Terms{ref field, ref values} => {
+                let obj = doc.data.as_object().unwrap();
+
+                if let Some(field_value) = obj.get(field) {
+                    for value in values.iter() {
+                        if field_value == value {
+                            return true;
+                        }
+                    }
                 }
 
                 false
@@ -114,6 +128,14 @@ pub fn parse_filter(json: &Json) -> Result<Filter, FilterParseError> {
         Ok(Filter::Term{
             field: first_key.clone(),
             value:filter_json.get(first_key).unwrap().clone()
+        })
+    } else if first_key == "terms" {
+        let filter_json = filter_json.get("terms").unwrap().as_object().unwrap();
+        let first_key = filter_json.keys().nth(0).unwrap();
+
+        Ok(Filter::Terms{
+            field: first_key.clone(),
+            values: filter_json.get(first_key).unwrap().as_array().unwrap().clone()
         })
     } else if first_key == "prefix" {
         let filter_json = filter_json.get("prefix").unwrap().as_object().unwrap();
