@@ -17,6 +17,7 @@ pub enum FilterParseError {
 pub enum Filter {
     Term{field: String, value: Json},
     Prefix{field: String, value: String},
+    Missing{field: String},
     And{children: Vec<Filter>},
     Or{children: Vec<Filter>},
     Not{child: Box<Filter>},
@@ -70,6 +71,15 @@ impl Filter {
 
                 false
             }
+            Filter::Missing{ref field} => {
+                let obj = doc.data.as_object().unwrap();
+
+                match obj.get(field) {
+                    Some(&Json::Null) => true,
+                    None => true,
+                    _ => false,
+                }
+            }
             Filter::And{ref children} => {
                 for child in children.iter() {
                     if !child.matches(doc) {
@@ -113,6 +123,13 @@ pub fn parse_filter(json: &Json) -> Result<Filter, FilterParseError> {
         Ok(Filter::Prefix{
             field: first_key.clone(),
             value: value.to_owned()
+        })
+    } else if first_key == "missing" {
+        let filter_json = filter_json.get("missing").unwrap().as_object().unwrap();
+        let first_key = filter_json.keys().nth(0).unwrap();
+
+        Ok(Filter::Missing{
+            field: first_key.clone()
         })
     } else if first_key == "and" {
         Ok(Filter::And{
