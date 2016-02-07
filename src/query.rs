@@ -127,7 +127,7 @@ pub fn parse_filter(json: &Json) -> Result<Filter, FilterParseError> {
 
         Ok(Filter::Term{
             field: first_key.clone(),
-            value:filter_json.get(first_key).unwrap().clone()
+            value: filter_json.get(first_key).unwrap().clone()
         })
     } else if first_key == "terms" {
         let filter_json = filter_json.get("terms").unwrap().as_object().unwrap();
