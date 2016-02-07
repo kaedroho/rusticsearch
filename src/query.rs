@@ -37,13 +37,27 @@ pub enum QueryParseError {
     FilterParseError(FilterParseError),
     MissingQueryString,
     MultiMatchMissingFields,
+    InvalidQueryOperator,
+}
+
+
+#[derive(Debug, PartialEq)]
+pub enum QueryOperator {
+    Or,
+    And,
+}
+
+impl Default for QueryOperator {
+    fn default() -> QueryOperator {
+        QueryOperator::Or
+    }
 }
 
 
 #[derive(Debug, PartialEq)]
 pub enum Query {
     MatchAll,
-    Match{field: String, query: String},
+    Match{field: String, query: String, operator: QueryOperator},
     MultiMatch{fields: Vec<String>, query: String},
     Filtered{query: Box<Query>, filter: Box<Filter>},
 }
@@ -180,7 +194,7 @@ impl Query {
     pub fn matches(&self, doc: &Document) -> bool {
         match *self {
             Query::MatchAll => true,
-            Query::Match{ref field, ref query} => {
+            Query::Match{ref field, ref query, ref operator} => {
                 let obj = doc.data.as_object().unwrap();
 
                 if let Some(field_value) = obj.get(field) {
@@ -219,6 +233,24 @@ impl Query {
     }
 }
 
+pub fn parse_query_operator(json: Option<&Json>) -> Result<QueryOperator, QueryParseError> {
+    match json {
+        Some(json) => {
+            match *json {
+                Json::String(ref value) => {
+                    match value.as_ref() {
+                        "or" => Ok(QueryOperator::Or),
+                        "and" => Ok(QueryOperator::And),
+                        _ => return Err(QueryParseError::InvalidQueryOperator),
+                    }
+                }
+                _ => return Err(QueryParseError::InvalidQueryOperator),
+            }
+        }
+        None => Ok(QueryOperator::default())
+    }
+}
+
 pub fn parse_match_query(json: &Json) -> Result<Query, QueryParseError> {
     let json_object = try!(json.as_object().ok_or(QueryParseError::ExpectedObject));
     let first_key = try!(json_object.keys().nth(0).ok_or(QueryParseError::NoQuery));
@@ -228,12 +260,14 @@ pub fn parse_match_query(json: &Json) -> Result<Query, QueryParseError> {
             Ok(Query::Match {
                 field: first_key.clone(),
                 query: query.to_owned(),
+                operator: QueryOperator::default(),
             })
         }
         &Json::Object(ref object) => {
             Ok(Query::Match {
                 field: first_key.clone(),
                 query: object.get("query").unwrap().as_string().unwrap().to_owned(),
+                operator: try!(parse_query_operator(object.get("operator"))),
             })
         }
         // TODO: We actually expect string or object
@@ -301,7 +335,7 @@ pub fn parse_query(json: &Json) -> Result<Query, QueryParseError> {
 #[cfg(test)]
 mod tests {
     use rustc_serialize::json::Json;
-    use super::{Query, Filter, QueryParseError, parse_query};
+    use super::{Query, Filter, QueryParseError, QueryOperator, parse_query};
 
     #[test]
     fn test_match_all_query() {
@@ -327,6 +361,7 @@ mod tests {
         assert_eq!(query, Ok(Query::Match{
             field: "title".to_owned(),
             query: "Hello world!".to_owned(),
+            operator: QueryOperator::Or,
         }))
     }
 
@@ -407,6 +442,7 @@ mod tests {
             query: Box::new(Query::Match{
                 field: "title".to_owned(),
                 query: "Hello world!".to_owned(),
+                operator: QueryOperator::Or,
             }),
             filter: Box::new(Filter::Term{
                 field: "date".to_owned(),
