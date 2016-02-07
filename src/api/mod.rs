@@ -44,6 +44,7 @@ pub fn get_router() -> Router {
             get "/:index/_search" => search_api::view_search,
             post "/:index/_search" => search_api::view_search,
             get "/_alias/:alias" => alias_api::view_get_global_alias,
+            get "/:index/_alias" => alias_api::view_get_alias_list,
             get "/:index/_alias/:alias" => alias_api::view_get_alias,
             put "/:index/_alias/:alias" => alias_api::view_put_alias,
             get "/:index/:mapping/:doc" => document_api::view_get_doc,
