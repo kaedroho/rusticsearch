@@ -223,10 +223,22 @@ pub fn parse_match_query(json: &Json) -> Result<Query, QueryParseError> {
     let json_object = try!(json.as_object().ok_or(QueryParseError::ExpectedObject));
     let first_key = try!(json_object.keys().nth(0).ok_or(QueryParseError::NoQuery));
 
-    Ok(Query::Match {
-        field: first_key.clone(),
-        query: json_object.get(first_key).unwrap().as_string().unwrap().to_owned(),
-    })
+    match json_object.get(first_key).unwrap() {
+        &Json::String(ref query) => {
+            Ok(Query::Match {
+                field: first_key.clone(),
+                query: query.to_owned(),
+            })
+        }
+        &Json::Object(ref object) => {
+            Ok(Query::Match {
+                field: first_key.clone(),
+                query: object.get("query").unwrap().as_string().unwrap().to_owned(),
+            })
+        }
+        // TODO: We actually expect string or object
+        _ => Err(QueryParseError::ExpectedString)
+    }
 }
 
 pub fn parse_multi_match_query(json: &Json) -> Result<Query, QueryParseError> {
