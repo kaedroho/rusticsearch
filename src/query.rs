@@ -374,10 +374,10 @@ mod tests {
                 field: "title".to_owned(),
                 query: "Hello world!".to_owned(),
             }),
-            filter: Box::new(Filter::Term(
-                "date".to_owned(),
-                Json::from_str("\"2016-01-25\"").unwrap(),
-            ))
+            filter: Box::new(Filter::Term{
+                field: "date".to_owned(),
+                value: Json::from_str("\"2016-01-25\"").unwrap(),
+            })
         }))
     }
 
