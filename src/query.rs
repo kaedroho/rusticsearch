@@ -366,6 +366,61 @@ mod tests {
     }
 
     #[test]
+    fn test_match_dict_config() {
+        let query = parse_query(&Json::from_str("
+            {
+                \"match\": {
+                    \"title\": {
+                        \"query\": \"Hello world!\"
+                    }
+                }
+            }
+        ").unwrap());
+
+        assert_eq!(query, Ok(Query::Match{
+            field: "title".to_owned(),
+            query: "Hello world!".to_owned(),
+            operator: QueryOperator::Or,
+        }))
+    }
+
+    #[test]
+    fn test_match_and_operator() {
+        let query = parse_query(&Json::from_str("
+            {
+                \"match\": {
+                    \"title\": {
+                        \"query\": \"Hello world!\",
+                        \"operator\": \"and\"
+                    }
+                }
+            }
+        ").unwrap());
+
+        assert_eq!(query, Ok(Query::Match{
+            field: "title".to_owned(),
+            query: "Hello world!".to_owned(),
+            operator: QueryOperator::And,
+        }))
+    }
+
+    #[test]
+    fn test_match_invalid_operator() {
+        let query = parse_query(&Json::from_str("
+            {
+                \"match\": {
+                    \"title\": {
+                        \"query\": \"Hello world!\",
+                        \"operator\": \"invalid\"
+                    }
+                }
+            }
+        ").unwrap());
+
+        assert_eq!(query, Err(QueryParseError::InvalidQueryOperator))
+    }
+
+    #[test]
     fn test_match_query_without_field() {
         let query = parse_query(&Json::from_str("
             {
