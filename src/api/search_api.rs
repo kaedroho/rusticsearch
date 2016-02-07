@@ -22,45 +22,33 @@ pub fn view_count(req: &mut Request) -> IronResult<Response> {
     // Get index
     let index = get_index_or_404!(indices, *index_name);
 
-    // Load query from body
-    let mut payload = String::new();
-    req.body.read_to_string(&mut payload).unwrap();
+    let count = match json_from_request_body!(req) {
+        Some(query_json) => {
+            // Parse query
+            let query = query::parse_query(query_json.as_object().unwrap().get("query").unwrap());
+            debug!("{:#?}", query);
 
-    let count = if !payload.is_empty() {
-        let query_data = match Json::from_str(&payload) {
-            Ok(data) => data,
-            Err(error) => {
-                // TODO: What specifically is bad about the JSON?
-                return json_response!(status::BadRequest, "{\"message\": \"Couldn't parse JSON\"}");
-            }
-        };
-
-        // Parse query
-        let query = query::parse_query(query_data.as_object().unwrap().get("query").unwrap());
-        debug!("{:#?}", query);
-
-        match query {
-            Ok(query) => {
-                let mut count = 0;
-                for (_, doc) in index.docs.iter() {
-                    if query.matches(&doc) {
-                        count += 1;
+            match query {
+                Ok(query) => {
+                    let mut count = 0;
+                    for (_, doc) in index.docs.iter() {
+                        if query.matches(&doc) {
+                            count += 1;
+                        }
                     }
-                }
 
-                count
-            }
-            Err(error) => {
-                // TODO: What specifically is bad about the Query?
-                let mut response = Response::with((status::BadRequest,
-                                                   "{\"message\": \"Query error\"}"));
-                response.headers.set_raw("Content-Type", vec![b"application/json".to_vec()]);
-                return Ok(response);
+                    count
+                }
+                Err(error) => {
+                    // TODO: What specifically is bad about the Query?
+                    let mut response = Response::with((status::BadRequest,
+                                                       "{\"message\": \"Query error\"}"));
+                    response.headers.set_raw("Content-Type", vec![b"application/json".to_vec()]);
+                    return Ok(response);
+                }
             }
         }
-
-    } else {
-        index.docs.len()
+        None => index.docs.len()
     };
 
     return json_response!(status::Ok, format!("{{\"count\": {}}}", count));
