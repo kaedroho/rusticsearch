@@ -15,11 +15,11 @@ pub enum FilterParseError {
 
 #[derive(Debug, PartialEq)]
 pub enum Filter {
-    Term(String, Json),
-    Prefix(String, String),
-    And(Vec<Filter>),
-    Or(Vec<Filter>),
-    Not(Box<Filter>),
+    Term{field: String, value: Json},
+    Prefix{field: String, value: String},
+    And{children: Vec<Filter>},
+    Or{children: Vec<Filter>},
+    Not{child: Box<Filter>},
 }
 
 
@@ -50,7 +50,7 @@ pub enum Query {
 impl Filter {
     pub fn matches(&self, doc: &Document) -> bool {
         match *self {
-            Filter::Term(ref field, ref value) => {
+            Filter::Term{ref field, ref value} => {
                 let obj = doc.data.as_object().unwrap();
 
                 if let Some(field_value) = obj.get(field) {
@@ -59,7 +59,7 @@ impl Filter {
 
                 false
             }
-            Filter::Prefix(ref field, ref value) => {
+            Filter::Prefix{ref field, ref value} => {
                 let obj = doc.data.as_object().unwrap();
 
                 if let Some(field_value) = obj.get(field) {
@@ -70,25 +70,25 @@ impl Filter {
 
                 false
             }
-            Filter::And(ref filters) => {
-                for filter in filters.iter() {
-                    if !filter.matches(doc) {
+            Filter::And{ref children} => {
+                for child in children.iter() {
+                    if !child.matches(doc) {
                         return false;
                     }
                 }
 
                 true
             }
-            Filter::Or(ref filters) => {
-                for filter in filters.iter() {
-                    if filter.matches(doc) {
+            Filter::Or{ref children} => {
+                for child in children.iter() {
+                    if child.matches(doc) {
                         return true;
                     }
                 }
 
                 false
             }
-            Filter::Not(ref filter) => !filter.matches(doc),
+            Filter::Not{ref child} => !child.matches(doc),
         }
     }
 }
@@ -101,25 +101,37 @@ pub fn parse_filter(json: &Json) -> Result<Filter, FilterParseError> {
         let filter_json = filter_json.get("term").unwrap().as_object().unwrap();
         let first_key = filter_json.keys().nth(0).unwrap();
 
-        Ok(Filter::Term(first_key.clone(), filter_json.get(first_key).unwrap().clone()))
+        Ok(Filter::Term{
+            field: first_key.clone(),
+            value:filter_json.get(first_key).unwrap().clone()
+        })
     } else if first_key == "prefix" {
         let filter_json = filter_json.get("prefix").unwrap().as_object().unwrap();
         let first_key = filter_json.keys().nth(0).unwrap();
         let value = filter_json.get(first_key).unwrap().as_string().unwrap();
 
-        Ok(Filter::Prefix(first_key.clone(), value.to_owned()))
+        Ok(Filter::Prefix{
+            field: first_key.clone(),
+            value: value.to_owned()
+        })
     } else if first_key == "and" {
-        Ok(Filter::And(filter_json.get("and").unwrap()
-                               .as_array().unwrap()
-                               .iter().map(|f| parse_filter(f).unwrap())
-                               .collect::<Vec<_>>(),))
+        Ok(Filter::And{
+            children: filter_json.get("and").unwrap()
+                       .as_array().unwrap()
+                       .iter().map(|f| parse_filter(f).unwrap())
+                       .collect::<Vec<_>>()
+        })
     } else if first_key == "or" {
-        Ok(Filter::Or(filter_json.get("or").unwrap()
-                               .as_array().unwrap()
-                               .iter().map(|f| parse_filter(f).unwrap())
-                               .collect::<Vec<_>>(),))
+        Ok(Filter::Or{
+            children: filter_json.get("or").unwrap()
+                       .as_array().unwrap()
+                       .iter().map(|f| parse_filter(f).unwrap())
+                       .collect::<Vec<_>>()
+        })
     } else if first_key == "not" {
-        Ok(Filter::Not(Box::new(parse_filter(filter_json.get("not").unwrap()).unwrap())))
+        Ok(Filter::Not{
+            child: Box::new(parse_filter(filter_json.get("not").unwrap()).unwrap())
+        })
     } else {
         Err(FilterParseError::UnknownFilterType(first_key.clone()))
     }
