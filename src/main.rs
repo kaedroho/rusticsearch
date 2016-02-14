@@ -101,9 +101,12 @@ fn load_indices(indices_path: &Path) -> HashMap<String, Index> {
     for file in fs::read_dir(&indices_path).unwrap() {
         let path = file.unwrap().path();
         let index_name: String = path.file_stem().unwrap().to_str().unwrap().to_owned();
-        if path.extension().unwrap().to_str() == Some("rsi") {
-            info!("Loaded index: {}", index_name);
-            indices.insert(index_name, load_index(path.as_path()));
+
+        if let Some(ext) = path.extension() {
+            if ext.to_str() == Some("rsi") {
+                info!("Loaded index: {}", index_name);
+                indices.insert(index_name, load_index(path.as_path()));
+            }
         }
     }
 
