@@ -39,7 +39,6 @@ macro_rules! get_index_or_404 {
 
 macro_rules! get_index_or_404_mut {
     ($indices: expr, $index_name: expr) => {{
-        use iron::response::Response;
         use iron::status;
 
         match $indices.get_mut($index_name) {

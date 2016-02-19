@@ -1,15 +1,14 @@
 use std::io::Read;
-use std::collections::HashMap;
 use std::fs;
 
 use iron::prelude::*;
 use iron::status;
 use router::Router;
-use rustc_serialize::json::{self, Json};
+use rustc_serialize::json::Json;
 use rusqlite::Connection;
 
-use super::{persistent, index_not_found_response};
-use super::super::{Globals, Index, mapping, Document, query};
+use super::persistent;
+use super::super::{Globals, Index};
 
 
 pub fn view_get_index(req: &mut Request) -> IronResult<Response> {

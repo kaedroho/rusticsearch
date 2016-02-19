@@ -1,15 +1,12 @@
 use std::io::Read;
 use std::collections::HashMap;
-use std::fs;
 
 use iron::prelude::*;
 use iron::status;
-use router::Router;
 use rustc_serialize::json::{self, Json};
-use rusqlite::Connection;
 
 use super::{persistent, index_not_found_response};
-use super::super::{Globals, Index, mapping, Document, query};
+use super::super::{Globals, Document};
 
 
 pub fn view_post_bulk(req: &mut Request) -> IronResult<Response> {

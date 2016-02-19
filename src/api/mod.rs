@@ -10,17 +10,9 @@ mod index_api;
 mod mapping_api;
 mod bulk_api;
 
-use std::io::Read;
-use std::collections::HashMap;
-use std::fs;
-
 use iron::prelude::*;
 use iron::status;
 use router::Router;
-use rustc_serialize::json::{self, Json};
-use rusqlite::Connection;
-
-use super::{Globals, Index, mapping, Document, query};
 
 
 fn index_not_found_response() -> Response {
@@ -33,8 +25,6 @@ fn index_not_found_response() -> Response {
 pub fn view_home(_: &mut Request) -> IronResult<Response> {
     Ok(Response::with((status::Ok, "Hello World!")))
 }
-
-
 
 
 pub fn get_router() -> Router {
