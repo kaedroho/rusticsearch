@@ -38,6 +38,7 @@ pub enum QueryParseError {
     MissingQueryString,
     MultiMatchMissingFields,
     InvalidQueryOperator,
+    InvalidQueryBoost,
 }
 
 
@@ -56,9 +57,9 @@ impl Default for QueryOperator {
 
 #[derive(Debug, PartialEq)]
 pub enum Query {
-    MatchAll,
-    Match{field: String, query: String, operator: QueryOperator},
-    MultiMatch{fields: Vec<String>, query: String},
+    MatchAll{boost: f64},
+    Match{field: String, query: String, operator: QueryOperator, boost: f64},
+    MultiMatch{fields: Vec<String>, query: String, boost: f64},
     Filtered{query: Box<Query>, filter: Box<Filter>},
 }
 
@@ -193,8 +194,8 @@ pub fn parse_filter(json: &Json) -> Result<Filter, FilterParseError> {
 impl Query {
     pub fn matches(&self, doc: &Document) -> bool {
         match *self {
-            Query::MatchAll => true,
-            Query::Match{ref field, ref query, ref operator} => {
+            Query::MatchAll{ref boost} => true,
+            Query::Match{ref field, ref query, ref operator, ref boost} => {
                 let obj = doc.data.as_object().unwrap();
 
                 if let Some(field_value) = obj.get(field) {
@@ -206,7 +207,7 @@ impl Query {
 
                 false
             }
-            Query::MultiMatch{ref fields, ref query} => {
+            Query::MultiMatch{ref fields, ref query, ref boost} => {
                 let obj = doc.data.as_object().unwrap();
 
                 for field in fields.iter() {
@@ -251,6 +252,34 @@ pub fn parse_query_operator(json: Option<&Json>) -> Result<QueryOperator, QueryP
     }
 }
 
+pub fn parse_query_boost(json: Option<&Json>) -> Result<f64, QueryParseError> {
+    match json {
+        Some(json) => {
+            match *json {
+                Json::F64(value) => {
+                    return Ok(value)
+                }
+                Json::I64(value) => {
+                    return Ok(value as f64)
+                }
+                Json::U64(value) => {
+                    return Ok(value as f64)
+                }
+                _ => return Err(QueryParseError::InvalidQueryBoost),
+            }
+        }
+        None => Ok(1.0f64)
+    }
+}
+
+pub fn parse_match_all_query(json: &Json) -> Result<Query, QueryParseError> {
+    let json_object = try!(json.as_object().ok_or(QueryParseError::ExpectedObject));
+
+    Ok(Query::MatchAll{
+        boost: try!(parse_query_boost(json_object.get("boost"))),
+    })
+}
+
 pub fn parse_match_query(json: &Json) -> Result<Query, QueryParseError> {
     let json_object = try!(json.as_object().ok_or(QueryParseError::ExpectedObject));
     let first_key = try!(json_object.keys().nth(0).ok_or(QueryParseError::NoQuery));
@@ -261,6 +290,7 @@ pub fn parse_match_query(json: &Json) -> Result<Query, QueryParseError> {
                 field: first_key.clone(),
                 query: query.to_owned(),
                 operator: QueryOperator::default(),
+                boost: 1.0f64,
             })
         }
         &Json::Object(ref object) => {
@@ -268,6 +298,7 @@ pub fn parse_match_query(json: &Json) -> Result<Query, QueryParseError> {
                 field: first_key.clone(),
                 query: object.get("query").unwrap().as_string().unwrap().to_owned(),
                 operator: try!(parse_query_operator(object.get("operator"))),
+                boost: try!(parse_query_boost(object.get("boost"))),
             })
         }
         // TODO: We actually expect string or object
@@ -290,6 +321,7 @@ pub fn parse_multi_match_query(json: &Json) -> Result<Query, QueryParseError> {
     Ok(Query::MultiMatch {
         fields: fields,
         query: query,
+        boost: try!(parse_query_boost(json_object.get("boost"))),
     })
 }
 
@@ -316,7 +348,8 @@ pub fn parse_query(json: &Json) -> Result<Query, QueryParseError> {
     let first_key = try!(json_object.keys().nth(0).ok_or(QueryParseError::NoQuery));
 
     if first_key == "match_all" {
-        Ok(Query::MatchAll)
+        let inner_query = json_object.get("match_all").unwrap();
+        Ok(try!(parse_match_all_query(inner_query)))
     } else if first_key == "match" {
         let inner_query = json_object.get("match").unwrap();
         Ok(try!(parse_match_query(inner_query)))
@@ -345,7 +378,37 @@ mod tests {
             }
         ").unwrap());
 
-        assert_eq!(query, Ok(Query::MatchAll))
+        assert_eq!(query, Ok(Query::MatchAll{
+            boost: 1.0f64
+        }))
+    }
+
+    #[test]
+    fn test_match_all_query_boost() {
+        let query = parse_query(&Json::from_str("
+            {
+                \"match_all\": {
+                    \"boost\": 1.234
+                }
+            }
+        ").unwrap());
+
+        assert_eq!(query, Ok(Query::MatchAll{
+            boost: 1.234f64
+        }))
+    }
+
+    #[test]
+    fn test_match_all_query_invalid_boost() {
+        let query = parse_query(&Json::from_str("
+            {
+                \"match_all\": {
+                    \"boost\": \"foo\"
+                }
+            }
+        ").unwrap());
+
+        assert_eq!(query, Err(QueryParseError::InvalidQueryBoost))
     }
 
     #[test]
@@ -362,6 +425,7 @@ mod tests {
             field: "title".to_owned(),
             query: "Hello world!".to_owned(),
             operator: QueryOperator::Or,
+            boost: 1.0f64,
         }))
     }
 
@@ -381,6 +445,7 @@ mod tests {
             field: "title".to_owned(),
             query: "Hello world!".to_owned(),
             operator: QueryOperator::Or,
+            boost: 1.0f64,
         }))
     }
 
@@ -401,6 +466,7 @@ mod tests {
             field: "title".to_owned(),
             query: "Hello world!".to_owned(),
             operator: QueryOperator::And,
+            boost: 1.0f64,
         }))
     }
 
@@ -418,6 +484,27 @@ mod tests {
         ").unwrap());
 
         assert_eq!(query, Err(QueryParseError::InvalidQueryOperator))
+    }
+
+    #[test]
+    fn test_match_boost() {
+        let query = parse_query(&Json::from_str("
+            {
+                \"match\": {
+                    \"title\": {
+                        \"query\": \"Hello world!\",
+                        \"boost\": 1.234
+                    }
+                }
+            }
+        ").unwrap());
+
+        assert_eq!(query, Ok(Query::Match{
+            field: "title".to_owned(),
+            query: "Hello world!".to_owned(),
+            operator: QueryOperator::Or,
+            boost: 1.234f64,
+        }))
     }
 
     #[test]
@@ -445,6 +532,7 @@ mod tests {
         assert_eq!(query, Ok(Query::MultiMatch{
             fields: vec!["title".to_owned(), "body".to_owned()],
             query: "Hello world!".to_owned(),
+            boost: 1.0f64,
         }))
     }
 
@@ -498,6 +586,7 @@ mod tests {
                 field: "title".to_owned(),
                 query: "Hello world!".to_owned(),
                 operator: QueryOperator::Or,
+                boost: 1.0f64,
             }),
             filter: Box::new(Filter::Term{
                 field: "date".to_owned(),
