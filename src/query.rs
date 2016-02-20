@@ -59,7 +59,7 @@ impl Default for QueryOperator {
 pub enum Query {
     MatchAll{boost: f64},
     Match{field: String, query: String, operator: QueryOperator, boost: f64},
-    MultiMatch{fields: Vec<String>, query: String, boost: f64},
+    MultiMatch{fields: Vec<String>, query: String, operator: QueryOperator, boost: f64},
     Filtered{query: Box<Query>, filter: Box<Filter>},
 }
 
@@ -207,7 +207,7 @@ impl Query {
 
                 false
             }
-            Query::MultiMatch{ref fields, ref query, ref boost} => {
+            Query::MultiMatch{ref fields, ref query, ref operator, ref boost} => {
                 let obj = doc.data.as_object().unwrap();
 
                 for field in fields.iter() {
@@ -321,6 +321,7 @@ pub fn parse_multi_match_query(json: &Json) -> Result<Query, QueryParseError> {
     Ok(Query::MultiMatch {
         fields: fields,
         query: query,
+        operator: try!(parse_query_operator(json_object.get("operator"))),
         boost: try!(parse_query_boost(json_object.get("boost"))),
     })
 }
@@ -532,7 +533,63 @@ mod tests {
         assert_eq!(query, Ok(Query::MultiMatch{
             fields: vec!["title".to_owned(), "body".to_owned()],
             query: "Hello world!".to_owned(),
+            operator: QueryOperator::Or,
             boost: 1.0f64,
+        }))
+    }
+
+    #[test]
+    fn test_multi_match_and_operator() {
+        let query = parse_query(&Json::from_str("
+            {
+                \"multi_match\": {
+                    \"fields\": [\"title\", \"body\"],
+                    \"query\": \"Hello world!\",
+                    \"operator\": \"and\"
+                }
+            }
+        ").unwrap());
+
+        assert_eq!(query, Ok(Query::MultiMatch{
+            fields: vec!["title".to_owned(), "body".to_owned()],
+            query: "Hello world!".to_owned(),
+            operator: QueryOperator::And,
+            boost: 1.0f64,
+        }))
+    }
+
+    #[test]
+    fn test_multi_match_invalid_operator() {
+        let query = parse_query(&Json::from_str("
+            {
+                \"multi_match\": {
+                    \"fields\": [\"title\", \"body\"],
+                    \"query\": \"Hello world!\",
+                    \"operator\": \"invalid\"
+                }
+            }
+        ").unwrap());
+
+        assert_eq!(query, Err(QueryParseError::InvalidQueryOperator))
+    }
+
+    #[test]
+    fn test_multi_match_boost() {
+        let query = parse_query(&Json::from_str("
+            {
+                \"multi_match\": {
+                    \"fields\": [\"title\", \"body\"],
+                    \"query\": \"Hello world!\",
+                    \"boost\": 1.234
+                }
+            }
+        ").unwrap());
+
+        assert_eq!(query, Ok(Query::MultiMatch{
+            fields: vec!["title".to_owned(), "body".to_owned()],
+            query: "Hello world!".to_owned(),
+            operator: QueryOperator::Or,
+            boost: 1.234f64,
         }))
     }
 
