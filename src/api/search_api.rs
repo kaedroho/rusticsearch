@@ -5,9 +5,10 @@ use iron::status;
 use router::Router;
 use rustc_serialize::json::Json;
 
+use query::parse::parse_query;
 use super::persistent;
 use super::utils::json_response;
-use super::super::{Globals, query};
+use super::super::Globals;
 
 
 pub fn view_count(req: &mut Request) -> IronResult<Response> {
@@ -23,7 +24,7 @@ pub fn view_count(req: &mut Request) -> IronResult<Response> {
     let count = match json_from_request_body!(req) {
         Some(query_json) => {
             // Parse query
-            let query = query::parse_query(query_json.as_object().unwrap().get("query").unwrap());
+            let query = parse_query(query_json.as_object().unwrap().get("query").unwrap());
             debug!("{:#?}", query);
 
             match query {
@@ -64,7 +65,7 @@ pub fn view_search(req: &mut Request) -> IronResult<Response> {
     let index = get_index_or_404!(indices, *index_name);
 
     let data = json_from_request_body!(req);
-    debug!("{:#?}", query::parse_query(data.unwrap().as_object().unwrap().get("query").unwrap()));
+    debug!("{:#?}", parse_query(data.unwrap().as_object().unwrap().get("query").unwrap()));
 
     // TODO: Run query
 
