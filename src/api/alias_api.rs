@@ -7,6 +7,7 @@ use router::Router;
 use rustc_serialize::json;
 
 use super::persistent;
+use super::utils::json_response;
 use super::super::Globals;
 
 
@@ -30,9 +31,9 @@ pub fn view_get_global_alias(req: &mut Request) -> IronResult<Response> {
     }
 
     if !found_aliases.is_empty() {
-        return json_response!(status::Ok, json::encode(&found_aliases).unwrap());
+        return Ok(json_response(status::Ok, json::encode(&found_aliases).unwrap()));
     } else {
-        return json_response!(status::NotFound, "{}");
+        return Ok(json_response(status::NotFound, "{}"));
     }
 }
 
@@ -43,7 +44,7 @@ pub fn view_get_alias_list(req: &mut Request) -> IronResult<Response> {
 
     // TODO
 
-    return json_response!(status::Ok, "{}");
+    return Ok(json_response(status::Ok, "{}"));
 }
 
 pub fn view_get_alias(req: &mut Request) -> IronResult<Response> {
@@ -59,9 +60,9 @@ pub fn view_get_alias(req: &mut Request) -> IronResult<Response> {
 
     // Find alias
     if index.aliases.contains(*alias_name) {
-        return json_response!(status::Ok, "{}");
+        return Ok(json_response(status::Ok, "{}"));
     } else {
-        return json_response!(status::NotFound, "{}");
+        return Ok(json_response(status::NotFound, "{}"));
     }
 }
 
@@ -80,5 +81,5 @@ pub fn view_put_alias(req: &mut Request) -> IronResult<Response> {
     // Insert alias
     index.aliases.insert(alias_name.clone().to_owned());
 
-    return json_response!(status::Ok, "{\"acknowledged\": true}");
+    return Ok(json_response(status::Ok, "{\"acknowledged\": true}"));
 }

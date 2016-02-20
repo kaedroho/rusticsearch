@@ -6,6 +6,7 @@ use router::Router;
 use rustc_serialize::json::Json;
 
 use super::persistent;
+use super::utils::json_response;
 use super::super::{Globals, mapping};
 
 
@@ -27,7 +28,7 @@ pub fn view_put_mapping(req: &mut Request) -> IronResult<Response> {
         Some(data) => data,
         None => {
             // TODO: Better error
-            return json_response!(status::BadRequest, "{\"acknowledged\": false}");
+            return Ok(json_response(status::BadRequest, "{\"acknowledged\": false}"));
         },
     };
 
@@ -38,5 +39,5 @@ pub fn view_put_mapping(req: &mut Request) -> IronResult<Response> {
     debug!("{:#?}", mapping);
     index.mappings.insert(mapping_name.clone().to_owned(), mapping);
 
-    return json_response!(status::Ok, "{\"acknowledged\": true}");
+    return Ok(json_response(status::Ok, "{\"acknowledged\": true}"));
 }

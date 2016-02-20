@@ -8,6 +8,7 @@ use rustc_serialize::json::Json;
 use rusqlite::Connection;
 
 use super::persistent;
+use super::utils::json_response;
 use super::super::{Globals, Index};
 
 
@@ -21,7 +22,7 @@ pub fn view_get_index(req: &mut Request) -> IronResult<Response> {
     // Get index
     let index = get_index_or_404!(indices, *index_name);
 
-    return json_response!(status::Ok, "{}");
+    return Ok(json_response(status::Ok, "{}"));
 }
 
 
@@ -45,7 +46,7 @@ pub fn view_put_index(req: &mut Request) -> IronResult<Response> {
 
     info!("Created index {}", index_name);
 
-    return json_response!(status::Ok, "{\"acknowledged\": true}");
+    return Ok(json_response(status::Ok, "{\"acknowledged\": true}"));
 }
 
 
@@ -70,7 +71,7 @@ pub fn view_delete_index(req: &mut Request) -> IronResult<Response> {
 
     info!("Deleted index {}", index_name);
 
-    return json_response!(status::Ok, "{\"acknowledged\": true}");
+    return Ok(json_response(status::Ok, "{\"acknowledged\": true}"));
 }
 
 
@@ -82,5 +83,5 @@ pub fn view_post_refresh_index(req: &mut Request) -> IronResult<Response> {
     let mut indices = glob.indices.write().unwrap();
 
     // TODO: {"_shards":{"total":10,"successful":5,"failed":0}}
-    return json_response!(status::Ok, "{\"acknowledged\": true}");
+    return Ok(json_response(status::Ok, "{\"acknowledged\": true}"));
 }

@@ -2,7 +2,7 @@ extern crate router;
 extern crate persistent;
 
 #[macro_use]
-mod macros;
+mod utils;
 mod search_api;
 mod alias_api;
 mod document_api;
@@ -13,13 +13,6 @@ mod bulk_api;
 use iron::prelude::*;
 use iron::status;
 use router::Router;
-
-
-fn index_not_found_response() -> Response {
-    let mut response = Response::with((status::NotFound, "{\"message\": \"Index not found\"}"));
-    response.headers.set_raw("Content-Type", vec![b"application/json".to_vec()]);
-    return response;
-}
 
 
 pub fn view_home(_: &mut Request) -> IronResult<Response> {

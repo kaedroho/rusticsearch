@@ -5,7 +5,8 @@ use iron::prelude::*;
 use iron::status;
 use rustc_serialize::json::{self, Json};
 
-use super::{persistent, index_not_found_response};
+use super::persistent;
+use super::utils::{json_response, index_not_found_response};
 use super::super::{Globals, Document};
 
 
@@ -60,7 +61,7 @@ pub fn view_post_bulk(req: &mut Request) -> IronResult<Response> {
                 let mut mapping = match index.mappings.get_mut(doc_type) {
                     Some(mapping) => mapping,
                     None => {
-                        return json_response!(status::NotFound, "{\"message\": \"Mapping not found\"}");
+                        return Ok(json_response(status::NotFound, "{\"message\": \"Mapping not found\"}"));
                     }
                 };
 
@@ -80,5 +81,5 @@ pub fn view_post_bulk(req: &mut Request) -> IronResult<Response> {
         }
     }
 
-    return json_response!(status::Ok, format!("{{\"took\": {}, \"items\": {}}}", items.len(), json::encode(&items).unwrap()));
+    return Ok(json_response(status::Ok, format!("{{\"took\": {}, \"items\": {}}}", items.len(), json::encode(&items).unwrap())));
 }

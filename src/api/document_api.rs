@@ -6,6 +6,7 @@ use router::Router;
 use rustc_serialize::json::{self, Json};
 
 use super::persistent;
+use super::utils::json_response;
 use super::super::{Globals, Document};
 
 
@@ -25,7 +26,7 @@ pub fn view_get_doc(req: &mut Request) -> IronResult<Response> {
     let mapping = match index.mappings.get(*mapping_name) {
         Some(mapping) => mapping,
         None => {
-            return json_response!(status::NotFound, "{\"message\": \"Mapping not found\"}");
+            return Ok(json_response(status::NotFound, "{\"message\": \"Mapping not found\"}"));
         }
     };
 
@@ -33,11 +34,11 @@ pub fn view_get_doc(req: &mut Request) -> IronResult<Response> {
     let doc = match index.docs.get(*doc_id) {
         Some(doc) => doc,
         None => {
-            return json_response!(status::NotFound, "{\"message\": \"Document not found\"}");
+            return Ok(json_response(status::NotFound, "{\"message\": \"Document not found\"}"));
         }
     };
 
-    return json_response!(status::Ok, json::encode(&doc.data).unwrap());
+    return Ok(json_response(status::Ok, json::encode(&doc.data).unwrap()));
 }
 
 
@@ -57,7 +58,7 @@ pub fn view_put_doc(req: &mut Request) -> IronResult<Response> {
     let mut mapping = match index.mappings.get_mut(*mapping_name) {
         Some(mapping) => mapping,
         None => {
-            return json_response!(status::NotFound, "{\"message\": \"Mapping not found\"}");
+            return Ok(json_response(status::NotFound, "{\"message\": \"Mapping not found\"}"));
         }
     };
 
@@ -71,7 +72,7 @@ pub fn view_put_doc(req: &mut Request) -> IronResult<Response> {
     }
 
     // TODO: {"_index":"wagtail","_type":"searchtests_searchtest","_id":"searchtests_searchtest:5378","_version":1,"created":true}
-    return json_response!(status::Ok, "{}");
+    return Ok(json_response(status::Ok, "{}"));
 }
 
 
@@ -91,17 +92,17 @@ pub fn view_delete_doc(req: &mut Request) -> IronResult<Response> {
     let mut mapping = match index.mappings.get_mut(*mapping_name) {
         Some(mapping) => mapping,
         None => {
-            return json_response!(status::NotFound, "{\"message\": \"Mapping not found\"}");
+            return Ok(json_response(status::NotFound, "{\"message\": \"Mapping not found\"}"));
         }
     };
 
     // Make sure the document exists
     if !index.docs.contains_key(*doc_id) {
-        return json_response!(status::NotFound, "{\"message\": \"Document not found\"}");
+        return Ok(json_response(status::NotFound, "{\"message\": \"Document not found\"}"));
     }
 
     // Delete document
     index.docs.remove(*doc_id);
 
-    return json_response!(status::Ok, "{}");
+    return Ok(json_response(status::Ok, "{}"));
 }
