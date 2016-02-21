@@ -136,6 +136,49 @@ impl Filter {
 
 
 impl Query {
+    pub fn rank(&self, doc: &Document) -> Option<f64> {
+        match *self {
+            Query::MatchAll{boost} => Some(boost),
+            Query::Match{ref field, ref query, ref operator, boost} => {
+                let obj = doc.data.as_object().unwrap();
+
+                if let Some(field_value) = obj.get(field) {
+                    let mut field_value = field_value.as_string().unwrap().to_lowercase();
+                    let mut query = query.to_lowercase();
+
+                    if field_value.contains(&query) {
+                        return Some(boost);
+                    }
+                }
+
+                None
+            }
+            Query::MultiMatch{ref fields, ref query, ref operator, boost} => {
+                let obj = doc.data.as_object().unwrap();
+
+                for field in fields.iter() {
+                    if let Some(field_value) = obj.get(field) {
+                        let mut field_value = field_value.as_string().unwrap().to_lowercase();
+                        let mut query = query.to_lowercase();
+
+                        if field_value.contains(&query) {
+                            return Some(boost);
+                        }
+                    }
+                }
+
+                None
+            }
+            Query::Filtered{ref query, ref filter} => {
+                if filter.matches(doc) {
+                    return query.rank(doc)
+                } else {
+                    None
+                }
+            }
+        }
+    }
+
     pub fn matches(&self, doc: &Document) -> bool {
         match *self {
             Query::MatchAll{ref boost} => true,
