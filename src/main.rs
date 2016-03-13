@@ -4,12 +4,14 @@ extern crate router;
 extern crate persistent;
 extern crate rustc_serialize;
 extern crate rusqlite;
+extern crate unidecode;
 #[macro_use]
 extern crate log;
 
 mod api;
 mod query;
 mod mapping;
+mod analysis;
 mod logger;
 
 use std::sync::{Mutex, RwLock};
