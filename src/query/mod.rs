@@ -135,6 +135,32 @@ impl Filter {
 }
 
 
+fn json_to_string(json: &Json) -> Option<String> {
+    // Temporary hack to handle strings packed in arrays
+    match *json {
+        Json::String(ref s) => Some(s.clone()),
+        Json::Array(ref a) => {
+            let mut s = String::new();
+            let mut have_value = false;
+
+            for i in a {
+                if let Some(is) = json_to_string(i) {
+                    s.push_str(&is);
+                    have_value = true;
+                }
+            }
+
+            if have_value {
+                Some(s)
+            } else {
+                None
+            }
+         }
+        _ => None
+    }
+}
+
+
 impl Query {
     pub fn rank(&self, doc: &Document) -> Option<f64> {
         match *self {
@@ -143,7 +169,7 @@ impl Query {
                 let obj = doc.data.as_object().unwrap();
 
                 if let Some(field_value) = obj.get(field) {
-                    let mut field_value = field_value.as_string().unwrap().to_lowercase();
+                    let mut field_value = json_to_string(field_value).unwrap().to_lowercase();
                     let mut query = query.to_lowercase();
 
                     if field_value.contains(&query) {
@@ -158,7 +184,7 @@ impl Query {
 
                 for field in fields.iter() {
                     if let Some(field_value) = obj.get(field) {
-                        let mut field_value = field_value.as_string().unwrap().to_lowercase();
+                        let mut field_value = json_to_string(field_value).unwrap().to_lowercase();
                         let mut query = query.to_lowercase();
 
                         if field_value.contains(&query) {
