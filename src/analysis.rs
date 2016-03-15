@@ -1,81 +1,47 @@
 use std::cmp;
 
 use unidecode::unidecode;
+use unicode_segmentation::UnicodeSegmentation;
 
 
-pub enum Tokenizer {
-    Standard{max_token_length: usize},
-    Letter,
-    Whitespace,
-    NGram{
-        min_gram: usize,
-        max_gram: usize,
-        token_chars__letter: bool,
-        token_chars__digit: bool,
-        token_chars__whitespace: bool,
-        token_chars__punctuation: bool,
-        token_chars__symbol: bool,
-    },
-    EdgeNGram{
-        min_gram: usize,
-        max_gram: usize,
-        token_chars__letter: bool,
-        token_chars__digit: bool,
-        token_chars__whitespace: bool,
-        token_chars__punctuation: bool,
-        token_chars__symbol: bool,
-    },
-
-}
-
-impl Tokenizer {
-    pub fn tokenize(&self, input: String) -> Vec<String> {
-        // TODO
-        Vec::new()
-    }
-}
-
-
-pub enum TokenFilter {
-    Standard,
-    ASCIIFolding,
-    Length{min: usize, max: Option<usize>},
-    Lowercase,
-    Uppercase,
-    NGram{min_gram: usize, max_gram: Option<usize>},
-    EdgeNGram{min_gram: usize, max_gram: Option<usize>},
+pub enum AnalyzerStep {
+    ToLowercase,
+    ToUppercase,
+    LimitLength{min: usize, max: Option<usize>},
+    MakeNGrams{min_gram: usize, max_gram: Option<usize>},
+    MakeEdgeNGrams{min_gram: usize, max_gram: Option<usize>},
+    ASCIIFold,
+    SplitUnicodeWords,
 }
 
 #[derive(Debug)]
-enum TokenFilterResult {
+enum AnalyzerStepResult {
     Some(String),
     Multiple(Vec<String>),
     None,
 }
 
-impl TokenFilter {
-    pub fn filter(&self, token: String) -> TokenFilterResult {
+impl AnalyzerStep {
+    pub fn run(&self, token: String) -> AnalyzerStepResult {
         match *self {
-            TokenFilter::Standard => TokenFilterResult::Some(token),
-            TokenFilter::ASCIIFolding => TokenFilterResult::Some(unidecode(&token)),
-            TokenFilter::Length{min, max} => {
+            AnalyzerStep::ToLowercase => AnalyzerStepResult::Some(token.to_lowercase()),
+            AnalyzerStep::ToUppercase => AnalyzerStepResult::Some(token.to_uppercase()),
+            AnalyzerStep::LimitLength{min, max} => {
                 let len = token.len();
 
                 if len < min {
-                    return TokenFilterResult::None;
+                    return AnalyzerStepResult::None;
                 }
 
                 if let Some(max) = max {
                     if len > max {
-                        return TokenFilterResult::None
+                        return AnalyzerStepResult::None
                     }
                 }
 
-                TokenFilterResult::Some(token)
+                AnalyzerStepResult::Some(token)
             }
-            TokenFilter::Lowercase => TokenFilterResult::Some(token.to_lowercase()),
-            TokenFilter::Uppercase => TokenFilterResult::Some(token.to_uppercase()),
-            TokenFilter::NGram{min_gram, max_gram} => {
+            AnalyzerStep::MakeNGrams{min_gram, max_gram} => {
                 let mut ngrams = Vec::new();
 
                 for first_char in 0..token.len() {
@@ -88,9 +54,9 @@ impl TokenFilter {
                     }
                 }
 
-                TokenFilterResult::Multiple(ngrams)
+                AnalyzerStepResult::Multiple(ngrams)
             }
-            TokenFilter::EdgeNGram{min_gram, max_gram} => {
+            AnalyzerStep::MakeEdgeNGrams{min_gram, max_gram} => {
                 let mut ngrams = Vec::new();
 
                 let max_gram = match max_gram {
@@ -101,16 +67,49 @@ impl TokenFilter {
                     ngrams.push(token[0..last_char].to_string());
                 }
 
-                TokenFilterResult::Multiple(ngrams)
+                AnalyzerStepResult::Multiple(ngrams)
+            }
+            AnalyzerStep::ASCIIFold => AnalyzerStepResult::Some(unidecode(&token)),
+            AnalyzerStep::SplitUnicodeWords => {
+                AnalyzerStepResult::Multiple(
+                    token.unicode_words()
+                         .map(|s| s.to_string())
+                         .collect()
+                )
             }
         }
     }
 }
 
 
-struct Analyzer {
-    tokenizer: Tokenizer,
-    token_filters: Vec<TokenFilter>,
+pub struct Analyzer {
+    pub steps: Vec<AnalyzerStep>,
+}
+
+impl Analyzer {
+    fn run_step(&self, step: &AnalyzerStep, tokens: Vec<String>) -> Vec<String> {
+        let mut new_tokens = Vec::new();
+
+        for token in tokens {
+            match step.run(token) {
+                AnalyzerStepResult::Some(s) => new_tokens.push(s),
+                AnalyzerStepResult::None => {},
+                AnalyzerStepResult::Multiple(v) => new_tokens.extend_from_slice(&v),
+            }
+        }
+
+        new_tokens
+    }
+
+    pub fn analyze(&self, tokens: Vec<String>) -> Vec<String> {
+        let mut tokens = tokens;
+
+        for step in self.steps.iter() {
+            tokens = self.run_step(step, tokens);
+        }
+
+        tokens
+    }
 }
 
 // TODO fn parse_analyzer()
