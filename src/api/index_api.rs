@@ -5,7 +5,6 @@ use iron::prelude::*;
 use iron::status;
 use router::Router;
 use rustc_serialize::json::Json;
-use rusqlite::Connection;
 
 use super::persistent;
 use super::utils::json_response;
@@ -40,7 +39,7 @@ pub fn view_put_index(req: &mut Request) -> IronResult<Response> {
     let mut index_path = glob.indices_path.clone();
     index_path.push(index_name);
     index_path.set_extension("rsi");
-    let mut index = Index::new(Connection::open(index_path).unwrap());
+    let mut index = Index::new();
     index.initialise();
     indices.insert(index_name.clone().to_owned(), index);
 

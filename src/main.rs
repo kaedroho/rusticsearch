@@ -3,7 +3,6 @@ extern crate iron;
 extern crate router;
 extern crate persistent;
 extern crate rustc_serialize;
-extern crate rusqlite;
 extern crate unidecode;
 extern crate unicode_segmentation;
 #[macro_use]
@@ -23,7 +22,6 @@ use std::fs;
 use iron::prelude::*;
 use iron::typemap::Key;
 use rustc_serialize::json::Json;
-use rusqlite::Connection;
 
 
 const VERSION: &'static str = "0.1a0";
@@ -43,7 +41,6 @@ impl Document {
 
 #[derive(Debug)]
 struct Index {
-    pub connection: Mutex<Connection>,
     pub mappings: HashMap<String, mapping::Mapping>,
     pub docs: HashMap<String, Document>,
     pub aliases: HashSet<String>,
@@ -51,9 +48,8 @@ struct Index {
 
 
 impl Index {
-    fn new(connection: Connection) -> Index {
+    fn new() -> Index {
         Index {
-            connection: Mutex::new(connection),
             mappings: HashMap::new(),
             docs: HashMap::new(),
             aliases: HashSet::new(),
@@ -61,13 +57,6 @@ impl Index {
     }
 
     fn initialise(&mut self) {
-        let connection = self.connection.lock().unwrap();
-
-        connection.execute("CREATE TABLE document (
-              id              INTEGER PRIMARY KEY,
-              mapping         TEXT NOT NULL,
-              data            BLOB
-              )", &[]).unwrap();
     }
 }
 
@@ -94,7 +83,7 @@ impl Key for Globals {
 
 
 fn load_index(path: &Path) -> Index {
-    Index::new(Connection::open(path).unwrap())
+    Index::new()
 }
 
 
