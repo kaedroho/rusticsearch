@@ -30,6 +30,7 @@ const VERSION: &'static str = "0.1a0";
 #[derive(Debug, PartialEq)]
 enum Value {
     String(String),
+    TSVector(Vec<String>),
     Boolean(bool),
     I64(i64),
     U64(u64),
@@ -58,6 +59,7 @@ impl Value {
     pub fn as_json(&self) -> Json {
         match self {
             &Value::String(ref string) => Json::String(string.clone()),
+            &Value::TSVector(ref string) => Json::Null, // TODO
             &Value::Boolean(value) => Json::Boolean(value),
             &Value::F64(value) => Json::F64(value),
             &Value::I64(value) => Json::I64(value),
@@ -74,12 +76,35 @@ struct Document {
 }
 
 impl Document {
-    fn from_json(data: Json) -> Document {
+    fn from_json(data: Json, mapping: &mapping::Mapping) -> Document {
         let mut fields = BTreeMap::new();
+        let mut all_field_tokens: Vec<String> = Vec::new();
 
         for (field_name, field_value) in data.as_object().unwrap() {
-            fields.insert(field_name.clone(), Value::from_json(field_value));
+            let processed_value = if let Some(field_mapping) = mapping.fields.get(field_name) {
+                let value = field_mapping.process_value(field_value);
+
+                // Add to _all
+                if field_mapping.is_in_all {
+                    if let &Some(Value::TSVector(ref tokens)) = &value {
+                        for token in tokens.iter() {
+                            all_field_tokens.push(token.clone());
+                        }
+                    }
+                }
+
+                value
+            } else {
+                Some(Value::from_json(field_value))
+            };
+
+            if let Some(field_value) = processed_value {
+                fields.insert(field_name.clone(), field_value);
+            }
         }
+
+        // Insert _all field
+        fields.insert("_all".to_owned(), Value::TSVector(all_field_tokens));
 
         Document { fields: fields }
     }
@@ -156,6 +181,8 @@ fn load_indices(indices_path: &Path) -> HashMap<String, Index> {
 fn main() {
     println!("rsearch ({})", VERSION);
     println!("");
+
+    println!("{:?}", analysis::Analyzer::EdgeNGram.run("Hello thi(s ) is a test".to_string()));
 
     logger::init().unwrap();
 

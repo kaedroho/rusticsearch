@@ -66,7 +66,7 @@ pub fn view_post_bulk(req: &mut Request) -> IronResult<Response> {
                 };
 
                 // Create and insert document
-                let doc = Document::from_json(doc_json);
+                let doc = Document::from_json(doc_json, mapping);
                 index.docs.insert(doc_id.clone().to_owned(), doc);
 
                 // Insert into "items" array

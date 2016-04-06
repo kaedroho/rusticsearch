@@ -2,8 +2,11 @@ use std::collections::HashMap;
 
 use rustc_serialize::json::Json;
 
+use analysis::Analyzer;
+use Value;
 
-#[derive(Debug)]
+
+#[derive(Debug, PartialEq)]
 pub enum FieldType {
     String,
     Binary,
@@ -18,14 +21,14 @@ impl Default for FieldType {
 }
 
 
-
 #[derive(Debug)]
 pub struct FieldMapping {
     data_type: FieldType,
     is_indexed: bool,
     is_stored: bool,
-    is_in_all: bool,
+    pub is_in_all: bool,
     boost: f64,
+    analyzer: Analyzer,
 }
 
 
@@ -37,7 +40,29 @@ impl Default for FieldMapping {
             is_stored: false,
             is_in_all: true,
             boost: 1.0f64,
+            analyzer: Analyzer::Standard,
         }
+    }
+}
+
+
+impl FieldMapping {
+    pub fn process_value(&self, value: &Json) -> Option<Value> {
+        if !self.is_indexed {
+            return None;
+        }
+
+        if self.data_type == FieldType::String {
+            let value = Value::from_json(value);
+
+            if let Value::String(value) = value {
+                let tokens = self.analyzer.run(value);
+                println!("{:?}", tokens);
+                return Some(Value::TSVector(tokens));
+            }
+        }
+
+        None
     }
 }
 
@@ -119,7 +144,11 @@ impl FieldMapping {
                     }
                 }
                 "index_analyzer" => {
-                    // TODO
+                    if let Some(ref s) = value.as_string() {
+                        if s == &"edgengram_analyzer" {
+                            field_mapping.analyzer = Analyzer::EdgeNGram;
+                        }
+                    }
                 }
                 "boost" => {
                     field_mapping.boost = value.as_f64().unwrap();

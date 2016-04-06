@@ -76,7 +76,7 @@ pub fn view_put_doc(req: &mut Request) -> IronResult<Response> {
 
     // Create and insert document
     if let Some(data) = data {
-        let doc = Document::from_json(data);
+        let doc = Document::from_json(data, mapping);
         index.docs.insert(doc_id.clone().to_owned(), doc);
     }
 
