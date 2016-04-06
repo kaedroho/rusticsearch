@@ -2,7 +2,7 @@ pub mod parse;
 
 use rustc_serialize::json::Json;
 
-use super::Document;
+use super::{Document, Value};
 
 
 #[derive(Debug, PartialEq)]
@@ -17,8 +17,8 @@ pub enum FilterParseError {
 
 #[derive(Debug, PartialEq)]
 pub enum Filter {
-    Term{field: String, value: Json},
-    Terms{field: String, values: Vec<Json>},
+    Term{field: String, value: Value},
+    Terms{field: String, values: Vec<Value>},
     Prefix{field: String, value: String},
     Missing{field: String},
     And{children: Vec<Filter>},
@@ -70,18 +70,14 @@ impl Filter {
     pub fn matches(&self, doc: &Document) -> bool {
         match *self {
             Filter::Term{ref field, ref value} => {
-                let obj = doc.data.as_object().unwrap();
-
-                if let Some(field_value) = obj.get(field) {
+                if let Some(field_value) = doc.fields.get(field) {
                     return field_value == value;
                 }
 
                 false
             }
             Filter::Terms{ref field, ref values} => {
-                let obj = doc.data.as_object().unwrap();
-
-                if let Some(field_value) = obj.get(field) {
+                if let Some(field_value) = doc.fields.get(field) {
                     for value in values.iter() {
                         if field_value == value {
                             return true;
@@ -92,10 +88,8 @@ impl Filter {
                 false
             }
             Filter::Prefix{ref field, ref value} => {
-                let obj = doc.data.as_object().unwrap();
-
-                if let Some(field_value) = obj.get(field) {
-                    if let Json::String(ref field_value) = *field_value {
+                if let Some(field_value) = doc.fields.get(field) {
+                    if let Value::String(ref field_value) = *field_value {
                         return field_value.starts_with(value);
                     }
                 }
@@ -103,10 +97,8 @@ impl Filter {
                 false
             }
             Filter::Missing{ref field} => {
-                let obj = doc.data.as_object().unwrap();
-
-                match obj.get(field) {
-                    Some(&Json::Null) => true,
+                match doc.fields.get(field) {
+                    Some(&Value::Null) => true,
                     None => true,
                     _ => false,
                 }
@@ -135,41 +127,13 @@ impl Filter {
 }
 
 
-fn json_to_string(json: &Json) -> Option<String> {
-    // Temporary hack to handle strings packed in arrays
-    match *json {
-        Json::String(ref s) => Some(s.clone()),
-        Json::Array(ref a) => {
-            let mut s = String::new();
-            let mut have_value = false;
-
-            for i in a {
-                if let Some(is) = json_to_string(i) {
-                    s.push_str(&is);
-                    have_value = true;
-                }
-            }
-
-            if have_value {
-                Some(s)
-            } else {
-                None
-            }
-         }
-        _ => None
-    }
-}
-
-
 impl Query {
     pub fn rank(&self, doc: &Document) -> Option<f64> {
         match *self {
             Query::MatchAll{boost} => Some(boost),
             Query::Match{ref field, ref query, ref operator, boost} => {
-                let obj = doc.data.as_object().unwrap();
-
-                if let Some(field_value) = obj.get(field) {
-                    let mut field_value = json_to_string(field_value).unwrap().to_lowercase();
+                if let Some(&Value::String(ref field_value)) = doc.fields.get(field) {
+                    let mut field_value = field_value.to_lowercase();
                     let mut query = query.to_lowercase();
 
                     if field_value.contains(&query) {
@@ -180,11 +144,9 @@ impl Query {
                 None
             }
             Query::MultiMatch{ref fields, ref query, ref operator, boost} => {
-                let obj = doc.data.as_object().unwrap();
-
                 for field in fields.iter() {
-                    if let Some(field_value) = obj.get(field) {
-                        let mut field_value = json_to_string(field_value).unwrap().to_lowercase();
+                    if let Some(&Value::String(ref field_value)) = doc.fields.get(field) {
+                        let mut field_value = field_value.to_lowercase();
                         let mut query = query.to_lowercase();
 
                         if field_value.contains(&query) {
@@ -209,10 +171,8 @@ impl Query {
         match *self {
             Query::MatchAll{ref boost} => true,
             Query::Match{ref field, ref query, ref operator, ref boost} => {
-                let obj = doc.data.as_object().unwrap();
-
-                if let Some(field_value) = obj.get(field) {
-                    let mut field_value = field_value.as_string().unwrap().to_lowercase();
+                if let Some(&Value::String(ref field_value)) = doc.fields.get(field) {
+                    let mut field_value = field_value.to_lowercase();
                     let mut query = query.to_lowercase();
 
                     return field_value.contains(&query);
@@ -221,11 +181,9 @@ impl Query {
                 false
             }
             Query::MultiMatch{ref fields, ref query, ref operator, ref boost} => {
-                let obj = doc.data.as_object().unwrap();
-
                 for field in fields.iter() {
-                    if let Some(field_value) = obj.get(field) {
-                        let mut field_value = field_value.as_string().unwrap().to_lowercase();
+                    if let Some(&Value::String(ref field_value)) = doc.fields.get(field) {
+                        let mut field_value = field_value.to_lowercase();
                         let mut query = query.to_lowercase();
 
                         if field_value.contains(&query) {

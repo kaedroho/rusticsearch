@@ -1,4 +1,5 @@
 use std::io::Read;
+use std::collections::{BTreeMap};
 
 use iron::prelude::*;
 use iron::status;
@@ -38,7 +39,15 @@ pub fn view_get_doc(req: &mut Request) -> IronResult<Response> {
         }
     };
 
-    return Ok(json_response(status::Ok, json::encode(&doc.data).unwrap()));
+
+    // Build JSON document
+    let mut json_object = BTreeMap::new();
+    for (field_name, field_value) in doc.fields.iter() {
+        json_object.insert(field_name.clone(), field_value.as_json());
+    }
+
+    let json = Json::Object(json_object);
+    return Ok(json_response(status::Ok, json::encode(&json).unwrap()));
 }
 
 

@@ -1,5 +1,6 @@
 use rustc_serialize::json::Json;
 
+use Value;
 use super::{Query, Filter, QueryParseError, FilterParseError, QueryOperator};
 
 
@@ -13,7 +14,7 @@ pub fn parse_filter(json: &Json) -> Result<Filter, FilterParseError> {
 
         Ok(Filter::Term{
             field: first_key.clone(),
-            value: filter_json.get(first_key).unwrap().clone()
+            value: Value::from_json(filter_json.get(first_key).unwrap())
         })
     } else if first_key == "terms" {
         let filter_json = filter_json.get("terms").unwrap().as_object().unwrap();
@@ -21,7 +22,10 @@ pub fn parse_filter(json: &Json) -> Result<Filter, FilterParseError> {
 
         Ok(Filter::Terms{
             field: first_key.clone(),
-            values: filter_json.get(first_key).unwrap().as_array().unwrap().clone()
+            values: filter_json.get(first_key).unwrap()
+                               .as_array().unwrap()
+                               .iter().map(|v| Value::from_json(v))
+                               .collect::<Vec<_>>()
         })
     } else if first_key == "prefix" {
         let filter_json = filter_json.get("prefix").unwrap().as_object().unwrap();

@@ -15,7 +15,7 @@ mod analysis;
 mod logger;
 
 use std::sync::{Mutex, RwLock};
-use std::collections::{HashMap, HashSet};
+use std::collections::{BTreeMap, HashMap, HashSet};
 use std::path::{Path, PathBuf};
 use std::fs;
 
@@ -27,14 +27,61 @@ use rustc_serialize::json::Json;
 const VERSION: &'static str = "0.1a0";
 
 
+#[derive(Debug, PartialEq)]
+enum Value {
+    String(String),
+    Boolean(bool),
+    I64(i64),
+    U64(u64),
+    F64(f64),
+    Null,
+}
+
+impl Value {
+    pub fn from_json(json: &Json) -> Value {
+        // TODO: Should be aware of mappings
+        match json {
+            &Json::String(ref string) => Value::String(string.clone()),
+            &Json::Boolean(value) => Value::Boolean(value),
+            &Json::F64(value) => Value::F64(value),
+            &Json::I64(value) => Value::I64(value),
+            &Json::U64(value) => Value::U64(value),
+            &Json::Null => Value::Null,
+
+            // These two are unsupported
+            // TODO: Raise error
+            &Json::Array(_) => Value::Null,
+            &Json::Object(_) => Value::Null,
+        }
+    }
+
+    pub fn as_json(&self) -> Json {
+        match self {
+            &Value::String(ref string) => Json::String(string.clone()),
+            &Value::Boolean(value) => Json::Boolean(value),
+            &Value::F64(value) => Json::F64(value),
+            &Value::I64(value) => Json::I64(value),
+            &Value::U64(value) => Json::U64(value),
+            &Value::Null => Json::Null,
+        }
+    }
+}
+
+
 #[derive(Debug)]
 struct Document {
-    data: Json,
+    fields: BTreeMap<String, Value>,
 }
 
 impl Document {
     fn from_json(data: Json) -> Document {
-        Document { data: data }
+        let mut fields = BTreeMap::new();
+
+        for (field_name, field_value) in data.as_object().unwrap() {
+            fields.insert(field_name.clone(), Value::from_json(field_value));
+        }
+
+        Document { fields: fields }
     }
 }
 
