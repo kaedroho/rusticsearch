@@ -46,6 +46,10 @@ impl Default for FieldMapping {
 
 impl FieldMapping {
     pub fn process_value(&self, value: Json) -> Option<Value> {
+        if value == Json::Null {
+            return Some(Value::Null);
+        }
+
         match self.data_type {
             FieldType::String => {
                 match value {
@@ -76,6 +80,9 @@ impl FieldMapping {
                     }
                     _ => None
                 }
+            }
+            FieldType::Boolean => {
+                Some(Value::Boolean(parse_boolean(&value)))
             }
             _ => None
         }
