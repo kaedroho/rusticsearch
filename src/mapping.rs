@@ -45,34 +45,34 @@ impl Default for FieldMapping {
 
 
 impl FieldMapping {
-    pub fn process_value(&self, value: &Json) -> Option<Value> {
+    pub fn process_value(&self, value: Json) -> Option<Value> {
         match self.data_type {
             FieldType::String => {
                 match value {
-                    &Json::String(ref string) => {
+                    Json::String(string) => {
                         // Analyzed strings become TSVectors. Unanalyzed strings become... strings
                         if self.analyzer == Analyzer::None {
-                            Some(Value::String(string.clone()))
+                            Some(Value::String(string))
                         } else {
-                            let tokens = self.analyzer.run(string.clone());
+                            let tokens = self.analyzer.run(string);
                             Some(Value::TSVector(tokens))
                         }
                     }
-                    &Json::Array(ref array) => {
+                    Json::Array(array) => {
                         // Pack any strings into a vec, ignore nulls. Quit if we see anything else
                         let mut strings = Vec::new();
 
-                        for item in array.iter() {
+                        for item in array {
                             match item {
-                                &Json::String(ref string) => strings.push(string.clone()),
-                                &Json::Null => {}
+                                Json::String(string) => strings.push(string),
+                                Json::Null => {}
                                 _ => {
                                     return None;
                                 }
                             }
                         }
 
-                        self.process_value(&Json::String(strings.join(" ")))
+                        self.process_value(Json::String(strings.join(" ")))
                     }
                     _ => None
                 }
