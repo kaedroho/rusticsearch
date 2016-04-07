@@ -4,8 +4,9 @@ use unidecode::unidecode;
 use unicode_segmentation::UnicodeSegmentation;
 
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum Analyzer {
+    None,
     Standard,
     EdgeNGram,
 }
@@ -14,9 +15,13 @@ pub enum Analyzer {
 impl Analyzer {
     pub fn run(&self, input: String) -> Vec<String> {
         match *self {
+            Analyzer::None => vec![input],
             Analyzer::Standard => {
                 // Lowercase
                 let input = input.to_lowercase();
+
+                // Convert string to ascii (not standard in Elasticsearch, but Wagtail needs it)
+                let input = unidecode(&input);
 
                 // Tokenise
                 let tokens = input.unicode_words()
@@ -40,6 +45,7 @@ impl Analyzer {
                         None => token.len(),
                     };
                     for last_char in (0 + min_gram)..(0 + max_gram + 1) {
+                        // TODO: Currently breaks on non-ascii code points
                         ngrams.push(token[0..last_char].to_string());
                     }
 

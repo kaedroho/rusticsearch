@@ -24,7 +24,6 @@ impl Default for FieldType {
 #[derive(Debug)]
 pub struct FieldMapping {
     data_type: FieldType,
-    is_indexed: bool,
     is_stored: bool,
     pub is_in_all: bool,
     boost: f64,
@@ -36,7 +35,6 @@ impl Default for FieldMapping {
     fn default() -> FieldMapping {
         FieldMapping {
             data_type: FieldType::default(),
-            is_indexed: true,
             is_stored: false,
             is_in_all: true,
             boost: 1.0f64,
@@ -48,21 +46,39 @@ impl Default for FieldMapping {
 
 impl FieldMapping {
     pub fn process_value(&self, value: &Json) -> Option<Value> {
-        if !self.is_indexed {
-            return None;
-        }
+        match self.data_type {
+            FieldType::String => {
+                match value {
+                    &Json::String(ref string) => {
+                        // Analyzed strings become TSVectors. Unanalyzed strings become... strings
+                        if self.analyzer == Analyzer::None {
+                            Some(Value::String(string.clone()))
+                        } else {
+                            let tokens = self.analyzer.run(string.clone());
+                            Some(Value::TSVector(tokens))
+                        }
+                    }
+                    &Json::Array(ref array) => {
+                        // Pack any strings into a vec, ignore nulls. Quit if we see anything else
+                        let mut strings = Vec::new();
 
-        if self.data_type == FieldType::String {
-            let value = Value::from_json(value);
+                        for item in array.iter() {
+                            match item {
+                                &Json::String(ref string) => strings.push(string.clone()),
+                                &Json::Null => {}
+                                _ => {
+                                    return None;
+                                }
+                            }
+                        }
 
-            if let Value::String(value) = value {
-                let tokens = self.analyzer.run(value);
-                println!("{:?}", tokens);
-                return Some(Value::TSVector(tokens));
+                        self.process_value(&Json::String(strings.join(" ")))
+                    }
+                    _ => None
+                }
             }
+            _ => None
         }
-
-        None
     }
 }
 
@@ -137,7 +153,7 @@ impl FieldMapping {
                 "index" => {
                     let index = value.as_string().unwrap();
                     if index == "not_analyzed" {
-                        field_mapping.is_indexed = false;
+                        field_mapping.analyzer = Analyzer::None;
                     } else {
                         // TODO: Implement other variants and make this an error
                         warn!("unimplemented index setting! {}", index);
