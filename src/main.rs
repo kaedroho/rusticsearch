@@ -84,6 +84,10 @@ impl Document {
             let processed_value = if let Some(field_mapping) = mapping.fields.get(field_name) {
                 let value = field_mapping.process_value(field_value.clone());
 
+                if value == None {
+                    warn!("Unprocessable value: {}", field_value);
+                }
+
                 // Add to _all
                 if field_mapping.is_in_all {
                     if let &Some(Value::TSVector(ref tokens)) = &value {
