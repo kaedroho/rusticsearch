@@ -2,6 +2,7 @@ extern crate iron;
 #[macro_use]
 extern crate router;
 extern crate persistent;
+extern crate url;
 extern crate rustc_serialize;
 extern crate unidecode;
 extern crate unicode_segmentation;

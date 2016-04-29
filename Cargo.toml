@@ -7,6 +7,7 @@ authors = ["Karl Hobley <karlhobley10@gmail.com>"]
 iron = "*"
 router = "*"
 persistent = "*"
+url = "*"
 rustc-serialize = "0.3"
 log = "*"
 unidecode = "*"
