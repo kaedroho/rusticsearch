@@ -159,6 +159,15 @@ pub fn view_search(req: &mut Request) -> IronResult<Response> {
                                 "size" => {
                                     request.limit = value.as_ref().parse().expect("need a number");
                                 }
+                                // explain
+                                // version
+                                // timeout
+                                // terminate_after
+                                // fields
+                                // fielddata_fields
+                                // track_scores
+                                // stats
+                                // suggest_field
                                 _ => warn!("unrecognised GET parameter {:?}", key),
                             }
                         }
