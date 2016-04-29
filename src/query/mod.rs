@@ -2,6 +2,7 @@ pub mod parse;
 
 use rustc_serialize::json::Json;
 
+use super::analysis::Analyzer;
 use super::{Document, Value};
 
 
@@ -132,30 +133,62 @@ impl Query {
         match *self {
             Query::MatchAll{boost} => Some(boost),
             Query::Match{ref field, ref query, ref operator, boost} => {
-                if let Some(&Value::String(ref field_value)) = doc.fields.get(field) {
-                    let mut field_value = field_value.to_lowercase();
-                    let mut query = query.to_lowercase();
+                let query = Analyzer::Standard.run(query.clone());
+                let mut matches = 0;
 
-                    if field_value.contains(&query) {
-                        return Some(boost);
-                    }
-                }
+                for token in query.iter() {
+                    let mut token_matched = false;
 
-                None
-            }
-            Query::MultiMatch{ref fields, ref query, ref operator, boost} => {
-                for field in fields.iter() {
-                    if let Some(&Value::String(ref field_value)) = doc.fields.get(field) {
-                        let mut field_value = field_value.to_lowercase();
-                        let mut query = query.to_lowercase();
-
-                        if field_value.contains(&query) {
-                            return Some(boost);
+                    if let Some(&Value::TSVector(ref field_value)) = doc.fields.get(field) {
+                        for field_token in field_value.iter() {
+                            if token == field_token {
+                                matches += 1;
+                                token_matched = true;
+                            }
                         }
                     }
+
+                    // All tokens must match for queries with and operator
+                    if operator == &QueryOperator::And && !token_matched {
+                        return None;
+                    }
                 }
 
-                None
+                if matches > 0 {
+                    Some(matches as f64)
+                } else {
+                    None
+                }
+            }
+            Query::MultiMatch{ref fields, ref query, ref operator, boost} => {
+                let query = Analyzer::Standard.run(query.clone());
+                let mut matches = 0;
+
+                for token in query.iter() {
+                    let mut token_matched = false;
+
+                    for field in fields.iter() {
+                        if let Some(&Value::TSVector(ref field_value)) = doc.fields.get(field) {
+                            for field_token in field_value.iter() {
+                                if token == field_token {
+                                    matches += 1;
+                                    token_matched = true;
+                                }
+                            }
+                        }
+                    }
+
+                    // All tokens must match for queries with and operator
+                    if operator == &QueryOperator::And && !token_matched {
+                        return None;
+                    }
+                }
+
+                if matches > 0 {
+                    Some(matches as f64)
+                } else {
+                    None
+                }
             }
             Query::Filtered{ref query, ref filter} => {
                 if filter.matches(doc) {
