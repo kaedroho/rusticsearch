@@ -183,7 +183,7 @@ fn load_indices(indices_path: &Path) -> HashMap<String, Index> {
 
 
 fn main() {
-    println!("rsearch ({})", VERSION);
+    println!("rusticsearch ({})", VERSION);
     println!("");
 
     println!("{:?}", analysis::Analyzer::EdgeNGram.run("Up from the bowels of hell he sail. Weilding a tankard of freshly brewed ale.".to_string()));
