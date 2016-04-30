@@ -62,6 +62,9 @@ impl FieldMapping {
                             Some(Value::TSVector(tokens))
                         }
                     }
+                    Json::I64(num) => self.process_value(Json::String(num.to_string())),
+                    Json::U64(num) => self.process_value(Json::String(num.to_string())),
+                    Json::F64(num) => self.process_value(Json::String(num.to_string())),
                     Json::Array(array) => {
                         // Pack any strings into a vec, ignore nulls. Quit if we see anything else
                         let mut strings = Vec::new();
@@ -77,6 +80,21 @@ impl FieldMapping {
                         }
 
                         self.process_value(Json::String(strings.join(" ")))
+                    }
+                    _ => None
+                }
+            }
+            FieldType::Number{size, is_float} => {
+                match value {
+                    // TODO check the numbers fit in "size"
+                    Json::U64(num) => Some(Value::U64(num)),
+                    Json::I64(num) => Some(Value::I64(num)),
+                    Json::F64(num) => {
+                        if !is_float {
+                            return None;
+                        }
+
+                        Some(Value::F64(num))
                     }
                     _ => None
                 }
