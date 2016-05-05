@@ -42,14 +42,16 @@ impl<'a> SearchHit<'a> {
 struct SearchResponse<'a> {
     total_hits: usize,
     hits: Vec<SearchHit<'a>>,
+    terminated_early: bool,
 }
 
 
 #[derive(Debug)]
 struct SearchRequest {
     query: Query,
-    offset: usize,
-    limit: usize,
+    from: usize,
+    size: usize,
+    terminate_after: Option<usize>,
 }
 
 impl SearchRequest {
@@ -70,14 +72,15 @@ impl SearchRequest {
 
         // Pagination
         let total_hits = hits.len();
-        if self.offset > 0 {
-            hits.drain(..self.offset);
+        if self.from > 0 {
+            hits.drain(..self.from);
         }
-        hits.truncate(self.limit);
+        hits.truncate(self.size);
 
         SearchResponse {
             total_hits: total_hits,
             hits: hits,
+            terminated_early: false,  // TODO
         }
     }
 }
@@ -103,8 +106,9 @@ pub fn view_count(req: &mut Request) -> IronResult<Response> {
                 Ok(query) => {
                     let request = SearchRequest {
                         query: query,
-                        offset: 0,
-                        limit: 0,
+                        from: 0,
+                        size: 0,
+                        terminate_after: None
                     };
 
                     request.run(&index).total_hits
@@ -145,8 +149,9 @@ pub fn view_search(req: &mut Request) -> IronResult<Response> {
                 Ok(query) => {
                     let mut request = SearchRequest {
                         query: query,
-                        offset: 0,
-                        limit: 10,
+                        from: 0,
+                        size: 10,
+                        terminate_after: None,
                     };
 
                     // TODO: Rewrite this
@@ -154,15 +159,17 @@ pub fn view_search(req: &mut Request) -> IronResult<Response> {
                         for (key, value) in form_urlencoded::parse(url_query.as_bytes()) {
                             match key.as_ref() {
                                 "from" => {
-                                    request.offset = value.as_ref().parse().expect("need a number");
+                                    request.from = value.as_ref().parse().expect("need a number");
                                 }
                                 "size" => {
-                                    request.limit = value.as_ref().parse().expect("need a number");
+                                    request.size = value.as_ref().parse().expect("need a number");
+                                }
+                                "terminate_after" => {
+                                    request.terminate_after = Some(value.as_ref().parse().expect("need a number"));
                                 }
                                 // explain
                                 // version
                                 // timeout
-                                // terminate_after
                                 // fields
                                 // fielddata_fields
                                 // track_scores
