@@ -116,7 +116,7 @@ pub fn parse_match_query(json: &Json) -> Result<Query, QueryParseError> {
     match json_object.get(first_key).unwrap() {
         &Json::String(ref query) => {
             Ok(Query::Match {
-                field: first_key.clone(),
+                fields: vec![first_key.clone()],
                 query: query.to_owned(),
                 operator: QueryOperator::default(),
                 boost: 1.0f64,
@@ -124,7 +124,7 @@ pub fn parse_match_query(json: &Json) -> Result<Query, QueryParseError> {
         }
         &Json::Object(ref object) => {
             Ok(Query::Match {
-                field: first_key.clone(),
+                fields: vec![first_key.clone()],
                 query: object.get("query").unwrap().as_string().unwrap().to_owned(),
                 operator: try!(parse_query_operator(object.get("operator"))),
                 boost: try!(parse_query_boost(object.get("boost"))),
@@ -149,7 +149,7 @@ pub fn parse_multi_match_query(json: &Json) -> Result<Query, QueryParseError> {
     let query_json = try!(json_object.get("query").ok_or(QueryParseError::MissingQueryString));
     let query = try!(query_json.as_string().ok_or(QueryParseError::ExpectedString)).to_owned();
 
-    Ok(Query::MultiMatch {
+    Ok(Query::Match {
         fields: fields,
         query: query,
         operator: try!(parse_query_operator(json_object.get("operator"))),
@@ -253,7 +253,7 @@ mod tests {
 
         assert_eq!(query,
                    Ok(Query::Match {
-                       field: "title".to_owned(),
+                       fields: vec!["title".to_owned()],
                        query: "Hello world!".to_owned(),
                        operator: QueryOperator::Or,
                        boost: 1.0f64,
@@ -274,7 +274,7 @@ mod tests {
 
         assert_eq!(query,
                    Ok(Query::Match {
-                       field: "title".to_owned(),
+                       fields: vec!["title".to_owned()],
                        query: "Hello world!".to_owned(),
                        operator: QueryOperator::Or,
                        boost: 1.0f64,
@@ -296,7 +296,7 @@ mod tests {
 
         assert_eq!(query,
                    Ok(Query::Match {
-                       field: "title".to_owned(),
+                       fields: vec!["title".to_owned()],
                        query: "Hello world!".to_owned(),
                        operator: QueryOperator::And,
                        boost: 1.0f64,
@@ -334,7 +334,7 @@ mod tests {
 
         assert_eq!(query,
                    Ok(Query::Match {
-                       field: "title".to_owned(),
+                       fields: vec!["title".to_owned()],
                        query: "Hello world!".to_owned(),
                        operator: QueryOperator::Or,
                        boost: 1.234f64,
@@ -364,7 +364,7 @@ mod tests {
         ").unwrap());
 
         assert_eq!(query,
-                   Ok(Query::MultiMatch {
+                   Ok(Query::Match {
                        fields: vec!["title".to_owned(), "body".to_owned()],
                        query: "Hello world!".to_owned(),
                        operator: QueryOperator::Or,
@@ -385,7 +385,7 @@ mod tests {
         ").unwrap());
 
         assert_eq!(query,
-                   Ok(Query::MultiMatch {
+                   Ok(Query::Match {
                        fields: vec!["title".to_owned(), "body".to_owned()],
                        query: "Hello world!".to_owned(),
                        operator: QueryOperator::And,
@@ -421,7 +421,7 @@ mod tests {
         ").unwrap());
 
         assert_eq!(query,
-                   Ok(Query::MultiMatch {
+                   Ok(Query::Match {
                        fields: vec!["title".to_owned(), "body".to_owned()],
                        query: "Hello world!".to_owned(),
                        operator: QueryOperator::Or,
@@ -477,7 +477,7 @@ mod tests {
         assert_eq!(query,
                    Ok(Query::Filtered {
                        query: Box::new(Query::Match {
-                           field: "title".to_owned(),
+                           fields: vec!["title".to_owned()],
                            query: "Hello world!".to_owned(),
                            operator: QueryOperator::Or,
                            boost: 1.0f64,

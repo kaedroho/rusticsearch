@@ -81,12 +81,6 @@ pub enum Query {
         boost: f64,
     },
     Match {
-        field: String,
-        query: String,
-        operator: QueryOperator,
-        boost: f64,
-    },
-    MultiMatch {
         fields: Vec<String>,
         query: String,
         operator: QueryOperator,
@@ -164,35 +158,7 @@ impl Query {
     pub fn rank(&self, doc: &Document) -> Option<f64> {
         match *self {
             Query::MatchAll{boost} => Some(boost),
-            Query::Match{ref field, ref query, ref operator, boost} => {
-                let query = Analyzer::Standard.run(query.clone());
-                let mut matches = 0;
-
-                for token in query.iter() {
-                    let mut token_matched = false;
-
-                    if let Some(&Value::TSVector(ref field_value)) = doc.fields.get(field) {
-                        for field_token in field_value.iter() {
-                            if token == field_token {
-                                matches += 1;
-                                token_matched = true;
-                            }
-                        }
-                    }
-
-                    // All tokens must match for queries with and operator
-                    if operator == &QueryOperator::And && !token_matched {
-                        return None;
-                    }
-                }
-
-                if matches > 0 {
-                    Some(matches as f64)
-                } else {
-                    None
-                }
-            }
-            Query::MultiMatch{ref fields, ref query, ref operator, boost} => {
+            Query::Match{ref fields, ref query, ref operator, boost} => {
                 let query = Analyzer::Standard.run(query.clone());
                 let mut matches = 0;
 
@@ -235,17 +201,7 @@ impl Query {
     pub fn matches(&self, doc: &Document) -> bool {
         match *self {
             Query::MatchAll{ref boost} => true,
-            Query::Match{ref field, ref query, ref operator, ref boost} => {
-                if let Some(&Value::String(ref field_value)) = doc.fields.get(field) {
-                    let mut field_value = field_value.to_lowercase();
-                    let mut query = query.to_lowercase();
-
-                    return field_value.contains(&query);
-                }
-
-                false
-            }
-            Query::MultiMatch{ref fields, ref query, ref operator, ref boost} => {
+            Query::Match{ref fields, ref query, ref operator, ref boost} => {
                 for field in fields.iter() {
                     if let Some(&Value::String(ref field_value)) = doc.fields.get(field) {
                         let mut field_value = field_value.to_lowercase();
