@@ -182,9 +182,13 @@ pub fn parse_filtered_query(json: &Json) -> Result<Query, QueryParseError> {
     let query_json = try!(json_object.get("query").ok_or(QueryParseError::FilteredNoQuery));
     let query = try!(parse_query(query_json));
 
-    Ok(Query::Filtered {
-        filter: Box::new(filter),
-        query: Box::new(query),
+    Ok(Query::Bool {
+        must: vec![query],
+        must_not: vec![],
+        should: vec![],
+        filter: vec![filter],
+        minimum_should_match: 0,
+        boost: 1.0,
     })
 }
 
@@ -577,17 +581,25 @@ mod tests {
         ").unwrap());
 
         assert_eq!(query,
-                   Ok(Query::Filtered {
-                       query: Box::new(Query::Match {
-                           fields: vec!["title".to_owned()],
-                           query: "Hello world!".to_owned(),
-                           operator: QueryOperator::Or,
-                           boost: 1.0f64,
-                       }),
-                       filter: Box::new(Filter::Term {
-                           field: "date".to_owned(),
-                           value: Value::U64(2016),
-                       }),
+                   Ok(Query::Bool {
+                       must: vec![
+                           Query::Match {
+                               fields: vec!["title".to_owned()],
+                               query: "Hello world!".to_owned(),
+                               operator: QueryOperator::Or,
+                               boost: 1.0f64,
+                           }
+                       ],
+                       must_not: vec![],
+                       should: vec![],
+                       filter: vec![
+                           Filter::Term {
+                               field: "date".to_owned(),
+                               value: Value::U64(2016),
+                           }
+                       ],
+                       minimum_should_match: 1,
+                       boost: 1.0
                    }));
     }
 

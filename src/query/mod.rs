@@ -87,10 +87,6 @@ pub enum Query {
         operator: QueryOperator,
         boost: f64,
     },
-    Filtered {
-        query: Box<Query>,
-        filter: Box<Filter>,
-    },
     Bool {
         must: Vec<Query>,
         must_not: Vec<Query>,
@@ -197,13 +193,6 @@ impl Query {
                     None
                 }
             }
-            Query::Filtered{ref query, ref filter} => {
-                if filter.matches(doc) {
-                    return query.rank(doc);
-                } else {
-                    None
-                }
-            }
             Query::Bool{ref must, ref must_not, ref should, ref filter, minimum_should_match, boost} => {
                 let mut total_score: f64 = 0.0;
                 let mut total_matched: i32 = 0;
@@ -269,13 +258,6 @@ impl Query {
                 }
 
                 false
-            }
-            Query::Filtered{ref query, ref filter} => {
-                if filter.matches(doc) {
-                    query.matches(doc)
-                } else {
-                    false
-                }
             }
             Query::Bool{ref must, ref must_not, ref should, ref filter, minimum_should_match, boost} => {
                 // Must not
