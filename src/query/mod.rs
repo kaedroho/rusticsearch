@@ -59,6 +59,7 @@ pub enum QueryParseError {
     MultiMatchMissingFields,
     InvalidQueryOperator,
     InvalidQueryBoost,
+    InvalidInteger,
 }
 
 
@@ -89,6 +90,14 @@ pub enum Query {
     Filtered {
         query: Box<Query>,
         filter: Box<Filter>,
+    },
+    Bool {
+        must: Vec<Query>,
+        must_not: Vec<Query>,
+        should: Vec<Query>,
+        filter: Vec<Filter>,
+        minimum_should_match: i32,
+        boost: f64,
     },
 }
 
@@ -195,6 +204,52 @@ impl Query {
                     None
                 }
             }
+            Query::Bool{ref must, ref must_not, ref should, ref filter, minimum_should_match, boost} => {
+                let mut total_score: f64 = 0.0;
+                let mut total_matched: i32 = 0;
+
+                // Must not
+                for query in must_not {
+                    if query.matches(doc) {
+                        return None;
+                    }
+                }
+
+                // Filter
+                for filter in filter {
+                    if !filter.matches(doc) {
+                        return None;
+                    }
+                }
+
+                // Must
+                for query in must {
+                    match query.rank(doc) {
+                        Some(score) => {
+                            total_matched += 1;
+                            total_score += score;
+                        }
+                        None => return None,
+                    }
+                }
+
+                // Should
+                let mut should_matched: i32 = 0;
+                for query in should {
+                    if let Some(score) = query.rank(doc) {
+                        should_matched += 1;
+                        total_matched += 1;
+                        total_score += score;
+                    }
+                }
+
+                if should_matched < minimum_should_match {
+                    return None;
+                }
+
+                // Return average score of matched queries
+                Some((total_score * boost) / total_matched as f64)
+            }
         }
     }
 
@@ -221,6 +276,46 @@ impl Query {
                 } else {
                     false
                 }
+            }
+            Query::Bool{ref must, ref must_not, ref should, ref filter, minimum_should_match, boost} => {
+                // Must not
+                for query in must_not {
+                    if query.matches(doc) {
+                        return false;
+                    }
+                }
+
+                // Filter
+                for filter in filter {
+                    if !filter.matches(doc) {
+                        return false;
+                    }
+                }
+
+                // Must
+                for query in must {
+                    if !query.matches(doc) {
+                        return false;
+                    }
+                }
+
+                // Should
+                if minimum_should_match > 0 {
+                    let mut should_matched: i32 = 0;
+                    for query in should {
+                        if query.matches(doc) {
+                            should_matched += 1;
+
+                            if should_matched >= minimum_should_match {
+                                return true;
+                            }
+                        }
+                    }
+
+                    return false;
+                }
+
+                return true;
             }
         }
     }

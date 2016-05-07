@@ -103,6 +103,19 @@ pub fn parse_query_boost(json: Option<&Json>) -> Result<f64, QueryParseError> {
     }
 }
 
+pub fn parse_integer(json: Option<&Json>) -> Result<Option<i32>, QueryParseError> {
+    match json {
+        Some(json) => {
+            match *json {
+                Json::I64(value) => return Ok(Some(value as i32)),
+                Json::U64(value) => return Ok(Some(value as i32)),
+                _ => return Err(QueryParseError::InvalidInteger),
+            }
+        }
+        None => Ok(None),
+    }
+}
+
 pub fn parse_match_all_query(json: &Json) -> Result<Query, QueryParseError> {
     let json_object = try!(json.as_object().ok_or(QueryParseError::ExpectedObject));
 
@@ -175,6 +188,92 @@ pub fn parse_filtered_query(json: &Json) -> Result<Query, QueryParseError> {
     })
 }
 
+pub fn parse_query_list(json: &Json) -> Result<Vec<Query>, QueryParseError> {
+    let mut queries = Vec::new();
+
+    match json {
+        &Json::Object(ref query_json_inner) => {
+            queries.push(try!(parse_query(json)));
+        }
+        &Json::Array(ref query_json_list) => {
+            for query_json in query_json_list {
+                match query_json {
+                    &Json::Object(ref query_json_inner) => {
+                        queries.push(try!(parse_query(query_json)));
+                    }
+                    _ => return Err(QueryParseError::ExpectedObject)
+                }
+            }
+        }
+        _ => return Err(QueryParseError::ExpectedObject)
+    }
+
+    return Ok(queries);
+}
+
+pub fn parse_bool_query(json: &Json) -> Result<Query, QueryParseError> {
+    let json_object = try!(json.as_object().ok_or(QueryParseError::ExpectedObject));
+
+    let must = if let Some(must_json) = json_object.get("must") {
+        try!(parse_query_list(must_json))
+    } else {
+        Vec::new()
+    };
+
+    let must_not = if let Some(must_not_json) = json_object.get("must_not") {
+        try!(parse_query_list(must_not_json))
+    } else {
+        Vec::new()
+    };
+
+    let should = if let Some(should_json) = json_object.get("should") {
+        try!(parse_query_list(should_json))
+    } else {
+        Vec::new()
+    };
+
+    let mut filter = Vec::new();
+    if let Some(filter_json) = json_object.get("filter") {
+        match filter_json {
+            &Json::Object(ref filter_json_inner) => {
+                let the_filter = match parse_filter(filter_json) {
+                    Ok(filter) => filter,
+                    Err(err) => return Err(QueryParseError::FilterParseError(err)),
+                };
+
+                filter.push(the_filter);
+            }
+            &Json::Array(ref filter_json_list) => {
+                for filter_json in filter_json_list {
+                    match filter_json {
+                        &Json::Object(ref filter_json_inner) => {
+                            let the_filter = match parse_filter(filter_json) {
+                                Ok(filter) => filter,
+                                Err(err) => return Err(QueryParseError::FilterParseError(err)),
+                            };
+
+                            filter.push(the_filter);
+                        }
+                        _ => return Err(QueryParseError::ExpectedObject)
+                    }
+                }
+            }
+            _ => return Err(QueryParseError::ExpectedObject)
+        }
+    }
+
+    // TODO: Check for extraneous keys
+
+    Ok(Query::Bool {
+        must: must,
+        must_not: must_not,
+        should: should,
+        filter: filter,
+        minimum_should_match: try!(parse_integer(json_object.get("minimum_should_match"))).unwrap_or(1),
+        boost: try!(parse_query_boost(json_object.get("boost")))
+    })
+}
+
 pub fn parse_query(json: &Json) -> Result<Query, QueryParseError> {
     let json_object = try!(json.as_object().ok_or(QueryParseError::ExpectedObject));
     let first_key = try!(json_object.keys().nth(0).ok_or(QueryParseError::NoQuery));
@@ -191,6 +290,9 @@ pub fn parse_query(json: &Json) -> Result<Query, QueryParseError> {
     } else if first_key == "filtered" {
         let inner_query = json_object.get("filtered").unwrap();
         Ok(try!(parse_filtered_query(inner_query)))
+    } else if first_key == "bool" {
+        let inner_query = json_object.get("bool").unwrap();
+        Ok(try!(parse_bool_query(inner_query)))
     } else {
         Err(QueryParseError::UnknownQueryType(first_key.clone()))
     }
@@ -521,5 +623,186 @@ mod tests {
         ").unwrap());
 
         assert_eq!(query, Err(QueryParseError::FilteredNoFilter));
+    }
+
+    #[test]
+    fn test_basic_bool_query() {
+        let query = parse_query(&Json::from_str("
+            {
+                \"bool\" : {
+                    \"must\" : {
+                        \"match\" : { \"title\" : \"Hello world!\" }
+                    },
+                    \"must_not\" : {
+                        \"match\" : { \"title\" : \"No!\" }
+                    },
+                    \"should\" : {
+                        \"match\" : { \"title\" : \"Foo\" }
+                    },
+                    \"filter\" : {
+                        \"term\" : { \"tag\" : \"tech\" }
+                    }
+                }
+            }
+        ").unwrap());
+
+        assert_eq!(query,
+                   Ok(Query::Bool {
+                       must: vec![
+                           Query::Match {
+                               fields: vec!["title".to_owned()],
+                               query: "Hello world!".to_owned(),
+                               operator: QueryOperator::Or,
+                               boost: 1.0f64,
+                           }
+                       ],
+                       must_not: vec![
+                           Query::Match {
+                               fields: vec!["title".to_owned()],
+                               query: "No!".to_owned(),
+                               operator: QueryOperator::Or,
+                               boost: 1.0f64,
+                           }
+                       ],
+                       should: vec![
+                           Query::Match {
+                               fields: vec!["title".to_owned()],
+                               query: "Foo".to_owned(),
+                               operator: QueryOperator::Or,
+                               boost: 1.0f64,
+                           }
+                       ],
+                       filter: vec![
+                           Filter::Term {
+                               field: "tag".to_owned(),
+                               value: Value::String("tech".to_owned()),
+                           }
+                       ],
+                       minimum_should_match: 1,
+                       boost: 1.0f64,
+                   }));
+    }
+
+    #[test]
+    fn test_bool_query_attributes() {
+        let query = parse_query(&Json::from_str("
+            {
+                \"bool\" : {
+                    \"should\" : {
+                        \"match\" : { \"title\" : \"Hello world!\" }
+                    },
+                    \"minimum_should_match\": 0,
+                    \"boost\": 2.0
+                }
+            }
+        ").unwrap());
+
+        assert_eq!(query,
+                   Ok(Query::Bool {
+                       must: vec![],
+                       must_not: vec![],
+                       should: vec![Query::Match {
+                           fields: vec!["title".to_owned()],
+                           query: "Hello world!".to_owned(),
+                           operator: QueryOperator::Or,
+                           boost: 1.0f64,
+                       }],
+                       filter: vec![],
+                       minimum_should_match: 0,
+                       boost: 2.0f64,
+                   }));
+    }
+
+    #[test]
+    fn test_multiple_bool_query() {
+        let query = parse_query(&Json::from_str("
+            {
+                \"bool\" : {
+                    \"must\" : [
+                        {
+                            \"match\" : { \"title\" : \"Hello world!\" }
+                        },
+                        {
+                            \"match\" : { \"title\" : \"Hello again!\" }
+                        }
+                    ],
+                    \"must_not\" : [
+                        {
+                            \"match\" : { \"title\" : \"No!\" }
+                        },
+                        {
+                            \"match\" : { \"title\" : \"Nein!\" }
+                        }
+                    ],
+                    \"should\" : [
+                        {
+                            \"match\" : { \"title\" : \"Foo\" }
+                        },
+                        {
+                            \"match\" : { \"title\" : \"Bar\" }
+                        }
+                    ],
+                    \"filter\" : [
+                        {
+                            \"term\" : { \"tag\" : \"tech\" }
+                        }
+                    ]
+                }
+            }
+        ").unwrap());
+
+        assert_eq!(query,
+                   Ok(Query::Bool {
+                       must: vec![
+                           Query::Match {
+                               fields: vec!["title".to_owned()],
+                               query: "Hello world!".to_owned(),
+                               operator: QueryOperator::Or,
+                               boost: 1.0f64,
+                           },
+                           Query::Match {
+                               fields: vec!["title".to_owned()],
+                               query: "Hello again!".to_owned(),
+                               operator: QueryOperator::Or,
+                               boost: 1.0f64,
+                           }
+                       ],
+                       must_not: vec![
+                           Query::Match {
+                               fields: vec!["title".to_owned()],
+                               query: "No!".to_owned(),
+                               operator: QueryOperator::Or,
+                               boost: 1.0f64,
+                           },
+                           Query::Match {
+                               fields: vec!["title".to_owned()],
+                               query: "Nein!".to_owned(),
+                               operator: QueryOperator::Or,
+                               boost: 1.0f64,
+                           }
+                       ],
+                       should: vec![
+                           Query::Match {
+                               fields: vec!["title".to_owned()],
+                               query: "Foo".to_owned(),
+                               operator: QueryOperator::Or,
+                               boost: 1.0f64,
+                           },
+                           Query::Match {
+                               fields: vec!["title".to_owned()],
+                               query: "Bar".to_owned(),
+                               operator: QueryOperator::Or,
+                               boost: 1.0f64,
+                           }
+                       ],
+                       filter: vec![
+                           Filter::Term {
+                               field: "tag".to_owned(),
+                               value: Value::String("tech".to_owned()),
+                           }
+                       ],
+                       minimum_should_match: 1,
+                       boost: 1.0f64,
+                   }));
     }
 }
