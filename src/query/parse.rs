@@ -202,50 +202,43 @@ mod tests {
     use rustc_serialize::json::Json;
     use query::{Query, Filter, QueryParseError, QueryOperator};
     use super::parse_query;
+    use Value;
 
     #[test]
     fn test_match_all_query() {
         let query = parse_query(&Json::from_str("
             {
-                \"match_all\": \
-                                                 {}
+                \"match_all\": {}
             }
-        ")
-                                     .unwrap());
+        ").unwrap());
 
-        assert_eq!(query, Ok(Query::MatchAll { boost: 1.0f64 }))
+        assert_eq!(query, Ok(Query::MatchAll { boost: 1.0f64 }));
     }
 
     #[test]
     fn test_match_all_query_boost() {
         let query = parse_query(&Json::from_str("
             {
-                \"match_all\": \
-                                                 {
+                \"match_all\": {
                     \"boost\": 1.234
-                \
-                                                 }
+                }
             }
-        ")
-                                     .unwrap());
+        ").unwrap());
 
-        assert_eq!(query, Ok(Query::MatchAll { boost: 1.234f64 }))
+        assert_eq!(query, Ok(Query::MatchAll { boost: 1.234f64 }));
     }
 
     #[test]
     fn test_match_all_query_invalid_boost() {
         let query = parse_query(&Json::from_str("
             {
-                \"match_all\": \
-                                                 {
+                \"match_all\": {
                     \"boost\": \"foo\"
-                \
-                                                 }
+                }
             }
-        ")
-                                     .unwrap());
+        ").unwrap());
 
-        assert_eq!(query, Err(QueryParseError::InvalidQueryBoost))
+        assert_eq!(query, Err(QueryParseError::InvalidQueryBoost));
     }
 
     #[test]
@@ -253,13 +246,10 @@ mod tests {
         let query = parse_query(&Json::from_str("
             {
                 \"match\": {
-                    \
-                                                 \"title\": \"Hello world!\"
+                    \"title\": \"Hello world!\"
                 }
-            \
-                                                 }
-        ")
-                                     .unwrap());
+            }
+        ").unwrap());
 
         assert_eq!(query,
                    Ok(Query::Match {
@@ -267,7 +257,7 @@ mod tests {
                        query: "Hello world!".to_owned(),
                        operator: QueryOperator::Or,
                        boost: 1.0f64,
-                   }))
+                   }));
     }
 
     #[test]
@@ -275,16 +265,12 @@ mod tests {
         let query = parse_query(&Json::from_str("
             {
                 \"match\": {
-                    \
-                                                 \"title\": {
-                        \
-                                                 \"query\": \"Hello world!\"
-                    \
-                                                 }
+                    \"title\": {
+                        \"query\": \"Hello world!\"
+                    }
                 }
             }
-        ")
-                                     .unwrap());
+        ").unwrap());
 
         assert_eq!(query,
                    Ok(Query::Match {
@@ -292,7 +278,7 @@ mod tests {
                        query: "Hello world!".to_owned(),
                        operator: QueryOperator::Or,
                        boost: 1.0f64,
-                   }))
+                   }));
     }
 
     #[test]
@@ -300,18 +286,13 @@ mod tests {
         let query = parse_query(&Json::from_str("
             {
                 \"match\": {
-                    \
-                                                 \"title\": {
-                        \
-                                                 \"query\": \"Hello world!\",
-                        \
-                                                 \"operator\": \"and\"
+                    \"title\": {
+                        \"query\": \"Hello world!\",
+                        \"operator\": \"and\"
                     }
-                \
-                                                 }
+                }
             }
-        ")
-                                     .unwrap());
+        ").unwrap());
 
         assert_eq!(query,
                    Ok(Query::Match {
@@ -319,7 +300,7 @@ mod tests {
                        query: "Hello world!".to_owned(),
                        operator: QueryOperator::And,
                        boost: 1.0f64,
-                   }))
+                   }));
     }
 
     #[test]
@@ -327,20 +308,15 @@ mod tests {
         let query = parse_query(&Json::from_str("
             {
                 \"match\": {
-                    \
-                                                 \"title\": {
-                        \
-                                                 \"query\": \"Hello world!\",
-                        \
-                                                 \"operator\": \"invalid\"
-                    \
-                                                 }
+                    \"title\": {
+                        \"query\": \"Hello world!\",
+                        \"operator\": \"invalid\"
+                    }
                 }
             }
-        ")
-                                     .unwrap());
+        ").unwrap());
 
-        assert_eq!(query, Err(QueryParseError::InvalidQueryOperator))
+        assert_eq!(query, Err(QueryParseError::InvalidQueryOperator));
     }
 
     #[test]
@@ -348,18 +324,13 @@ mod tests {
         let query = parse_query(&Json::from_str("
             {
                 \"match\": {
-                    \
-                                                 \"title\": {
-                        \
-                                                 \"query\": \"Hello world!\",
-                        \
-                                                 \"boost\": 1.234
+                    \"title\": {
+                        \"query\": \"Hello world!\",
+                        \"boost\": 1.234
                     }
-                \
-                                                 }
+                }
             }
-        ")
-                                     .unwrap());
+        ").unwrap());
 
         assert_eq!(query,
                    Ok(Query::Match {
@@ -367,7 +338,7 @@ mod tests {
                        query: "Hello world!".to_owned(),
                        operator: QueryOperator::Or,
                        boost: 1.234f64,
-                   }))
+                   }));
     }
 
     #[test]
@@ -375,29 +346,22 @@ mod tests {
         let query = parse_query(&Json::from_str("
             {
                 \"match\": {}
-            \
-                                                 }
-        ")
-                                     .unwrap());
+            }
+        ").unwrap());
 
-        assert_eq!(query, Err(QueryParseError::NoQuery))
+        assert_eq!(query, Err(QueryParseError::NoQuery));
     }
 
     #[test]
     fn test_multi_match_query() {
         let query = parse_query(&Json::from_str("
             {
-                \
-                                                 \"multi_match\": {
-                    \
-                                                 \"fields\": [\"title\", \"body\"],
-                    \
-                                                 \"query\": \"Hello world!\"
+                \"multi_match\": {
+                    \"fields\": [\"title\", \"body\"],
+                    \"query\": \"Hello world!\"
                 }
-            \
-                                                 }
-        ")
-                                     .unwrap());
+            }
+        ").unwrap());
 
         assert_eq!(query,
                    Ok(Query::MultiMatch {
@@ -405,26 +369,20 @@ mod tests {
                        query: "Hello world!".to_owned(),
                        operator: QueryOperator::Or,
                        boost: 1.0f64,
-                   }))
+                   }));
     }
 
     #[test]
     fn test_multi_match_and_operator() {
         let query = parse_query(&Json::from_str("
             {
-                \
-                                                 \"multi_match\": {
-                    \
-                                                 \"fields\": [\"title\", \"body\"],
-                    \
-                                                 \"query\": \"Hello world!\",
-                    \
-                                                 \"operator\": \"and\"
+                \"multi_match\": {
+                    \"fields\": [\"title\", \"body\"],
+                    \"query\": \"Hello world!\",
+                    \"operator\": \"and\"
                 }
-            \
-                                                 }
-        ")
-                                     .unwrap());
+            }
+        ").unwrap());
 
         assert_eq!(query,
                    Ok(Query::MultiMatch {
@@ -432,47 +390,35 @@ mod tests {
                        query: "Hello world!".to_owned(),
                        operator: QueryOperator::And,
                        boost: 1.0f64,
-                   }))
+                   }));
     }
 
     #[test]
     fn test_multi_match_invalid_operator() {
         let query = parse_query(&Json::from_str("
             {
-                \
-                                                 \"multi_match\": {
-                    \
-                                                 \"fields\": [\"title\", \"body\"],
-                    \
-                                                 \"query\": \"Hello world!\",
-                    \
-                                                 \"operator\": \"invalid\"
+                \"multi_match\": {
+                    \"fields\": [\"title\", \"body\"],
+                    \"query\": \"Hello world!\",
+                     \"operator\": \"invalid\"
                 }
-            \
-                                                 }
-        ")
-                                     .unwrap());
+            }
+        ").unwrap());
 
-        assert_eq!(query, Err(QueryParseError::InvalidQueryOperator))
+        assert_eq!(query, Err(QueryParseError::InvalidQueryOperator));
     }
 
     #[test]
     fn test_multi_match_boost() {
         let query = parse_query(&Json::from_str("
             {
-                \
-                                                 \"multi_match\": {
-                    \
-                                                 \"fields\": [\"title\", \"body\"],
-                    \
-                                                 \"query\": \"Hello world!\",
-                    \
-                                                 \"boost\": 1.234
+                \"multi_match\": {
+                    \"fields\": [\"title\", \"body\"],
+                    \"query\": \"Hello world!\",
+                    \"boost\": 1.234
                 }
-            \
-                                                 }
-        ")
-                                     .unwrap());
+            }
+        ").unwrap());
 
         assert_eq!(query,
                    Ok(Query::MultiMatch {
@@ -480,41 +426,33 @@ mod tests {
                        query: "Hello world!".to_owned(),
                        operator: QueryOperator::Or,
                        boost: 1.234f64,
-                   }))
+                   }));
     }
 
     #[test]
     fn test_multi_match_query_without_fields() {
         let query = parse_query(&Json::from_str("
             {
-                \
-                                                 \"multi_match\": {
-                    \
-                                                 \"query\": \"Hello world!\"
+                \"multi_match\": {
+                    \"query\": \"Hello world!\"
                 }
-            \
-                                                 }
-        ")
-                                     .unwrap());
+            }
+        ").unwrap());
 
-        assert_eq!(query, Err(QueryParseError::MultiMatchMissingFields))
+        assert_eq!(query, Err(QueryParseError::MultiMatchMissingFields));
     }
 
     #[test]
     fn test_multi_match_query_without_query() {
         let query = parse_query(&Json::from_str("
             {
-                \
-                                                 \"multi_match\": {
-                    \
-                                                 \"fields\": [\"title\", \"body\"]
-                \
-                                                 }
+                \"multi_match\": {
+                    \"fields\": [\"title\", \"body\"]
+                }
             }
-        ")
-                                     .unwrap());
+        ").unwrap());
 
-        assert_eq!(query, Err(QueryParseError::MissingQueryString))
+        assert_eq!(query, Err(QueryParseError::MissingQueryString));
     }
 
     #[test]
@@ -522,29 +460,19 @@ mod tests {
         let query = parse_query(&Json::from_str("
             {
                 \"filtered\": {
-                    \
-                                                 \"query\": {
-                        \
-                                                 \"match\": {
-                            \
-                                                 \"title\": \"Hello world!\"
-                        \
-                                                 }
+                    \"query\": {
+                        \"match\": {
+                            \"title\": \"Hello world!\"
+                        }
                     },
-                    \
-                                                 \"filter\": {
-                        \
-                                                 \"term\": {
-                            \
-                                                 \"date\": \"2016-01-25\"
-                        \
-                                                 }
+                    \"filter\": {
+                        \"term\": {
+                            \"date\": 2016
+                        }
                     }
                 }
-            \
-                                                 }
-        ")
-                                     .unwrap());
+            }
+        ").unwrap());
 
         assert_eq!(query,
                    Ok(Query::Filtered {
@@ -556,9 +484,9 @@ mod tests {
                        }),
                        filter: Box::new(Filter::Term {
                            field: "date".to_owned(),
-                           value: Json::from_str("\"2016-01-25\"").unwrap(),
+                           value: Value::U64(2016),
                        }),
-                   }))
+                   }));
     }
 
     #[test]
@@ -566,22 +494,16 @@ mod tests {
         let query = parse_query(&Json::from_str("
             {
                 \"filtered\": {
-                    \
-                                                 \"filter\": {
-                        \
-                                                 \"term\": {
-                            \
-                                                 \"date\": \"2016-01-25\"
-                        \
-                                                 }
+                    \"filter\": {
+                        \"term\": {
+                            \"date\": \"2016-01-25\"
+                        }
                     }
                 }
-            \
-                                                 }
-        ")
-                                     .unwrap());
+            }
+        ").unwrap());
 
-        assert_eq!(query, Err(QueryParseError::FilteredNoQuery))
+        assert_eq!(query, Err(QueryParseError::FilteredNoQuery));
     }
 
     #[test]
@@ -589,21 +511,15 @@ mod tests {
         let query = parse_query(&Json::from_str("
             {
                 \"filtered\": {
-                    \
-                                                 \"query\": {
-                        \
-                                                 \"match\": {
-                            \
-                                                 \"title\": \"Hello world!\"
-                        \
-                                                 }
+                    \"query\": {
+                         \"match\": {
+                            \"title\": \"Hello world!\"
+                        }
                     }
                 }
-            \
-                                                 }
-        ")
-                                     .unwrap());
+            }
+        ").unwrap());
 
-        assert_eq!(query, Err(QueryParseError::FilteredNoFilter))
+        assert_eq!(query, Err(QueryParseError::FilteredNoFilter));
     }
 }
