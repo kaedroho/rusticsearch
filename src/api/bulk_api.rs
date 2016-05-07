@@ -28,7 +28,9 @@ pub fn view_post_bulk(req: &mut Request) -> IronResult<Response> {
         let action_line = payload_lines.next();
 
         // Check if end of input
-        if action_line == None || action_line == Some("") { break; }
+        if action_line == None || action_line == Some("") {
+            break;
+        }
 
         // Parse action line
         let action_json = parse_json!(&action_line.unwrap());
@@ -37,8 +39,12 @@ pub fn view_post_bulk(req: &mut Request) -> IronResult<Response> {
         // Action should be an object with only one key, the key name indicates the action and
         // the value is the parameters for that action
         let action_name = action_json.as_object().unwrap().keys().nth(0).unwrap();
-        let action_params = action_json.as_object().unwrap().get(action_name).unwrap()
-                                                            .as_object().unwrap();
+        let action_params = action_json.as_object()
+                                       .unwrap()
+                                       .get(action_name)
+                                       .unwrap()
+                                       .as_object()
+                                       .unwrap();
 
         let doc_id = action_params.get("_id").unwrap().as_string().unwrap();
         let doc_type = action_params.get("_type").unwrap().as_string().unwrap();
@@ -61,7 +67,8 @@ pub fn view_post_bulk(req: &mut Request) -> IronResult<Response> {
                 let mut mapping = match index.mappings.get_mut(doc_type) {
                     Some(mapping) => mapping,
                     None => {
-                        return Ok(json_response(status::NotFound, "{\"message\": \"Mapping not found\"}"));
+                        return Ok(json_response(status::NotFound,
+                                                "{\"message\": \"Mapping not found\"}"));
                     }
                 };
 
@@ -81,5 +88,8 @@ pub fn view_post_bulk(req: &mut Request) -> IronResult<Response> {
         }
     }
 
-    return Ok(json_response(status::Ok, format!("{{\"took\": {}, \"items\": {}}}", items.len(), json::encode(&items).unwrap())));
+    return Ok(json_response(status::Ok,
+                            format!("{{\"took\": {}, \"items\": {}}}",
+                                    items.len(),
+                                    json::encode(&items).unwrap())));
 }

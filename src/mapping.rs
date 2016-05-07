@@ -10,14 +10,19 @@ use Value;
 pub enum FieldType {
     String,
     Binary,
-    Number{size: u8, is_float: bool},
+    Number {
+        size: u8,
+        is_float: bool,
+    },
     Boolean,
     Date,
 }
 
 
 impl Default for FieldType {
-    fn default() -> FieldType { FieldType::String }
+    fn default() -> FieldType {
+        FieldType::String
+    }
 }
 
 
@@ -81,7 +86,7 @@ impl FieldMapping {
 
                         self.process_value(Json::String(strings.join(" ")))
                     }
-                    _ => None
+                    _ => None,
                 }
             }
             FieldType::Number{size, is_float} => {
@@ -96,13 +101,11 @@ impl FieldMapping {
 
                         Some(Value::F64(num))
                     }
-                    _ => None
+                    _ => None,
                 }
             }
-            FieldType::Boolean => {
-                Some(Value::Boolean(parse_boolean(&value)))
-            }
-            _ => None
+            FieldType::Boolean => Some(Value::Boolean(parse_boolean(&value))),
+            _ => None,
         }
     }
 }
@@ -121,12 +124,11 @@ impl Mapping {
         // Parse fields
         let mut fields = HashMap::new();
         for (field_name, field_mapping_json) in properties_json.iter() {
-            fields.insert(field_name.clone(), FieldMapping::from_json(field_mapping_json));
+            fields.insert(field_name.clone(),
+                          FieldMapping::from_json(field_mapping_json));
         }
 
-        Mapping {
-            fields: fields,
-        }
+        Mapping { fields: fields }
     }
 }
 
@@ -165,7 +167,12 @@ impl FieldMapping {
 
                     field_mapping.data_type = match type_name.as_ref() {
                         "string" => FieldType::String,
-                        "integer" => FieldType::Number{size: 64, is_float: false},
+                        "integer" => {
+                            FieldType::Number {
+                                size: 64,
+                                is_float: false,
+                            }
+                        }
                         "boolean" => FieldType::Boolean,
                         "date" => FieldType::Date,
                         _ => {
@@ -200,7 +207,7 @@ impl FieldMapping {
                 "include_in_all" => {
                     field_mapping.is_in_all = parse_boolean(value);
                 }
-                _ => warn!("unimplemented field mapping key! {}", key)
+                _ => warn!("unimplemented field mapping key! {}", key),
             }
 
         }

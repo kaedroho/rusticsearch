@@ -80,7 +80,7 @@ impl SearchRequest {
         SearchResponse {
             total_hits: total_hits,
             hits: hits,
-            terminated_early: false,  // TODO
+            terminated_early: false, // TODO
         }
     }
 }
@@ -108,7 +108,7 @@ pub fn view_count(req: &mut Request) -> IronResult<Response> {
                         query: query,
                         from: 0,
                         size: 0,
-                        terminate_after: None
+                        terminate_after: None,
                     };
 
                     request.run(&index).total_hits
@@ -122,7 +122,7 @@ pub fn view_count(req: &mut Request) -> IronResult<Response> {
                 }
             }
         }
-        None => index.docs.len()
+        None => index.docs.len(),
     };
 
     return Ok(json_response(status::Ok, format!("{{\"count\": {}}}", count)));
@@ -165,7 +165,9 @@ pub fn view_search(req: &mut Request) -> IronResult<Response> {
                                     request.size = value.as_ref().parse().expect("need a number");
                                 }
                                 "terminate_after" => {
-                                    request.terminate_after = Some(value.as_ref().parse().expect("need a number"));
+                                    request.terminate_after = Some(value.as_ref()
+                                                                        .parse()
+                                                                        .expect("need a number"));
                                 }
                                 // explain
                                 // version
@@ -183,7 +185,16 @@ pub fn view_search(req: &mut Request) -> IronResult<Response> {
                     let response = request.run(&index);
 
                     // TODO: {"took":5,"timed_out":false,"_shards":{"total":5,"successful":5,"failed":0},"hits":{"total":4,"max_score":1.0,"hits":[{"_index":"wagtail","_type":"searchtests_searchtest_searchtests_searchtestchild","_id":"searchtests_searchtest:5380","_score":1.0,"fields":{"pk":["5380"]}},{"_index":"wagtail","_type":"searchtests_searchtest","_id":"searchtests_searchtest:5379","_score":1.0,"fields":{"pk":["5379"]}}]}}
-                    Ok(json_response(status::Ok, format!("{{\"hits\": {{\"total\": {}, \"hits\": {}}}}}", response.total_hits, json::encode(&Json::Array(response.hits.iter().map(|hit| hit.as_json()).collect())).unwrap())))
+                    Ok(json_response(status::Ok,
+                                     format!("{{\"hits\": {{\"total\": {}, \"hits\": {}}}}}",
+                                             response.total_hits,
+                                             json::encode(&Json::Array(response.hits
+                                                                               .iter()
+                                                                               .map(|hit| {
+                                                                                   hit.as_json()
+                                                                               })
+                                                                               .collect()))
+                                                 .unwrap())))
                 }
                 Err(error) => {
                     // TODO: What specifically is bad about the Query?
@@ -194,8 +205,6 @@ pub fn view_search(req: &mut Request) -> IronResult<Response> {
                 }
             }
         }
-        None => {
-            Ok(json_response(status::BadRequest, "{\"message\": \"Missing query\"}"))
-        }
+        None => Ok(json_response(status::BadRequest, "{\"message\": \"Missing query\"}")),
     }
 }

@@ -18,13 +18,30 @@ pub enum FilterParseError {
 
 #[derive(Debug, PartialEq)]
 pub enum Filter {
-    Term{field: String, value: Value},
-    Terms{field: String, values: Vec<Value>},
-    Prefix{field: String, value: String},
-    Missing{field: String},
-    And{children: Vec<Filter>},
-    Or{children: Vec<Filter>},
-    Not{child: Box<Filter>},
+    Term {
+        field: String,
+        value: Value,
+    },
+    Terms {
+        field: String,
+        values: Vec<Value>,
+    },
+    Prefix {
+        field: String,
+        value: String,
+    },
+    Missing {
+        field: String,
+    },
+    And {
+        children: Vec<Filter>,
+    },
+    Or {
+        children: Vec<Filter>,
+    },
+    Not {
+        child: Box<Filter>,
+    },
 }
 
 
@@ -60,10 +77,25 @@ impl Default for QueryOperator {
 
 #[derive(Debug, PartialEq)]
 pub enum Query {
-    MatchAll{boost: f64},
-    Match{field: String, query: String, operator: QueryOperator, boost: f64},
-    MultiMatch{fields: Vec<String>, query: String, operator: QueryOperator, boost: f64},
-    Filtered{query: Box<Query>, filter: Box<Filter>},
+    MatchAll {
+        boost: f64,
+    },
+    Match {
+        field: String,
+        query: String,
+        operator: QueryOperator,
+        boost: f64,
+    },
+    MultiMatch {
+        fields: Vec<String>,
+        query: String,
+        operator: QueryOperator,
+        boost: f64,
+    },
+    Filtered {
+        query: Box<Query>,
+        filter: Box<Filter>,
+    },
 }
 
 
@@ -192,7 +224,7 @@ impl Query {
             }
             Query::Filtered{ref query, ref filter} => {
                 if filter.matches(doc) {
-                    return query.rank(doc)
+                    return query.rank(doc);
                 } else {
                     None
                 }

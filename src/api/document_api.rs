@@ -1,5 +1,5 @@
 use std::io::Read;
-use std::collections::{BTreeMap};
+use std::collections::BTreeMap;
 
 use iron::prelude::*;
 use iron::status;

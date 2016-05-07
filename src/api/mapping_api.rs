@@ -29,7 +29,7 @@ pub fn view_put_mapping(req: &mut Request) -> IronResult<Response> {
         None => {
             // TODO: Better error
             return Ok(json_response(status::BadRequest, "{\"acknowledged\": false}"));
-        },
+        }
     };
 
     let data = data.as_object().unwrap().get(*mapping_name).unwrap();

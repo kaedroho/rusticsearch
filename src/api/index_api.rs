@@ -66,7 +66,7 @@ pub fn view_delete_index(req: &mut Request) -> IronResult<Response> {
     let mut index_path = glob.indices_path.clone();
     index_path.push(index_name);
     index_path.set_extension("rsi");
-    //fs::remove_file(&index_path).unwrap();
+    // fs::remove_file(&index_path).unwrap();
 
     info!("Deleted index {}", index_name);
 
