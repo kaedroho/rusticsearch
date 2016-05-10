@@ -195,7 +195,6 @@ impl Query {
             }
             Query::Bool{ref must, ref must_not, ref should, ref filter, minimum_should_match, boost} => {
                 let mut total_score: f64 = 0.0;
-                let mut total_matched: i32 = 0;
 
                 // Must not
                 for query in must_not {
@@ -215,7 +214,6 @@ impl Query {
                 for query in must {
                     match query.rank(doc) {
                         Some(score) => {
-                            total_matched += 1;
                             total_score += score;
                         }
                         None => return None,
@@ -227,7 +225,6 @@ impl Query {
                 for query in should {
                     if let Some(score) = query.rank(doc) {
                         should_matched += 1;
-                        total_matched += 1;
                         total_score += score;
                     }
                 }
@@ -237,7 +234,7 @@ impl Query {
                 }
 
                 // Return average score of matched queries
-                Some((total_score * boost) / total_matched as f64)
+                Some((total_score * boost) / (must.len() + should.len()) as f64)
             }
         }
     }
