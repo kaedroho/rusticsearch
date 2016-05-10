@@ -74,6 +74,7 @@ pub enum Query {
     MatchAll {
         boost: f64,
     },
+    MatchNone,
     MatchTerm {
         fields: Vec<String>,
         value: String,
@@ -166,6 +167,7 @@ impl Query {
     pub fn rank(&self, doc: &Document) -> Option<f64> {
         match *self {
             Query::MatchAll{boost} => Some(boost),
+            Query::MatchNone => None,
             Query::MatchTerm{ref fields, ref value, ref matcher, boost} => {
                 for field in fields.iter() {
                     if let Some(&Value::String(ref field_value)) = doc.fields.get(field) {
@@ -224,6 +226,7 @@ impl Query {
     pub fn matches(&self, doc: &Document) -> bool {
         match *self {
             Query::MatchAll{ref boost} => true,
+            Query::MatchNone => false,
             Query::MatchTerm{ref fields, ref value, ref matcher, boost} => {
                 for field in fields.iter() {
                     if let Some(&Value::String(ref field_value)) = doc.fields.get(field) {
