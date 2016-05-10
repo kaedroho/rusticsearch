@@ -1,7 +1,8 @@
 use rustc_serialize::json::Json;
 
 use Value;
-use super::{Query, Filter, QueryParseError, FilterParseError, QueryOperator};
+use analysis::Analyzer;
+use super::{Query, Filter, QueryParseError, FilterParseError};
 
 
 pub fn parse_filter(json: &Json) -> Result<Filter, FilterParseError> {
@@ -71,21 +72,21 @@ pub fn parse_filter(json: &Json) -> Result<Filter, FilterParseError> {
     }
 }
 
-pub fn parse_query_operator(json: Option<&Json>) -> Result<QueryOperator, QueryParseError> {
+pub fn parse_query_operator(json: Option<&Json>) -> Result<bool, QueryParseError> {
     match json {
         Some(json) => {
             match *json {
                 Json::String(ref value) => {
                     match value.as_ref() {
-                        "or" => Ok(QueryOperator::Or),
-                        "and" => Ok(QueryOperator::And),
+                        "or" => Ok(false),
+                        "and" => Ok(true),
                         _ => return Err(QueryParseError::InvalidQueryOperator),
                     }
                 }
                 _ => return Err(QueryParseError::InvalidQueryOperator),
             }
         }
-        None => Ok(QueryOperator::default()),
+        None => Ok(false),
     }
 }
 
@@ -122,26 +123,58 @@ pub fn parse_match_all_query(json: &Json) -> Result<Query, QueryParseError> {
     Ok(Query::MatchAll { boost: try!(parse_query_boost(json_object.get("boost"))) })
 }
 
+fn build_match_query(fields: Vec<String>, query: String, use_and_operator: bool, boost: f64) -> Result<Query, QueryParseError> {
+    let mut sub_queries = Vec::new();
+
+    for term in Analyzer::Standard.run(query) {
+        sub_queries.push(Query::MatchTerm {
+            fields: fields.clone(),
+            value: term,
+            boost: 1.0f64,
+        });
+    }
+
+    if use_and_operator {
+        Ok(Query::Bool {
+            must: sub_queries,
+            must_not: vec![],
+            should: vec![],
+            filter: vec![],
+            minimum_should_match: 0,
+            boost: boost,
+        })
+    } else {
+        Ok(Query::Bool {
+            must: vec![],
+            must_not: vec![],
+            should: sub_queries,
+            filter: vec![],
+            minimum_should_match: 1,
+            boost: boost,
+        })
+    }
+}
+
 pub fn parse_match_query(json: &Json) -> Result<Query, QueryParseError> {
     let json_object = try!(json.as_object().ok_or(QueryParseError::ExpectedObject));
     let first_key = try!(json_object.keys().nth(0).ok_or(QueryParseError::NoQuery));
 
     match json_object.get(first_key).unwrap() {
         &Json::String(ref query) => {
-            Ok(Query::Match {
-                fields: vec![first_key.clone()],
-                query: query.to_owned(),
-                operator: QueryOperator::default(),
-                boost: 1.0f64,
-            })
+            Ok(try!(build_match_query(
+                vec![first_key.clone()],
+                query.to_owned(),
+                false,
+                1.0f64
+            )))
         }
         &Json::Object(ref object) => {
-            Ok(Query::Match {
-                fields: vec![first_key.clone()],
-                query: object.get("query").unwrap().as_string().unwrap().to_owned(),
-                operator: try!(parse_query_operator(object.get("operator"))),
-                boost: try!(parse_query_boost(object.get("boost"))),
-            })
+            Ok(try!(build_match_query(
+                vec![first_key.clone()],
+                object.get("query").unwrap().as_string().unwrap().to_owned(),
+                try!(parse_query_operator(object.get("operator"))),
+                try!(parse_query_boost(object.get("boost"))),
+            )))
         }
         // TODO: We actually expect string or object
         _ => Err(QueryParseError::ExpectedString),
@@ -162,12 +195,12 @@ pub fn parse_multi_match_query(json: &Json) -> Result<Query, QueryParseError> {
     let query_json = try!(json_object.get("query").ok_or(QueryParseError::MissingQueryString));
     let query = try!(query_json.as_string().ok_or(QueryParseError::ExpectedString)).to_owned();
 
-    Ok(Query::Match {
-        fields: fields,
-        query: query,
-        operator: try!(parse_query_operator(json_object.get("operator"))),
-        boost: try!(parse_query_boost(json_object.get("boost"))),
-    })
+    Ok(try!(build_match_query(
+        fields,
+        query,
+        try!(parse_query_operator(json_object.get("operator"))),
+        try!(parse_query_boost(json_object.get("boost")))
+    )))
 }
 
 pub fn parse_filtered_query(json: &Json) -> Result<Query, QueryParseError> {

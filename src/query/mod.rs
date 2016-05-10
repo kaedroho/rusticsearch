@@ -2,7 +2,6 @@ pub mod parse;
 
 use rustc_serialize::json::Json;
 
-use super::analysis::Analyzer;
 use super::{Document, Value};
 
 
@@ -64,27 +63,13 @@ pub enum QueryParseError {
 
 
 #[derive(Debug, PartialEq)]
-pub enum QueryOperator {
-    Or,
-    And,
-}
-
-impl Default for QueryOperator {
-    fn default() -> QueryOperator {
-        QueryOperator::Or
-    }
-}
-
-
-#[derive(Debug, PartialEq)]
 pub enum Query {
     MatchAll {
         boost: f64,
     },
-    Match {
+    MatchTerm {
         fields: Vec<String>,
-        query: String,
-        operator: QueryOperator,
+        value: String,
         boost: f64,
     },
     Bool {
@@ -163,35 +148,14 @@ impl Query {
     pub fn rank(&self, doc: &Document) -> Option<f64> {
         match *self {
             Query::MatchAll{boost} => Some(boost),
-            Query::Match{ref fields, ref query, ref operator, boost} => {
-                let query = Analyzer::Standard.run(query.clone());
-                let mut matches = 0;
-
-                for token in query.iter() {
-                    let mut token_matched = false;
-
-                    for field in fields.iter() {
-                        if let Some(&Value::TSVector(ref field_value)) = doc.fields.get(field) {
-                            for field_token in field_value.iter() {
-                                if token == field_token {
-                                    matches += 1;
-                                    token_matched = true;
-                                }
-                            }
-                        }
-                    }
-
-                    // All tokens must match for queries with and operator
-                    if operator == &QueryOperator::And && !token_matched {
-                        return None;
+            Query::MatchTerm{ref fields, ref value, boost} => {
+                for field in fields.iter() {
+                    if let Some(&Value::String(ref field_value)) = doc.fields.get(field) {
+                        return if field_value == value { Some(boost) } else { None };
                     }
                 }
 
-                if matches > 0 {
-                    Some(matches as f64)
-                } else {
-                    None
-                }
+                None
             }
             Query::Bool{ref must, ref must_not, ref should, ref filter, minimum_should_match, boost} => {
                 let mut total_score: f64 = 0.0;
@@ -242,15 +206,10 @@ impl Query {
     pub fn matches(&self, doc: &Document) -> bool {
         match *self {
             Query::MatchAll{ref boost} => true,
-            Query::Match{ref fields, ref query, ref operator, ref boost} => {
+            Query::MatchTerm{ref fields, ref value, boost} => {
                 for field in fields.iter() {
                     if let Some(&Value::String(ref field_value)) = doc.fields.get(field) {
-                        let mut field_value = field_value.to_lowercase();
-                        let mut query = query.to_lowercase();
-
-                        if field_value.contains(&query) {
-                            return true;
-                        }
+                        return field_value == value;
                     }
                 }
 
