@@ -63,6 +63,13 @@ pub enum QueryParseError {
 
 
 #[derive(Debug, PartialEq)]
+pub enum TermMatcher {
+    Exact,
+    Prefix,
+}
+
+
+#[derive(Debug, PartialEq)]
 pub enum Query {
     MatchAll {
         boost: f64,
@@ -71,6 +78,7 @@ pub enum Query {
         fields: Vec<String>,
         value: String,
         boost: f64,
+        matcher: TermMatcher,
     },
     Bool {
         must: Vec<Query>,
@@ -144,14 +152,24 @@ impl Filter {
 }
 
 
+impl TermMatcher {
+    pub fn matches(&self, value: &str, query: &str) -> bool {
+        match *self {
+            TermMatcher::Exact => value == query,
+            TermMatcher::Prefix => value.starts_with(query),
+        }
+    }
+}
+
+
 impl Query {
     pub fn rank(&self, doc: &Document) -> Option<f64> {
         match *self {
             Query::MatchAll{boost} => Some(boost),
-            Query::MatchTerm{ref fields, ref value, boost} => {
+            Query::MatchTerm{ref fields, ref value, ref matcher, boost} => {
                 for field in fields.iter() {
                     if let Some(&Value::String(ref field_value)) = doc.fields.get(field) {
-                        return if field_value == value { Some(boost) } else { None };
+                        return if matcher.matches(field_value, value) { Some(boost) } else { None };
                     }
                 }
 
@@ -206,10 +224,10 @@ impl Query {
     pub fn matches(&self, doc: &Document) -> bool {
         match *self {
             Query::MatchAll{ref boost} => true,
-            Query::MatchTerm{ref fields, ref value, boost} => {
+            Query::MatchTerm{ref fields, ref value, ref matcher, boost} => {
                 for field in fields.iter() {
                     if let Some(&Value::String(ref field_value)) = doc.fields.get(field) {
-                        return field_value == value;
+                        return matcher.matches(field_value, value);
                     }
                 }
 

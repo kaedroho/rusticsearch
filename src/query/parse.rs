@@ -2,7 +2,7 @@ use rustc_serialize::json::Json;
 
 use Value;
 use analysis::Analyzer;
-use super::{Query, Filter, QueryParseError, FilterParseError};
+use super::{Query, Filter, QueryParseError, FilterParseError, TermMatcher};
 
 
 pub fn parse_filter(json: &Json) -> Result<Filter, FilterParseError> {
@@ -130,6 +130,7 @@ fn build_match_query(fields: Vec<String>, query: String, use_and_operator: bool,
         sub_queries.push(Query::MatchTerm {
             fields: fields.clone(),
             value: term,
+            matcher: TermMatcher::Exact,
             boost: 1.0f64,
         });
     }
