@@ -9,7 +9,7 @@ use rustc_serialize::json::{self, Json};
 use url::form_urlencoded;
 
 use query::Query;
-use query::parse::parse_query;
+use query::parser::parse as parse_query;
 use super::persistent;
 use super::utils::json_response;
 use super::super::{Globals, Document, Index};
