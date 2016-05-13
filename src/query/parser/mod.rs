@@ -9,13 +9,24 @@ use query::Query;
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct QueryParseContext {
-
+    score_required: bool,
 }
 
 
 impl Default for QueryParseContext {
     fn default() -> QueryParseContext {
-        QueryParseContext{}
+        QueryParseContext {
+            score_required: true
+        }
+    }
+}
+
+
+impl QueryParseContext {
+    #[inline]
+    pub fn no_score(mut self) -> QueryParseContext {
+        self.score_required = false;
+        self
     }
 }
 
