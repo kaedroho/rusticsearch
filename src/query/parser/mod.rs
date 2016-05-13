@@ -1,3 +1,4 @@
+pub mod utils;
 pub mod match_query;
 
 use std::borrow::Cow;
@@ -34,6 +35,14 @@ impl QueryParseContext {
 #[derive(Debug, PartialEq)]
 pub enum QueryParseError {
     UnrecognisedQueryType(String),
+    UnrecognisedKey(String),
+    ExpectedKey(&'static str),
+    ExpectedObject,
+    ExpectedString,
+    ExpectedFloat,
+    ExpectedObjectOrString,
+    ExpectedSingleKey,
+    InvalidOperator,
 }
 
 
