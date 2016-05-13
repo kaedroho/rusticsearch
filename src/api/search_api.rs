@@ -1,6 +1,7 @@
 use std::io::Read;
 use std::collections::{BTreeMap, BinaryHeap};
 use std::cmp::Ordering;
+use std::borrow::Cow;
 
 use iron::prelude::*;
 use iron::status;
@@ -9,7 +10,7 @@ use rustc_serialize::json::{self, Json};
 use url::form_urlencoded;
 
 use query::Query;
-use query::parser::parse as parse_query;
+use query::parser::{QueryParseContext, parse as parse_query};
 use super::persistent;
 use super::utils::json_response;
 use super::super::{Globals, Document, Index};
@@ -99,7 +100,7 @@ pub fn view_count(req: &mut Request) -> IronResult<Response> {
     let count = match json_from_request_body!(req) {
         Some(query_json) => {
             // Parse query
-            let query = parse_query(query_json.as_object().unwrap().get("query").unwrap());
+            let query = parse_query(Cow::Owned(QueryParseContext{}), query_json.as_object().unwrap().get("query").unwrap());
             debug!("{:#?}", query);
 
             match query {
@@ -142,7 +143,7 @@ pub fn view_search(req: &mut Request) -> IronResult<Response> {
     match json_from_request_body!(req) {
         Some(query_json) => {
             // Parse query
-            let query = parse_query(query_json.as_object().unwrap().get("query").unwrap());
+            let query = parse_query(Cow::Owned(QueryParseContext{}), query_json.as_object().unwrap().get("query").unwrap());
             debug!("{:#?}", query);
 
             match query {
