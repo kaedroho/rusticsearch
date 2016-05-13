@@ -1,5 +1,6 @@
 pub mod utils;
 pub mod match_query;
+pub mod filtered_query;
 
 use rustc_serialize::json::Json;
 
@@ -47,6 +48,7 @@ pub enum QueryParseError {
 fn get_query_parser(query_name: &str) -> Option<fn(&QueryParseContext, &Json) -> Result<Query, QueryParseError>> {
     match query_name {
         "match" => Some(match_query::parse),
+        "filtered" => Some(filtered_query::parse),
         _ => None
     }
 }
