@@ -1,6 +1,7 @@
 pub mod utils;
 pub mod match_query;
 pub mod filtered_query;
+pub mod prefix_query;
 
 use rustc_serialize::json::Json;
 
@@ -49,6 +50,7 @@ fn get_query_parser(query_name: &str) -> Option<fn(&QueryParseContext, &Json) ->
     match query_name {
         "match" => Some(match_query::parse),
         "filtered" => Some(filtered_query::parse),
+        "prefix" => Some(prefix_query::parse),
         _ => None
     }
 }
