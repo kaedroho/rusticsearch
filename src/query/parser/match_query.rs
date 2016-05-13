@@ -56,10 +56,10 @@ pub fn parse(context: Cow<QueryParseContext>, json: &Json) -> Result<Query, Quer
                     }
                     _ => return Err(QueryParseError::UnrecognisedKey(key.clone()))
                 }
+            }
 
-                if !has_query_key {
-                    return Err(QueryParseError::ExpectedKey("query"))
-                }
+            if !has_query_key {
+                return Err(QueryParseError::ExpectedKey("query"))
             }
         }
         _ => return Err(QueryParseError::ExpectedObjectOrString),
