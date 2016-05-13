@@ -1,5 +1,3 @@
-use std::borrow::Cow;
-
 use rustc_serialize::json::Json;
 
 use analysis::Analyzer;
@@ -9,7 +7,7 @@ use query::parser::{QueryParseContext, QueryParseError};
 use query::parser::utils::{parse_string, parse_float, Operator, parse_operator};
 
 
-pub fn parse(context: Cow<QueryParseContext>, json: &Json) -> Result<Query, QueryParseError> {
+pub fn parse(context: &QueryParseContext, json: &Json) -> Result<Query, QueryParseError> {
     let object = try!(json.as_object().ok_or(QueryParseError::ExpectedObject));
 
     // Match queries are single-key objects. The key is the field name, the value is either a

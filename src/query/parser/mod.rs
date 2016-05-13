@@ -1,8 +1,6 @@
 pub mod utils;
 pub mod match_query;
 
-use std::borrow::Cow;
-
 use rustc_serialize::json::Json;
 
 use query::Query;
@@ -46,7 +44,7 @@ pub enum QueryParseError {
 }
 
 
-fn get_query_parser(query_name: &str) -> Option<fn(Cow<QueryParseContext>, &Json) -> Result<Query, QueryParseError>> {
+fn get_query_parser(query_name: &str) -> Option<fn(&QueryParseContext, &Json) -> Result<Query, QueryParseError>> {
     match query_name {
         "match" => Some(match_query::parse),
         _ => None
@@ -54,11 +52,17 @@ fn get_query_parser(query_name: &str) -> Option<fn(Cow<QueryParseContext>, &Json
 }
 
 
-pub fn parse(context: Cow<QueryParseContext>, json: &Json) -> Result<Query, QueryParseError> {
-    let query_type = "match".to_owned();
+pub fn parse(context: &QueryParseContext, json: &Json) -> Result<Query, QueryParseError> {
+    let object = try!(json.as_object().ok_or(QueryParseError::ExpectedObject));
+
+    let query_type = if object.len() == 1 {
+        object.keys().collect::<Vec<_>>()[0]
+    } else {
+        return Err(QueryParseError::ExpectedSingleKey)
+    };
 
     match get_query_parser(&query_type) {
-        Some(parse) => parse(context, json),
-        None => Err(QueryParseError::UnrecognisedQueryType(query_type)),
+        Some(parse) => parse(context, object.get(query_type).unwrap()),
+        None => Err(QueryParseError::UnrecognisedQueryType(query_type.clone())),
     }
 }
