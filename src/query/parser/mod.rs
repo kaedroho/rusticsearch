@@ -13,6 +13,13 @@ pub struct QueryParseContext {
 }
 
 
+impl Default for QueryParseContext {
+    fn default() -> QueryParseContext {
+        QueryParseContext{}
+    }
+}
+
+
 #[derive(Debug, PartialEq)]
 pub enum QueryParseError {
     UnrecognisedQueryType(String),
