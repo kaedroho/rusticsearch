@@ -30,4 +30,8 @@ pub enum Query {
         minimum_should_match: i32,
         boost: f64,
     },
+    DisjunctionMax {
+        queries: Vec<Query>,
+        boost: f64,
+    },
 }
