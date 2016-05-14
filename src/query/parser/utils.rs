@@ -39,3 +39,17 @@ pub fn parse_operator(json: &Json) -> Result<Operator, QueryParseError> {
         _ => return Err(QueryParseError::InvalidOperator),
     }
 }
+
+
+pub fn parse_field_and_boost(json: &Json) -> Result<(String, f64), QueryParseError> {
+    let string = try!(parse_string(json));
+
+    let split = string.split('^').collect::<Vec<_>>();
+    if split.len() == 1 {
+        return Ok((string.clone(), 1.0f64));
+    } else {
+        let field_name = split[0].to_owned();
+        let boost: f64 = split[1].parse().unwrap_or(1.0f64);
+        return Ok((field_name, boost));
+    }
+}

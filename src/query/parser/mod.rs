@@ -1,5 +1,6 @@
 pub mod utils;
 pub mod match_query;
+pub mod multi_match_query;
 pub mod filtered_query;
 pub mod prefix_query;
 
@@ -38,6 +39,7 @@ pub enum QueryParseError {
     UnrecognisedKey(String),
     ExpectedKey(&'static str),
     ExpectedObject,
+    ExpectedArray,
     ExpectedString,
     ExpectedFloat,
     ExpectedObjectOrString,
@@ -49,6 +51,7 @@ pub enum QueryParseError {
 fn get_query_parser(query_name: &str) -> Option<fn(&QueryParseContext, &Json) -> Result<Query, QueryParseError>> {
     match query_name {
         "match" => Some(match_query::parse),
+        "multi_match" => Some(multi_match_query::parse),
         "filtered" => Some(filtered_query::parse),
         "prefix" => Some(prefix_query::parse),
         _ => None
