@@ -61,7 +61,7 @@ pub fn parse(context: &QueryParseContext, json: &Json) -> Result<Query, QueryPar
         let mut term_queries = Vec::new();
         for term in Analyzer::Standard.run(query.clone()) {
             term_queries.push(Query::MatchTerm {
-                fields: vec![field_name.clone()],
+                field: field_name.clone(),
                 value: term,
                 matcher: TermMatcher::Exact,
                 boost: 1.0f64,

@@ -17,7 +17,7 @@ pub enum Query {
     },
     MatchNone,
     MatchTerm {
-        fields: Vec<String>,
+        field: String,
         value: String,
         boost: f64,
         matcher: TermMatcher,

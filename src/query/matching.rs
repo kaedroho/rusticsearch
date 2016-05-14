@@ -18,10 +18,20 @@ impl Query {
         match *self {
             Query::MatchAll{ref boost} => true,
             Query::MatchNone => false,
-            Query::MatchTerm{ref fields, ref value, ref matcher, boost} => {
-                for field in fields.iter() {
-                    if let Some(&Value::String(ref field_value)) = doc.fields.get(field) {
-                        return matcher.matches(field_value, value);
+            Query::MatchTerm{ref field, ref value, ref matcher, boost} => {
+                if let Some(field_value) = doc.fields.get(field) {
+                    match *field_value {
+                        Value::String(ref field_value) => {
+                            return matcher.matches(field_value, value);
+                        }
+                        Value::TSVector(ref field_value) => {
+                            for field_term in field_value.iter() {
+                                if matcher.matches(field_term, value) {
+                                    return true;
+                                }
+                            }
+                        }
+                        _ => return false
                     }
                 }
 

@@ -64,7 +64,7 @@ pub fn parse(context: &QueryParseContext, json: &Json) -> Result<Query, QueryPar
     }
 
     Ok(Query::MatchTerm {
-        fields: vec![field_name.clone()],
+        field: field_name.clone(),
         value: value,
         matcher: TermMatcher::Prefix,
         boost: boost,

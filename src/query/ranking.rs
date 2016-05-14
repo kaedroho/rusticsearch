@@ -8,10 +8,25 @@ impl Query {
         match *self {
             Query::MatchAll{boost} => Some(boost),
             Query::MatchNone => None,
-            Query::MatchTerm{ref fields, ref value, ref matcher, boost} => {
-                for field in fields.iter() {
-                    if let Some(&Value::String(ref field_value)) = doc.fields.get(field) {
-                        return if matcher.matches(field_value, value) { Some(boost) } else { None };
+            Query::MatchTerm{ref field, ref value, ref matcher, boost} => {
+                if let Some(field_value) = doc.fields.get(field) {
+                    match *field_value {
+                        Value::String(ref field_value) => {
+                            return if matcher.matches(field_value, value) { Some(boost) } else { None };
+                        }
+                        Value::TSVector(ref field_value) => {
+                            let mut matched_terms = 0;
+                            for field_term in field_value.iter() {
+                                if matcher.matches(field_term, value) {
+                                    matched_terms += 1;
+                                }
+                            }
+
+                            if matched_terms > 0 {
+                                return Some(matched_terms as f64 * boost);
+                            }
+                        }
+                        _ => return None
                     }
                 }
 
