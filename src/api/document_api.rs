@@ -24,7 +24,7 @@ pub fn view_get_doc(req: &mut Request) -> IronResult<Response> {
     let index = get_index_or_404!(indices, *index_name);
 
     // Find mapping
-    let mapping = match index.mappings.get(*mapping_name) {
+    let mapping = match index.get_mapping_by_name(mapping_name) {
         Some(mapping) => mapping,
         None => {
             return Ok(json_response(status::NotFound, "{\"message\": \"Mapping not found\"}"));
@@ -32,7 +32,7 @@ pub fn view_get_doc(req: &mut Request) -> IronResult<Response> {
     };
 
     // Find document
-    let doc = match index.docs.get(*doc_id) {
+    let doc = match index.get_document_by_id(doc_id) {
         Some(doc) => doc,
         None => {
             return Ok(json_response(status::NotFound, "{\"message\": \"Document not found\"}"));
@@ -63,22 +63,24 @@ pub fn view_put_doc(req: &mut Request) -> IronResult<Response> {
     // Get index
     let mut index = get_index_or_404_mut!(indices, *index_name);
 
-    // Find mapping
-    let mut mapping = match index.mappings.get_mut(*mapping_name) {
-        Some(mapping) => mapping,
-        None => {
-            return Ok(json_response(status::NotFound, "{\"message\": \"Mapping not found\"}"));
+    let doc = {
+        // Find mapping
+        let mapping = match index.get_mapping_by_name(mapping_name) {
+            Some(mapping) => mapping,
+            None => {
+                return Ok(json_response(status::NotFound, "{\"message\": \"Mapping not found\"}"));
+            }
+        };
+
+        // Create document
+        if let Some(data) = json_from_request_body!(req) {
+            Document::from_json(doc_id.to_string(), data, mapping)
+        } else {
+            return Ok(json_response(status::NotFound, "{\"message\": \"No data\"}"));
         }
     };
 
-    // Load data from body
-    let data = json_from_request_body!(req);
-
-    // Create and insert document
-    if let Some(data) = data {
-        let doc = Document::from_json(data, mapping);
-        index.docs.insert(doc_id.clone().to_owned(), doc);
-    }
+    index.insert_or_update_document(doc);
 
     // TODO: {"_index":"wagtail","_type":"searchtests_searchtest","_id":"searchtests_searchtest:5378","_version":1,"created":true}
     return Ok(json_response(status::Ok, "{}"));
@@ -97,21 +99,13 @@ pub fn view_delete_doc(req: &mut Request) -> IronResult<Response> {
     // Get index
     let mut index = get_index_or_404_mut!(indices, *index_name);
 
-    // Find mapping
-    let mut mapping = match index.mappings.get_mut(*mapping_name) {
-        Some(mapping) => mapping,
-        None => {
-            return Ok(json_response(status::NotFound, "{\"message\": \"Mapping not found\"}"));
-        }
-    };
-
     // Make sure the document exists
-    if !index.docs.contains_key(*doc_id) {
+    if !index.contains_document_id(doc_id) {
         return Ok(json_response(status::NotFound, "{\"message\": \"Document not found\"}"));
     }
 
     // Delete document
-    index.docs.remove(*doc_id);
+    index.remove_document_by_id(doc_id);
 
     return Ok(json_response(status::Ok, "{}"));
 }

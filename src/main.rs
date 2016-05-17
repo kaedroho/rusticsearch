@@ -73,11 +73,12 @@ impl Value {
 
 #[derive(Debug)]
 struct Document {
+    id: String,
     fields: BTreeMap<String, Value>,
 }
 
 impl Document {
-    fn from_json(data: Json, mapping: &mapping::Mapping) -> Document {
+    pub fn from_json(id: String, data: Json, mapping: &mapping::Mapping) -> Document {
         let mut fields = BTreeMap::new();
         let mut all_field_tokens: Vec<String> = Vec::new();
 
@@ -111,7 +112,10 @@ impl Document {
         // Insert _all field
         fields.insert("_all".to_owned(), Value::TSVector(all_field_tokens));
 
-        Document { fields: fields }
+        Document {
+            id: id,
+            fields: fields,
+        }
     }
 }
 
@@ -119,8 +123,10 @@ impl Document {
 #[derive(Debug)]
 struct Index {
     pub mappings: HashMap<String, mapping::Mapping>,
-    pub docs: HashMap<String, Document>,
+    docs: BTreeMap<u64, Document>,
     pub aliases: HashSet<String>,
+    next_doc_num: u64,
+    doc_id_map: HashMap<String, u64>,
 }
 
 
@@ -128,9 +134,45 @@ impl Index {
     fn new() -> Index {
         Index {
             mappings: HashMap::new(),
-            docs: HashMap::new(),
+            docs: BTreeMap::new(),
             aliases: HashSet::new(),
+            next_doc_num: 1,
+            doc_id_map: HashMap::new(),
         }
+    }
+
+    fn get_mapping_by_name(&self, name: &str) -> Option<&mapping::Mapping> {
+        self.mappings.get(name)
+    }
+
+    fn get_document_by_id(&self, id: &str) -> Option<&Document> {
+        match self.doc_id_map.get(id) {
+            Some(doc_num) => self.docs.get(doc_num),
+            None => None,
+        }
+    }
+
+    fn contains_document_id(&self, id: &str) -> bool {
+        self.doc_id_map.contains_key(id)
+    }
+
+    fn remove_document_by_id(&mut self, id: &str) -> bool {
+        match self.doc_id_map.remove(id) {
+            Some(doc_num) => {
+                self.docs.remove(&doc_num);
+
+                true
+            }
+            None => false
+        }
+    }
+
+    fn insert_or_update_document(&mut self, doc: Document) {
+        let doc_num = self.next_doc_num;
+        self.next_doc_num += 1;
+
+        self.doc_id_map.insert(doc.id.clone(), doc_num);
+        self.docs.insert(doc_num, doc);
     }
 
     fn initialise(&mut self) {}

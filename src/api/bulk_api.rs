@@ -63,18 +63,24 @@ pub fn view_post_bulk(req: &mut Request) -> IronResult<Response> {
                     }
                 };
 
-                // Find mapping
-                let mut mapping = match index.mappings.get_mut(doc_type) {
-                    Some(mapping) => mapping,
-                    None => {
-                        return Ok(json_response(status::NotFound,
-                                                "{\"message\": \"Mapping not found\"}"));
+                let doc = {
+                    // Find mapping
+                    let mapping = match index.get_mapping_by_name(doc_type) {
+                        Some(mapping) => mapping,
+                        None => {
+                            return Ok(json_response(status::NotFound, "{\"message\": \"Mapping not found\"}"));
+                        }
+                    };
+
+                    // Create document
+                    if let Some(data) = json_from_request_body!(req) {
+                        Document::from_json(doc_id.to_string(), data, mapping)
+                    } else {
+                        return Ok(json_response(status::NotFound, "{\"message\": \"No data\"}"));
                     }
                 };
 
-                // Create and insert document
-                let doc = Document::from_json(doc_json, mapping);
-                index.docs.insert(doc_id.clone().to_owned(), doc);
+                index.insert_or_update_document(doc);
 
                 // Insert into "items" array
                 let mut item = HashMap::new();
