@@ -31,22 +31,22 @@ pub fn parse(context: &QueryParseContext, json: &Json) -> Result<Query, QueryPar
         return Err(QueryParseError::ExpectedSingleKey)
     };
 
+    let object = object.get(field_name).unwrap();
+
     // Get configuration
-    let mut value: Option<Json> = None;
+    let mut value: Option<&Json> = None;
     let mut boost = 1.0f64;
 
-    match *object.get(field_name).unwrap() {
-        Json::String(ref string) => value = Some(object[field_name].clone()),
+    match *object {
+        Json::String(ref string) => value = Some(object),
         Json::Object(ref inner_object) => {
-            let mut has_value_key = false;
-
-            for (key, val) in object.iter() {
+            for (key, val) in inner_object.iter() {
                 match key.as_ref() {
                     "value" => {
-                        value = Some(val.clone());
+                        value = Some(val);
                     }
                     "prefix" => {
-                        value = Some(val.clone());
+                        value = Some(val);
                     }
                     "boost" => {
                         boost = try!(parse_float(val));
@@ -62,7 +62,7 @@ pub fn parse(context: &QueryParseContext, json: &Json) -> Result<Query, QueryPar
         Some(value) => {
             Ok(Query::MatchTerm {
                 field: field_name.clone(),
-                value: Value::from_json(&value),
+                value: Value::from_json(value),
                 matcher: TermMatcher::Prefix,
                 boost: boost,
             })
