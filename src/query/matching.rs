@@ -4,10 +4,18 @@ use query::{TermMatcher, Query};
 
 
 impl TermMatcher {
-    pub fn matches(&self, value: &str, query: &str) -> bool {
+    pub fn matches(&self, value: &Value, query: &Value) -> bool {
         match *self {
             TermMatcher::Exact => value == query,
-            TermMatcher::Prefix => value.starts_with(query),
+            TermMatcher::Prefix => {
+                if let Value::String(ref value) = *value {
+                    if let Value::String(ref query) = *query {
+                        return value.starts_with(query);
+                    }
+                }
+
+                false
+            }
         }
     }
 }
@@ -20,26 +28,10 @@ impl Query {
             Query::MatchNone => false,
             Query::MatchTerm{ref field, ref value, ref matcher, boost} => {
                 if let Some(field_value) = doc.fields.get(field) {
-                    match *field_value {
-                        Value::String(ref field_value) => {
-                            if let Value::String(ref value) = *value {
-                                return matcher.matches(field_value, value);
-                            }
-                        }
-                        Value::TSVector(ref field_value) => {
-                            if let Value::String(ref value) = *value {
-                                for field_term in field_value.iter() {
-                                    if matcher.matches(field_term, value) {
-                                        return true;
-                                    }
-                                }
-                            }
-                        }
-                        _ => return false
-                    }
+                    matcher.matches(field_value, value)
+                } else {
+                    false
                 }
-
-                false
             }
             Query::Bool{ref must, ref must_not, ref should, ref filter, minimum_should_match, boost} => {
                 // Must not

@@ -10,31 +10,10 @@ impl Query {
             Query::MatchNone => None,
             Query::MatchTerm{ref field, ref value, ref matcher, boost} => {
                 if let Some(field_value) = doc.fields.get(field) {
-                    match *field_value {
-                        Value::String(ref field_value) => {
-                            if let Value::String(ref value) = *value {
-                                return if matcher.matches(field_value, value) { Some(boost) } else { None };
-                            }
-                        }
-                        Value::TSVector(ref field_value) => {
-                            if let Value::String(ref value) = *value {
-                                let mut matched_terms = 0;
-                                for field_term in field_value.iter() {
-                                    if matcher.matches(field_term, value) {
-                                        matched_terms += 1;
-                                    }
-                                }
-
-                                if matched_terms > 0 {
-                                    return Some(matched_terms as f64 * boost);
-                                }
-                            }
-                        }
-                        _ => return None
-                    }
+                    if matcher.matches(field_value, value) { Some(boost) } else { None }
+                } else {
+                    None
                 }
-
-                None
             }
             Query::Bool{ref must, ref must_not, ref should, ref filter, minimum_should_match, boost} => {
                 let mut total_score: f64 = 0.0;
