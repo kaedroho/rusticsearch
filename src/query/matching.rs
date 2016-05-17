@@ -1,14 +1,14 @@
-use {Document, Value};
+use {Document, Term};
 
 use query::{TermMatcher, Query};
 
 
 impl TermMatcher {
-    pub fn matches(&self, value: &Value, query: &Value) -> bool {
-        if let Value::TSVector(ref value) = *value {
+    pub fn matches(&self, value: &Term, query: &Term) -> bool {
+        if let Term::TSVector(ref value) = *value {
             // Run match on each item in the TSVector
             for term in value.iter() {
-                if self.matches(&Value::String(term.clone()), query) {
+                if self.matches(&Term::String(term.clone()), query) {
                     return true;
                 }
             }
@@ -19,8 +19,8 @@ impl TermMatcher {
         match *self {
             TermMatcher::Exact => value == query,
             TermMatcher::Prefix => {
-                if let Value::String(ref value) = *value {
-                    if let Value::String(ref query) = *query {
+                if let Term::String(ref value) = *value {
+                    if let Term::String(ref query) = *query {
                         return value.starts_with(query);
                     }
                 }
@@ -37,9 +37,9 @@ impl Query {
         match *self {
             Query::MatchAll{ref boost} => true,
             Query::MatchNone => false,
-            Query::MatchTerm{ref field, ref value, ref matcher, boost} => {
-                if let Some(field_value) = doc.fields.get(field) {
-                    matcher.matches(field_value, value)
+            Query::MatchTerm{ref field, ref term, ref matcher, boost} => {
+                if let Some(field_term) = doc.fields.get(field) {
+                    matcher.matches(field_term, term)
                 } else {
                     false
                 }

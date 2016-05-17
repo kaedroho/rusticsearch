@@ -2,7 +2,7 @@ pub mod parser;
 pub mod matching;
 pub mod ranking;
 
-use Value;
+use Term;
 
 
 #[derive(Debug, PartialEq)]
@@ -20,7 +20,7 @@ pub enum Query {
     MatchNone,
     MatchTerm {
         field: String,
-        value: Value,
+        term: Term,
         boost: f64,
         matcher: TermMatcher,
     },

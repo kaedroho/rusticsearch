@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use rustc_serialize::json::Json;
 
 use analysis::Analyzer;
-use Value;
+use Term;
 
 
 #[derive(Debug, PartialEq)]
@@ -50,9 +50,9 @@ impl Default for FieldMapping {
 
 
 impl FieldMapping {
-    pub fn process_value(&self, value: Json) -> Option<Value> {
+    pub fn process_value(&self, value: Json) -> Option<Term> {
         if value == Json::Null {
-            return Some(Value::Null);
+            return Some(Term::Null);
         }
 
         match self.data_type {
@@ -61,10 +61,10 @@ impl FieldMapping {
                     Json::String(string) => {
                         // Analyzed strings become TSVectors. Unanalyzed strings become... strings
                         if self.analyzer == Analyzer::None {
-                            Some(Value::String(string))
+                            Some(Term::String(string))
                         } else {
                             let tokens = self.analyzer.run(string);
-                            Some(Value::TSVector(tokens))
+                            Some(Term::TSVector(tokens))
                         }
                     }
                     Json::I64(num) => self.process_value(Json::String(num.to_string())),
@@ -92,19 +92,19 @@ impl FieldMapping {
             FieldType::Number{size, is_float} => {
                 match value {
                     // TODO check the numbers fit in "size"
-                    Json::U64(num) => Some(Value::U64(num)),
-                    Json::I64(num) => Some(Value::I64(num)),
+                    Json::U64(num) => Some(Term::U64(num)),
+                    Json::I64(num) => Some(Term::I64(num)),
                     Json::F64(num) => {
                         if !is_float {
                             return None;
                         }
 
-                        Some(Value::F64(num))
+                        Some(Term::F64(num))
                     }
                     _ => None,
                 }
             }
-            FieldType::Boolean => Some(Value::Boolean(parse_boolean(&value))),
+            FieldType::Boolean => Some(Term::Boolean(parse_boolean(&value))),
             _ => None,
         }
     }

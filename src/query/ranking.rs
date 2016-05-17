@@ -1,4 +1,4 @@
-use {Document, Value};
+use Document;
 
 use query::Query;
 
@@ -8,9 +8,9 @@ impl Query {
         match *self {
             Query::MatchAll{boost} => Some(boost),
             Query::MatchNone => None,
-            Query::MatchTerm{ref field, ref value, ref matcher, boost} => {
-                if let Some(field_value) = doc.fields.get(field) {
-                    if matcher.matches(field_value, value) { Some(boost) } else { None }
+            Query::MatchTerm{ref field, ref term, ref matcher, boost} => {
+                if let Some(field_term) = doc.fields.get(field) {
+                    if matcher.matches(field_term, term) { Some(boost) } else { None }
                 } else {
                     None
                 }

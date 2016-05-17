@@ -1,7 +1,7 @@
 use rustc_serialize::json::Json;
 
 use analysis::Analyzer;
-use Value;
+use Term;
 
 use query::{Query, TermMatcher};
 use query::parser::{QueryParseContext, QueryParseError};
@@ -20,7 +20,7 @@ pub fn parse(context: &QueryParseContext, json: &Json) -> Result<Query, QueryPar
     let object = object.get(field_name).unwrap();
 
     // Get configuration
-    let mut value: Option<Value> = None;
+    let mut term: Option<Term> = None;
     let mut boost = 1.0f64;
 
     match *object {
@@ -28,7 +28,7 @@ pub fn parse(context: &QueryParseContext, json: &Json) -> Result<Query, QueryPar
             for (key, val) in inner_object.iter() {
                 match key.as_ref() {
                     "value" => {
-                        value = Some(Value::from_json(val));
+                        term = Some(Term::from_json(val));
                     }
                     "boost" => {
                         boost = try!(parse_float(val));
@@ -37,14 +37,14 @@ pub fn parse(context: &QueryParseContext, json: &Json) -> Result<Query, QueryPar
                 }
             }
         }
-        _ => value = Some(Value::from_json(object)),
+        _ => term = Some(Term::from_json(object)),
     }
 
-    match value {
-        Some(value) => {
+    match term {
+        Some(term) => {
             Ok(Query::MatchTerm {
                 field: field_name.clone(),
-                value: value,
+                term: term,
                 matcher: TermMatcher::Exact,
                 boost: boost,
             })

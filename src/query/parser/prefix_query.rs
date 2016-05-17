@@ -1,7 +1,7 @@
 use rustc_serialize::json::Json;
 
 use analysis::Analyzer;
-use Value;
+use Term;
 
 use query::{Query, TermMatcher};
 use query::parser::{QueryParseContext, QueryParseError};
@@ -62,7 +62,7 @@ pub fn parse(context: &QueryParseContext, json: &Json) -> Result<Query, QueryPar
         Some(value) => {
             Ok(Query::MatchTerm {
                 field: field_name.clone(),
-                value: Value::from_json(value),
+                term: Term::from_json(value),
                 matcher: TermMatcher::Prefix,
                 boost: boost,
             })
