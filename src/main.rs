@@ -10,6 +10,7 @@ extern crate unicode_segmentation;
 extern crate log;
 
 mod api;
+mod term;
 mod query;
 mod mapping;
 mod analysis;
@@ -28,53 +29,10 @@ use rustc_serialize::json::Json;
 const VERSION: &'static str = "0.1a0";
 
 
-#[derive(Debug, PartialEq)]
-enum Term {
-    String(String),
-    TSVector(Vec<String>),
-    Boolean(bool),
-    I64(i64),
-    U64(u64),
-    F64(f64),
-    Null,
-}
-
-impl Term {
-    pub fn from_json(json: &Json) -> Term {
-        // TODO: Should be aware of mappings
-        match json {
-            &Json::String(ref string) => Term::String(string.clone()),
-            &Json::Boolean(value) => Term::Boolean(value),
-            &Json::F64(value) => Term::F64(value),
-            &Json::I64(value) => Term::I64(value),
-            &Json::U64(value) => Term::U64(value),
-            &Json::Null => Term::Null,
-
-            // These two are unsupported
-            // TODO: Raise error
-            &Json::Array(_) => Term::Null,
-            &Json::Object(_) => Term::Null,
-        }
-    }
-
-    pub fn as_json(&self) -> Json {
-        match self {
-            &Term::String(ref string) => Json::String(string.clone()),
-            &Term::TSVector(ref string) => Json::Null, // TODO
-            &Term::Boolean(value) => Json::Boolean(value),
-            &Term::F64(value) => Json::F64(value),
-            &Term::I64(value) => Json::I64(value),
-            &Term::U64(value) => Json::U64(value),
-            &Term::Null => Json::Null,
-        }
-    }
-}
-
-
 #[derive(Debug)]
 struct Document {
     id: String,
-    fields: BTreeMap<String, Term>,
+    fields: BTreeMap<String, term::Term>,
 }
 
 impl Document {
@@ -92,7 +50,7 @@ impl Document {
 
                 // Add to _all
                 if field_mapping.is_in_all {
-                    if let &Some(Term::TSVector(ref tokens)) = &value {
+                    if let &Some(term::Term::TSVector(ref tokens)) = &value {
                         for token in tokens.iter() {
                             all_field_tokens.push(token.clone());
                         }
@@ -101,7 +59,7 @@ impl Document {
 
                 value
             } else {
-                Some(Term::from_json(field_value))
+                Some(term::Term::from_json(field_value))
             };
 
             if let Some(field_value) = processed_value {
@@ -110,7 +68,7 @@ impl Document {
         }
 
         // Insert _all field
-        fields.insert("_all".to_owned(), Term::TSVector(all_field_tokens));
+        fields.insert("_all".to_owned(), term::Term::TSVector(all_field_tokens));
 
         Document {
             id: id,

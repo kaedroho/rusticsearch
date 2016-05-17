@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use rustc_serialize::json::Json;
 
 use analysis::Analyzer;
-use Term;
+use term::Term;
 
 
 #[derive(Debug, PartialEq)]

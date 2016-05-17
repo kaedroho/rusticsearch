@@ -1,4 +1,5 @@
-use {Document, Term};
+use Document;
+use term::Term;
 
 use query::{TermMatcher, Query};
 

@@ -2,7 +2,7 @@ pub mod parser;
 pub mod matching;
 pub mod ranking;
 
-use Term;
+use term::Term;
 
 
 #[derive(Debug, PartialEq)]
