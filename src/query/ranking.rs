@@ -12,18 +12,22 @@ impl Query {
                 if let Some(field_value) = doc.fields.get(field) {
                     match *field_value {
                         Value::String(ref field_value) => {
-                            return if matcher.matches(field_value, value) { Some(boost) } else { None };
+                            if let Value::String(ref value) = *value {
+                                return if matcher.matches(field_value, value) { Some(boost) } else { None };
+                            }
                         }
                         Value::TSVector(ref field_value) => {
-                            let mut matched_terms = 0;
-                            for field_term in field_value.iter() {
-                                if matcher.matches(field_term, value) {
-                                    matched_terms += 1;
+                            if let Value::String(ref value) = *value {
+                                let mut matched_terms = 0;
+                                for field_term in field_value.iter() {
+                                    if matcher.matches(field_term, value) {
+                                        matched_terms += 1;
+                                    }
                                 }
-                            }
 
-                            if matched_terms > 0 {
-                                return Some(matched_terms as f64 * boost);
+                                if matched_terms > 0 {
+                                    return Some(matched_terms as f64 * boost);
+                                }
                             }
                         }
                         _ => return None

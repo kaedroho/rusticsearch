@@ -22,12 +22,16 @@ impl Query {
                 if let Some(field_value) = doc.fields.get(field) {
                     match *field_value {
                         Value::String(ref field_value) => {
-                            return matcher.matches(field_value, value);
+                            if let Value::String(ref value) = *value {
+                                return matcher.matches(field_value, value);
+                            }
                         }
                         Value::TSVector(ref field_value) => {
-                            for field_term in field_value.iter() {
-                                if matcher.matches(field_term, value) {
-                                    return true;
+                            if let Value::String(ref value) = *value {
+                                for field_term in field_value.iter() {
+                                    if matcher.matches(field_term, value) {
+                                        return true;
+                                    }
                                 }
                             }
                         }

@@ -1,6 +1,7 @@
 use rustc_serialize::json::Json;
 
 use analysis::Analyzer;
+use Value;
 
 use query::{Query, TermMatcher};
 use query::parser::{QueryParseContext, QueryParseError};
@@ -31,23 +32,21 @@ pub fn parse(context: &QueryParseContext, json: &Json) -> Result<Query, QueryPar
     };
 
     // Get configuration
-    let mut value = String::new();
+    let mut value: Option<Json> = None;
     let mut boost = 1.0f64;
 
-    match object[field_name] {
-        Json::String(ref string) => value = string.clone(),
+    match *object.get(field_name).unwrap() {
+        Json::String(ref string) => value = Some(object[field_name].clone()),
         Json::Object(ref inner_object) => {
             let mut has_value_key = false;
 
             for (key, val) in object.iter() {
                 match key.as_ref() {
                     "value" => {
-                        has_value_key = true;
-                        value = try!(parse_string(val));
+                        value = Some(val.clone());
                     }
                     "prefix" => {
-                        has_value_key = true;
-                        value = try!(parse_string(val));
+                        value = Some(val.clone());
                     }
                     "boost" => {
                         boost = try!(parse_float(val));
@@ -55,18 +54,19 @@ pub fn parse(context: &QueryParseContext, json: &Json) -> Result<Query, QueryPar
                     _ => return Err(QueryParseError::UnrecognisedKey(key.clone()))
                 }
             }
-
-            if !has_value_key {
-                return Err(QueryParseError::ExpectedKey("value"))
-            }
         }
         _ => return Err(QueryParseError::ExpectedObjectOrString),
     }
 
-    Ok(Query::MatchTerm {
-        field: field_name.clone(),
-        value: value,
-        matcher: TermMatcher::Prefix,
-        boost: boost,
-    })
+    match value {
+        Some(value) => {
+            Ok(Query::MatchTerm {
+                field: field_name.clone(),
+                value: Value::from_json(&value),
+                matcher: TermMatcher::Prefix,
+                boost: boost,
+            })
+        }
+        None => Err(QueryParseError::ExpectedKey("value"))
+    }
 }
