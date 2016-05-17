@@ -5,6 +5,17 @@ use query::{TermMatcher, Query};
 
 impl TermMatcher {
     pub fn matches(&self, value: &Value, query: &Value) -> bool {
+        if let Value::TSVector(ref value) = *value {
+            // Run match on each item in the TSVector
+            for term in value.iter() {
+                if self.matches(&Value::String(term.clone()), query) {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
         match *self {
             TermMatcher::Exact => value == query,
             TermMatcher::Prefix => {
