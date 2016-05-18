@@ -43,7 +43,7 @@ pub fn view_get_doc(req: &mut Request) -> IronResult<Response> {
     // Build JSON document
     let mut json_object = BTreeMap::new();
     for (field_name, field_value) in doc.fields.iter() {
-        json_object.insert(field_name.clone(), field_value.as_json());
+        json_object.insert(field_name.clone(), Json::Array(field_value.iter().map(|v| v.as_json()).collect::<Vec<_>>()));
     }
 
     let json = Json::Object(json_object);

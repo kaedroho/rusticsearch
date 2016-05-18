@@ -50,9 +50,9 @@ impl Default for FieldMapping {
 
 
 impl FieldMapping {
-    pub fn process_value(&self, value: Json) -> Option<Term> {
+    pub fn process_value(&self, value: Json) -> Option<Vec<Term>> {
         if value == Json::Null {
-            return Some(Term::Null);
+            return Some(vec![Term::Null]);
         }
 
         match self.data_type {
@@ -61,10 +61,10 @@ impl FieldMapping {
                     Json::String(string) => {
                         // Analyzed strings become TSVectors. Unanalyzed strings become... strings
                         if self.analyzer == Analyzer::None {
-                            Some(Term::String(string))
+                            Some(vec![Term::String(string)])
                         } else {
-                            let tokens = self.analyzer.run(string);
-                            Some(Term::TSVector(tokens))
+                            let tokens = self.analyzer.run(string).iter().cloned().map(|t| Term::String(t)).collect();
+                            Some(tokens)
                         }
                     }
                     Json::I64(num) => self.process_value(Json::String(num.to_string())),
@@ -92,19 +92,19 @@ impl FieldMapping {
             FieldType::Number{size, is_float} => {
                 match value {
                     // TODO check the numbers fit in "size"
-                    Json::U64(num) => Some(Term::U64(num)),
-                    Json::I64(num) => Some(Term::I64(num)),
+                    Json::U64(num) => Some(vec![Term::U64(num)]),
+                    Json::I64(num) => Some(vec![Term::I64(num)]),
                     Json::F64(num) => {
                         if !is_float {
                             return None;
                         }
 
-                        Some(Term::F64(num))
+                        Some(vec![Term::F64(num)])
                     }
                     _ => None,
                 }
             }
-            FieldType::Boolean => Some(Term::Boolean(parse_boolean(&value))),
+            FieldType::Boolean => Some(vec![Term::Boolean(parse_boolean(&value))]),
             _ => None,
         }
     }

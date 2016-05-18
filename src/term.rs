@@ -1,10 +1,9 @@
 use rustc_serialize::json::Json;
 
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum Term {
     String(String),
-    TSVector(Vec<String>),
     Boolean(bool),
     I64(i64),
     U64(u64),
@@ -33,7 +32,6 @@ impl Term {
     pub fn as_json(&self) -> Json {
         match *self {
             Term::String(ref string) => Json::String(string.clone()),
-            Term::TSVector(ref string) => Json::Null, // TODO
             Term::Boolean(value) => Json::Boolean(value),
             Term::F64(value) => Json::F64(value),
             Term::I64(value) => Json::I64(value),

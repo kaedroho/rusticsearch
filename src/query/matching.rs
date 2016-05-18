@@ -6,17 +6,6 @@ use query::{TermMatcher, Query};
 
 impl TermMatcher {
     pub fn matches(&self, value: &Term, query: &Term) -> bool {
-        if let Term::TSVector(ref value) = *value {
-            // Run match on each item in the TSVector
-            for term in value.iter() {
-                if self.matches(&Term::String(term.clone()), query) {
-                    return true;
-                }
-            }
-
-            return false;
-        }
-
         match *self {
             TermMatcher::Exact => value == query,
             TermMatcher::Prefix => {
@@ -39,11 +28,15 @@ impl Query {
             Query::MatchAll{ref boost} => true,
             Query::MatchNone => false,
             Query::MatchTerm{ref field, ref term, ref matcher, boost} => {
-                if let Some(field_term) = doc.fields.get(field) {
-                    matcher.matches(field_term, term)
-                } else {
-                    false
+                if let Some(field_value) = doc.fields.get(field) {
+                    for field_term in field_value.iter() {
+                        if matcher.matches(field_term, term) {
+                            return true;
+                        }
+                    }
                 }
+
+                false
             }
             Query::Bool{ref must, ref must_not, ref should, ref filter, minimum_should_match, boost} => {
                 // Must not

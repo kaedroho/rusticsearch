@@ -32,34 +32,32 @@ const VERSION: &'static str = "0.1a0";
 #[derive(Debug)]
 struct Document {
     id: String,
-    fields: BTreeMap<String, term::Term>,
+    fields: BTreeMap<String, Vec<term::Term>>,
 }
 
 impl Document {
     pub fn from_json(id: String, data: Json, mapping: &mapping::Mapping) -> Document {
         let mut fields = BTreeMap::new();
-        let mut all_field_tokens: Vec<String> = Vec::new();
+        let mut all_field_tokens: Vec<term::Term> = Vec::new();
 
         for (field_name, field_value) in data.as_object().unwrap() {
             let processed_value = if let Some(field_mapping) = mapping.fields.get(field_name) {
                 let value = field_mapping.process_value(field_value.clone());
 
-                if value == None {
-                    warn!("Unprocessable value: {}", field_value);
-                }
-
-                // Add to _all
-                if field_mapping.is_in_all {
-                    if let &Some(term::Term::TSVector(ref tokens)) = &value {
-                        for token in tokens.iter() {
-                            all_field_tokens.push(token.clone());
+                match value {
+                    Some(ref value) => {
+                        if field_mapping.is_in_all {
+                            all_field_tokens.extend(value.iter().cloned());
                         }
+                    }
+                    None => {
+                        warn!("Unprocessable value: {}", field_value);
                     }
                 }
 
                 value
             } else {
-                Some(term::Term::from_json(field_value))
+                Some(vec![term::Term::from_json(field_value)])
             };
 
             if let Some(field_value) = processed_value {
@@ -68,7 +66,7 @@ impl Document {
         }
 
         // Insert _all field
-        fields.insert("_all".to_owned(), term::Term::TSVector(all_field_tokens));
+        fields.insert("_all".to_owned(), all_field_tokens);
 
         Document {
             id: id,

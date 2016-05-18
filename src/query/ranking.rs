@@ -9,11 +9,15 @@ impl Query {
             Query::MatchAll{boost} => Some(boost),
             Query::MatchNone => None,
             Query::MatchTerm{ref field, ref term, ref matcher, boost} => {
-                if let Some(field_term) = doc.fields.get(field) {
-                    if matcher.matches(field_term, term) { Some(boost) } else { None }
-                } else {
-                    None
+                if let Some(field_value) = doc.fields.get(field) {
+                    for field_term in field_value.iter() {
+                        if matcher.matches(field_term, term) {
+                            return Some(boost);
+                        }
+                    }
                 }
+
+                None
             }
             Query::Bool{ref must, ref must_not, ref should, ref filter, minimum_should_match, boost} => {
                 let mut total_score: f64 = 0.0;
