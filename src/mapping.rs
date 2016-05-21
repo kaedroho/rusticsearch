@@ -50,7 +50,7 @@ impl Default for FieldMapping {
 
 
 impl FieldMapping {
-    pub fn process_value(&self, value: Json) -> Option<Vec<Term>> {
+    pub fn process_value_for_index(&self, value: Json) -> Option<Vec<Term>> {
         if value == Json::Null {
             return Some(vec![Term::Null]);
         }
@@ -67,9 +67,9 @@ impl FieldMapping {
                             Some(tokens)
                         }
                     }
-                    Json::I64(num) => self.process_value(Json::String(num.to_string())),
-                    Json::U64(num) => self.process_value(Json::String(num.to_string())),
-                    Json::F64(num) => self.process_value(Json::String(num.to_string())),
+                    Json::I64(num) => self.process_value_for_index(Json::String(num.to_string())),
+                    Json::U64(num) => self.process_value_for_index(Json::String(num.to_string())),
+                    Json::F64(num) => self.process_value_for_index(Json::String(num.to_string())),
                     Json::Array(array) => {
                         // Pack any strings into a vec, ignore nulls. Quit if we see anything else
                         let mut strings = Vec::new();
@@ -84,7 +84,7 @@ impl FieldMapping {
                             }
                         }
 
-                        self.process_value(Json::String(strings.join(" ")))
+                        self.process_value_for_index(Json::String(strings.join(" ")))
                     }
                     _ => None,
                 }

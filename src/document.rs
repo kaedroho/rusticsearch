@@ -19,7 +19,7 @@ impl Document {
 
         for (field_name, field_value) in data.as_object().unwrap() {
             let processed_value = if let Some(field_mapping) = mapping.fields.get(field_name) {
-                let value = field_mapping.process_value(field_value.clone());
+                let value = field_mapping.process_value_for_index(field_value.clone());
 
                 match value {
                     Some(ref value) => {
