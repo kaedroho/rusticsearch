@@ -2,7 +2,7 @@ use rustc_serialize::json::Json;
 
 use analysis::Analyzer;
 use term::Term;
-
+use mapping::FieldMapping;
 use query::{Query, TermMatcher};
 use query::parser::{QueryParseContext, QueryParseError};
 use query::parser::utils::{parse_string, parse_float, Operator, parse_operator};
@@ -31,13 +31,16 @@ pub fn parse(context: &QueryParseContext, json: &Json) -> Result<Query, QueryPar
         return Err(QueryParseError::ExpectedSingleKey)
     };
 
+    // Get mapping for field
+    let field_mapping = context.index.get_field_mapping_by_name(field_name);
+
     // Get configuration
-    let mut query = String::new();
+    let mut query = Json::Null;
     let mut boost = 1.0f64;
     let mut operator = Operator::Or;
 
     match object[field_name] {
-        Json::String(ref string) => query = string.clone(),
+        Json::String(ref string) => query = object[field_name].clone(),
         Json::Object(ref inner_object) => {
             let mut has_query_key = false;
 
@@ -45,7 +48,7 @@ pub fn parse(context: &QueryParseContext, json: &Json) -> Result<Query, QueryPar
                 match key.as_ref() {
                     "query" => {
                         has_query_key = true;
-                        query = try!(parse_string(value));
+                        query = value.clone();
                     }
                     "boost" => {
                         boost = try!(parse_float(value));
@@ -64,17 +67,42 @@ pub fn parse(context: &QueryParseContext, json: &Json) -> Result<Query, QueryPar
         _ => return Err(QueryParseError::ExpectedObjectOrString),
     }
 
-    // Convert query string into term query objects
+    // Tokenise query string
+    let terms = match field_mapping {
+        Some(ref field_mapping) => {
+            field_mapping.process_value_for_query(query.clone())
+        }
+        None => {
+            // TODO: Raise error?
+            warn!("Unknown field: {}", field_name);
+
+            FieldMapping::default().process_value_for_query(query.clone())
+        }
+    };
+
+    let terms = match terms {
+        Some(terms) => terms,
+        None => {
+            // Couldn't convert the passed in value into terms
+            // TODO: Raise error
+            warn!("Unprocessable query: {}", query);
+
+            return Ok(Query::MatchNone);
+        }
+    };
+
+    // Create a term query for each token
     let mut sub_queries = Vec::new();
-    for term in Analyzer::Standard.run(query) {
+    for term in terms {
         sub_queries.push(Query::MatchTerm {
             field: field_name.clone(),
-            term: Term::String(term),
+            term: term,
             matcher: TermMatcher::Exact,
             boost: 1.0f64,
         });
     }
 
+    // Combine the term queries
     match operator {
         Operator::Or => {
             Ok(Query::Bool {

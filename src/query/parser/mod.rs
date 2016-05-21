@@ -18,7 +18,7 @@ use query::Query;
 
 #[derive(Debug, Clone)]
 pub struct QueryParseContext<'a> {
-    index: &'a Index,
+    pub index: &'a Index,
     score_required: bool,
 }
 

@@ -108,6 +108,11 @@ impl FieldMapping {
             _ => None,
         }
     }
+
+    pub fn process_value_for_query(&self, value: Json) -> Option<Vec<Term>> {
+        // Currently not different from process_value_for_index
+        self.process_value_for_index(value)
+    }
 }
 
 

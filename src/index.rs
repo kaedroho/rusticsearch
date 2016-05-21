@@ -1,6 +1,6 @@
 use std::collections::{BTreeMap, HashMap, HashSet};
 
-use mapping::Mapping;
+use mapping::{Mapping, FieldMapping};
 use document::Document;
 
 
@@ -27,6 +27,16 @@ impl Index {
 
     pub fn get_mapping_by_name(&self, name: &str) -> Option<&Mapping> {
         self.mappings.get(name)
+    }
+
+    pub fn get_field_mapping_by_name(&self, name: &str) -> Option<&FieldMapping> {
+        for mapping in self.mappings.values() {
+            if let Some(ref field_mapping) = mapping.fields.get(name) {
+                return Some(field_mapping);
+            }
+        }
+
+        None
     }
 
     pub fn get_document_by_id(&self, id: &str) -> Option<&Document> {
