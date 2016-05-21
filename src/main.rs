@@ -19,16 +19,14 @@ mod analysis;
 mod search;
 mod logger;
 
-use std::sync::{Mutex, RwLock};
-use std::collections::{BTreeMap, HashMap, HashSet};
+use std::sync::RwLock;
+use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::fs;
 
 use iron::prelude::*;
 use iron::typemap::Key;
-use rustc_serialize::json::Json;
 
-use document::Document;
 use index::Index;
 
 

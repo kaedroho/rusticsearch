@@ -1,7 +1,4 @@
 use std::io::Read;
-use std::collections::{BTreeMap, BinaryHeap};
-use std::cmp::Ordering;
-use std::borrow::Cow;
 
 use iron::prelude::*;
 use iron::status;
@@ -9,12 +6,8 @@ use router::Router;
 use rustc_serialize::json::{self, Json};
 use url::form_urlencoded;
 
-use document::Document;
-use index::Index;
-use query::Query;
 use query::parser::{QueryParseContext, parse as parse_query};
 use search::request::SearchRequest;
-use search::response::SearchResponse;
 use super::persistent;
 use super::utils::json_response;
 use super::super::Globals;

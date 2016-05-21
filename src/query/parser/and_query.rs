@@ -2,7 +2,6 @@ use rustc_serialize::json::Json;
 
 use query::Query;
 use query::parser::{QueryParseContext, QueryParseError, parse as parse_query};
-use query::parser::utils::parse_float;
 
 
 pub fn parse(context: &QueryParseContext, json: &Json) -> Result<Query, QueryParseError> {

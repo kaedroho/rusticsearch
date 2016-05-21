@@ -1,8 +1,6 @@
 use rustc_serialize::json::Json;
 
-use analysis::Analyzer;
-
-use query::{Query, TermMatcher};
+use query::Query;
 use query::parser::{QueryParseContext, QueryParseError};
 use query::parser::{parse as parse_query};
 

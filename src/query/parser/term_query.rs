@@ -1,11 +1,10 @@
 use rustc_serialize::json::Json;
 
-use analysis::Analyzer;
 use term::Term;
 
 use query::{Query, TermMatcher};
 use query::parser::{QueryParseContext, QueryParseError};
-use query::parser::utils::{parse_string, parse_float, Operator, parse_operator};
+use query::parser::utils::parse_float;
 
 
 pub fn parse(context: &QueryParseContext, json: &Json) -> Result<Query, QueryParseError> {
