@@ -12,27 +12,27 @@ pub mod not_query;
 
 use rustc_serialize::json::Json;
 
+use index::Index;
 use query::Query;
 
 
-#[derive(Debug, PartialEq, Clone)]
-pub struct QueryParseContext {
+#[derive(Debug, Clone)]
+pub struct QueryParseContext<'a> {
+    index: &'a Index,
     score_required: bool,
 }
 
 
-impl Default for QueryParseContext {
-    fn default() -> QueryParseContext {
+impl<'a> QueryParseContext<'a> {
+    pub fn new(index: &'a Index) -> QueryParseContext<'a> {
         QueryParseContext {
+            index: index,
             score_required: true
         }
     }
-}
 
-
-impl QueryParseContext {
     #[inline]
-    pub fn no_score(mut self) -> QueryParseContext {
+    pub fn no_score(mut self) -> QueryParseContext<'a> {
         self.score_required = false;
         self
     }
