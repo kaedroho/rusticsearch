@@ -18,27 +18,31 @@ impl Document {
         let mut all_field_tokens: Vec<Term> = Vec::new();
 
         for (field_name, field_value) in data.as_object().unwrap() {
-            let processed_value = if let Some(field_mapping) = mapping.fields.get(field_name) {
-                let value = field_mapping.process_value_for_index(field_value.clone());
+            match mapping.fields.get(field_name) {
+                Some(field_mapping) => {
+                    let value = field_mapping.process_value_for_index(field_value.clone());
 
-                match value {
-                    Some(ref value) => {
-                        if field_mapping.is_in_all {
-                            all_field_tokens.extend(value.iter().cloned());
+                    match value {
+                        Some(value) => {
+                            // Copy the field's value into the _all field
+                            if field_mapping.is_in_all {
+                                all_field_tokens.extend(value.iter().cloned());
+                            }
+
+                            // Insert the field
+                            fields.insert(field_name.clone(), value);
+                        }
+                        None => {
+                            // TODO: Should probably be an error
+                            warn!("Unprocessable value: {}", field_value);
                         }
                     }
-                    None => {
-                        warn!("Unprocessable value: {}", field_value);
-                    }
                 }
-
-                value
-            } else {
-                Some(vec![Term::from_json(field_value)])
-            };
-
-            if let Some(field_value) = processed_value {
-                fields.insert(field_name.clone(), field_value);
+                None => {
+                    // No mapping found, just insert the value as-is
+                    // TODO: This should probably be an error
+                    fields.insert(field_name.clone(), vec![Term::from_json(field_value)]);
+                }
             }
         }
 
