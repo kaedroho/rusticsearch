@@ -1,7 +1,7 @@
 use std::collections::{BTreeMap, HashMap, HashSet};
 
 use mapping::Mapping;
-use Document;
+use document::Document;
 
 
 #[derive(Debug)]

@@ -9,12 +9,13 @@ use router::Router;
 use rustc_serialize::json::{self, Json};
 use url::form_urlencoded;
 
+use document::Document;
+use index::Index;
 use query::Query;
 use query::parser::{QueryParseContext, parse as parse_query};
-use index::Index;
 use super::persistent;
 use super::utils::json_response;
-use super::super::{Globals, Document};
+use super::super::Globals;
 
 
 #[derive(Debug)]

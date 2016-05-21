@@ -11,6 +11,7 @@ extern crate log;
 
 mod api;
 mod term;
+mod document;
 mod index;
 mod query;
 mod mapping;
@@ -26,57 +27,11 @@ use iron::prelude::*;
 use iron::typemap::Key;
 use rustc_serialize::json::Json;
 
+use document::Document;
 use index::Index;
 
 
 const VERSION: &'static str = "0.1a0";
-
-
-#[derive(Debug)]
-pub struct Document {
-    id: String,
-    fields: BTreeMap<String, Vec<term::Term>>,
-}
-
-impl Document {
-    pub fn from_json(id: String, data: Json, mapping: &mapping::Mapping) -> Document {
-        let mut fields = BTreeMap::new();
-        let mut all_field_tokens: Vec<term::Term> = Vec::new();
-
-        for (field_name, field_value) in data.as_object().unwrap() {
-            let processed_value = if let Some(field_mapping) = mapping.fields.get(field_name) {
-                let value = field_mapping.process_value(field_value.clone());
-
-                match value {
-                    Some(ref value) => {
-                        if field_mapping.is_in_all {
-                            all_field_tokens.extend(value.iter().cloned());
-                        }
-                    }
-                    None => {
-                        warn!("Unprocessable value: {}", field_value);
-                    }
-                }
-
-                value
-            } else {
-                Some(vec![term::Term::from_json(field_value)])
-            };
-
-            if let Some(field_value) = processed_value {
-                fields.insert(field_name.clone(), field_value);
-            }
-        }
-
-        // Insert _all field
-        fields.insert("_all".to_owned(), all_field_tokens);
-
-        Document {
-            id: id,
-            fields: fields,
-        }
-    }
-}
 
 
 struct Globals {

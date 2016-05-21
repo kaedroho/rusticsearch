@@ -6,9 +6,10 @@ use iron::status;
 use router::Router;
 use rustc_serialize::json::{self, Json};
 
+use document::Document;
 use super::persistent;
 use super::utils::json_response;
-use super::super::{Globals, Document};
+use super::super::Globals;
 
 
 pub fn view_get_doc(req: &mut Request) -> IronResult<Response> {

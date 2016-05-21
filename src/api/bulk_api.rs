@@ -5,9 +5,10 @@ use iron::prelude::*;
 use iron::status;
 use rustc_serialize::json::{self, Json};
 
+use document::Document;
 use super::persistent;
 use super::utils::{json_response, index_not_found_response};
-use super::super::{Globals, Document};
+use super::super::Globals;
 
 
 pub fn view_post_bulk(req: &mut Request) -> IronResult<Response> {

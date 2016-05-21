@@ -1,5 +1,4 @@
-use Document;
-
+use document::Document;
 use query::Query;
 
 
