@@ -16,6 +16,7 @@ mod index;
 mod query;
 mod mapping;
 mod analysis;
+mod search;
 mod logger;
 
 use std::sync::{Mutex, RwLock};

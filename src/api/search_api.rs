@@ -13,80 +13,11 @@ use document::Document;
 use index::Index;
 use query::Query;
 use query::parser::{QueryParseContext, parse as parse_query};
+use search::request::SearchRequest;
+use search::response::SearchResponse;
 use super::persistent;
 use super::utils::json_response;
 use super::super::Globals;
-
-
-#[derive(Debug)]
-struct SearchHit<'a> {
-    doc: &'a Document,
-    score: f64,
-}
-
-
-impl<'a> SearchHit<'a> {
-    fn as_json(&self) -> Json {
-        let mut pk_field: Vec<Json> = Vec::new();
-        pk_field.push(self.doc.fields.get("pk").unwrap()[0].as_json());
-
-        let mut fields = BTreeMap::new();
-        fields.insert("pk".to_owned(), Json::Array(pk_field));
-
-        let mut hit = BTreeMap::new();
-        hit.insert("_score".to_owned(), Json::F64(self.score));
-        hit.insert("fields".to_owned(), Json::Object(fields));
-        Json::Object(hit)
-    }
-}
-
-
-#[derive(Debug)]
-struct SearchResponse<'a> {
-    total_hits: usize,
-    hits: Vec<SearchHit<'a>>,
-    terminated_early: bool,
-}
-
-
-#[derive(Debug)]
-struct SearchRequest {
-    query: Query,
-    from: usize,
-    size: usize,
-    terminate_after: Option<usize>,
-}
-
-impl SearchRequest {
-    fn run<'a>(&self, index: &'a Index) -> SearchResponse<'a> {
-        // Find all hits
-        let mut hits = Vec::new();
-        for (_, doc) in index.docs.iter() {
-            if let Some(score) = self.query.rank(&doc) {
-                hits.push(SearchHit {
-                    doc: &doc,
-                    score: score,
-                });
-            }
-        }
-
-        // Sort by score
-        hits.sort_by(|a, b| a.score.partial_cmp(&b.score).unwrap_or(Ordering::Less));
-
-        // Pagination
-        let total_hits = hits.len();
-        if self.from > 0 {
-            hits.drain(..self.from);
-        }
-        hits.truncate(self.size);
-
-        SearchResponse {
-            total_hits: total_hits,
-            hits: hits,
-            terminated_early: false, // TODO
-        }
-    }
-}
 
 
 pub fn view_count(req: &mut Request) -> IronResult<Response> {
