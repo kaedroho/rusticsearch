@@ -11,6 +11,7 @@ extern crate log;
 
 mod api;
 mod term;
+mod index;
 mod query;
 mod mapping;
 mod analysis;
@@ -25,12 +26,14 @@ use iron::prelude::*;
 use iron::typemap::Key;
 use rustc_serialize::json::Json;
 
+use index::Index;
+
 
 const VERSION: &'static str = "0.1a0";
 
 
 #[derive(Debug)]
-struct Document {
+pub struct Document {
     id: String,
     fields: BTreeMap<String, Vec<term::Term>>,
 }
@@ -73,65 +76,6 @@ impl Document {
             fields: fields,
         }
     }
-}
-
-
-#[derive(Debug)]
-struct Index {
-    pub mappings: HashMap<String, mapping::Mapping>,
-    docs: BTreeMap<u64, Document>,
-    pub aliases: HashSet<String>,
-    next_doc_num: u64,
-    doc_id_map: HashMap<String, u64>,
-}
-
-
-impl Index {
-    fn new() -> Index {
-        Index {
-            mappings: HashMap::new(),
-            docs: BTreeMap::new(),
-            aliases: HashSet::new(),
-            next_doc_num: 1,
-            doc_id_map: HashMap::new(),
-        }
-    }
-
-    fn get_mapping_by_name(&self, name: &str) -> Option<&mapping::Mapping> {
-        self.mappings.get(name)
-    }
-
-    fn get_document_by_id(&self, id: &str) -> Option<&Document> {
-        match self.doc_id_map.get(id) {
-            Some(doc_num) => self.docs.get(doc_num),
-            None => None,
-        }
-    }
-
-    fn contains_document_id(&self, id: &str) -> bool {
-        self.doc_id_map.contains_key(id)
-    }
-
-    fn remove_document_by_id(&mut self, id: &str) -> bool {
-        match self.doc_id_map.remove(id) {
-            Some(doc_num) => {
-                self.docs.remove(&doc_num);
-
-                true
-            }
-            None => false
-        }
-    }
-
-    fn insert_or_update_document(&mut self, doc: Document) {
-        let doc_num = self.next_doc_num;
-        self.next_doc_num += 1;
-
-        self.doc_id_map.insert(doc.id.clone(), doc_num);
-        self.docs.insert(doc_num, doc);
-    }
-
-    fn initialise(&mut self) {}
 }
 
 

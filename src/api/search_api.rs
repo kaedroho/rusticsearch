@@ -11,9 +11,10 @@ use url::form_urlencoded;
 
 use query::Query;
 use query::parser::{QueryParseContext, parse as parse_query};
+use index::Index;
 use super::persistent;
 use super::utils::json_response;
-use super::super::{Globals, Document, Index};
+use super::super::{Globals, Document};
 
 
 #[derive(Debug)]

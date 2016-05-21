@@ -6,9 +6,10 @@ use iron::status;
 use router::Router;
 use rustc_serialize::json::Json;
 
+use index::Index;
 use super::persistent;
 use super::utils::json_response;
-use super::super::{Globals, Index};
+use super::super::Globals;
 
 
 pub fn view_get_index(req: &mut Request) -> IronResult<Response> {
