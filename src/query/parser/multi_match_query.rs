@@ -60,10 +60,10 @@ pub fn parse(context: &QueryParseContext, json: &Json) -> Result<Query, QueryPar
     let mut field_queries = Vec::new();
     for (field_name, field_boost) in fields_with_boosts {
         let mut term_queries = Vec::new();
-        for term in Analyzer::Standard.run(query.clone()) {
+        for token in Analyzer::Standard.run(query.clone()) {
             term_queries.push(Query::MatchTerm {
                 field: field_name.clone(),
-                term: Term::String(term),
+                term: token.term,
                 matcher: TermMatcher::Exact,
                 boost: 1.0f64,
             });

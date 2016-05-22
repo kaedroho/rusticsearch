@@ -2,8 +2,9 @@ use std::collections::HashMap;
 
 use rustc_serialize::json::Json;
 
-use analysis::Analyzer;
 use term::Term;
+use token::Token;
+use analysis::Analyzer;
 
 
 #[derive(Debug, PartialEq)]
@@ -50,9 +51,9 @@ impl Default for FieldMapping {
 
 
 impl FieldMapping {
-    pub fn process_value_for_index(&self, value: Json) -> Option<Vec<Term>> {
+    pub fn process_value_for_index(&self, value: Json) -> Option<Vec<Token>> {
         if value == Json::Null {
-            return Some(vec![Term::Null]);
+            return Some(vec![Token{term: Term::Null, position: 1}]);
         }
 
         match self.data_type {
@@ -61,10 +62,9 @@ impl FieldMapping {
                     Json::String(string) => {
                         // Analyzed strings become TSVectors. Unanalyzed strings become... strings
                         if self.analyzer == Analyzer::None {
-                            Some(vec![Term::String(string)])
+                            Some(vec![Token{term: Term::String(string), position: 1}])
                         } else {
-                            let tokens = self.analyzer.run(string).iter().cloned().map(|t| Term::String(t)).collect();
-                            Some(tokens)
+                            Some(self.analyzer.run(string))
                         }
                     }
                     Json::I64(num) => self.process_value_for_index(Json::String(num.to_string())),
@@ -92,24 +92,24 @@ impl FieldMapping {
             FieldType::Number{size, is_float} => {
                 match value {
                     // TODO check the numbers fit in "size"
-                    Json::U64(num) => Some(vec![Term::U64(num)]),
-                    Json::I64(num) => Some(vec![Term::I64(num)]),
+                    Json::U64(num) => Some(vec![Token{term: Term::U64(num), position: 1}]),
+                    Json::I64(num) => Some(vec![Token{term: Term::I64(num), position: 1}]),
                     Json::F64(num) => {
                         if !is_float {
                             return None;
                         }
 
-                        Some(vec![Term::F64(num)])
+                        Some(vec![Token{term: Term::F64(num), position: 1}])
                     }
                     _ => None,
                 }
             }
-            FieldType::Boolean => Some(vec![Term::Boolean(parse_boolean(&value))]),
+            FieldType::Boolean => Some(vec![Token{term: Term::Boolean(parse_boolean(&value)), position: 1}]),
             _ => None,
         }
     }
 
-    pub fn process_value_for_query(&self, value: Json) -> Option<Vec<Term>> {
+    pub fn process_value_for_query(&self, value: Json) -> Option<Vec<Token>> {
         // Currently not different from process_value_for_index
         self.process_value_for_index(value)
     }

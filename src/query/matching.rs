@@ -28,8 +28,8 @@ impl Query {
             Query::MatchNone => false,
             Query::MatchTerm{ref field, ref term, ref matcher, boost} => {
                 if let Some(field_value) = doc.fields.get(field) {
-                    for field_term in field_value.iter() {
-                        if matcher.matches(field_term, term) {
+                    for field_token in field_value.iter() {
+                        if matcher.matches(&field_token.term, term) {
                             return true;
                         }
                     }

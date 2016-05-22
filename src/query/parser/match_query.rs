@@ -68,7 +68,7 @@ pub fn parse(context: &QueryParseContext, json: &Json) -> Result<Query, QueryPar
     }
 
     // Tokenise query string
-    let terms = match field_mapping {
+    let tokens = match field_mapping {
         Some(ref field_mapping) => {
             field_mapping.process_value_for_query(query.clone())
         }
@@ -80,10 +80,10 @@ pub fn parse(context: &QueryParseContext, json: &Json) -> Result<Query, QueryPar
         }
     };
 
-    let terms = match terms {
-        Some(terms) => terms,
+    let tokens = match tokens {
+        Some(tokens) => tokens,
         None => {
-            // Couldn't convert the passed in value into terms
+            // Couldn't convert the passed in value into tokens
             // TODO: Raise error
             warn!("Unprocessable query: {}", query);
 
@@ -93,10 +93,10 @@ pub fn parse(context: &QueryParseContext, json: &Json) -> Result<Query, QueryPar
 
     // Create a term query for each token
     let mut sub_queries = Vec::new();
-    for term in terms {
+    for token in tokens {
         sub_queries.push(Query::MatchTerm {
             field: field_name.clone(),
-            term: term,
+            term: token.term,
             matcher: TermMatcher::Exact,
             boost: 1.0f64,
         });
