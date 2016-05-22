@@ -1,5 +1,6 @@
 use std::collections::{BTreeMap, HashMap, HashSet};
 
+use term::Term;
 use mapping::{Mapping, FieldMapping};
 use document::Document;
 
@@ -8,6 +9,7 @@ use document::Document;
 pub struct Index {
     pub mappings: HashMap<String, Mapping>,
     pub docs: BTreeMap<u64, Document>,
+    pub index: BTreeMap<Term, BTreeMap<String, Vec<(u64, u32)>>>,
     pub aliases: HashSet<String>,
     next_doc_num: u64,
     doc_id_map: HashMap<String, u64>,
@@ -19,6 +21,7 @@ impl Index {
         Index {
             mappings: HashMap::new(),
             docs: BTreeMap::new(),
+            index: BTreeMap::new(),
             aliases: HashSet::new(),
             next_doc_num: 1,
             doc_id_map: HashMap::new(),
@@ -64,6 +67,26 @@ impl Index {
     pub fn insert_or_update_document(&mut self, doc: Document) {
         let doc_num = self.next_doc_num;
         self.next_doc_num += 1;
+
+        // Put field contents in inverted index
+        for (field_name, tokens) in doc.fields.iter() {
+            let mut position: u32 = 1;
+
+            for token in tokens.iter() {
+                if !self.index.contains_key(&token.term) {
+                    self.index.insert(token.term.clone(), BTreeMap::new());
+                }
+
+                let mut index_fields = self.index.get_mut(&token.term).unwrap();
+
+                if !index_fields.contains_key(field_name) {
+                    index_fields.insert(field_name.clone(), Vec::new());
+                }
+
+                let mut postings_list = index_fields.get_mut(field_name).unwrap();
+                postings_list.push((doc_num, token.position));
+            }
+        }
 
         self.doc_id_map.insert(doc.id.clone(), doc_num);
         self.docs.insert(doc_num, doc);
