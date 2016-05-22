@@ -94,13 +94,13 @@ impl FieldMapping {
                     // TODO check the numbers fit in "size"
                     Json::U64(num) => Some(vec![Token{term: Term::U64(num), position: 1}]),
                     Json::I64(num) => Some(vec![Token{term: Term::I64(num), position: 1}]),
-                    Json::F64(num) => {
+                    /*Json::F64(num) => {
                         if !is_float {
                             return None;
                         }
 
                         Some(vec![Token{term: Term::F64(num), position: 1}])
-                    }
+                    }*/
                     _ => None,
                 }
             }

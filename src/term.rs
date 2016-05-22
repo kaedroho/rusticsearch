@@ -1,13 +1,13 @@
 use rustc_serialize::json::Json;
 
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Hash)]
 pub enum Term {
     String(String),
     Boolean(bool),
     I64(i64),
     U64(u64),
-    F64(f64),
+    //F64(f64),
     Null,
 }
 
@@ -17,7 +17,7 @@ impl Term {
         match *json {
             Json::String(ref string) => Term::String(string.clone()),
             Json::Boolean(value) => Term::Boolean(value),
-            Json::F64(value) => Term::F64(value),
+            Json::F64(value) => Term::Null, //Term::F64(value),
             Json::I64(value) => Term::I64(value),
             Json::U64(value) => Term::U64(value),
             Json::Null => Term::Null,
@@ -33,7 +33,7 @@ impl Term {
         match *self {
             Term::String(ref string) => Json::String(string.clone()),
             Term::Boolean(value) => Json::Boolean(value),
-            Term::F64(value) => Json::F64(value),
+            //Term::F64(value) => Json::F64(value),
             Term::I64(value) => Json::I64(value),
             Term::U64(value) => Json::U64(value),
             Term::Null => Json::Null,
