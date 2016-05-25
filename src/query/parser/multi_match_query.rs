@@ -585,7 +585,6 @@ mod tests {
     }
 
     #[test]
-    #[should_panic]
     fn test_gives_error_for_extra_key() {
         let query = parse(&QueryParseContext::new(&Index::new()), &Json::from_str("
         {
@@ -595,6 +594,6 @@ mod tests {
         }
         ").unwrap());
 
-        assert_eq!(query, Err(QueryParseError::ExpectedSingleKey));
+        assert_eq!(query, Err(QueryParseError::UnrecognisedKey("hello".to_string())));
     }
 }
