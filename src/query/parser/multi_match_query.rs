@@ -98,3 +98,503 @@ pub fn parse(context: &QueryParseContext, json: &Json) -> Result<Query, QueryPar
         boost: boost,
     })
 }
+
+
+#[cfg(test)]
+mod tests {
+    use rustc_serialize::json::Json;
+
+    use term::Term;
+    use query::{Query, TermMatcher};
+    use query::parser::{QueryParseContext, QueryParseError};
+    use index::Index;
+
+    use super::parse;
+
+    #[test]
+    fn test_multi_match_query() {
+        let query = parse(&QueryParseContext::new(&Index::new()), &Json::from_str("
+        {
+            \"query\": \"foo\",
+            \"fields\": [\"bar\", \"baz\"]
+        }
+        ").unwrap());
+
+        assert_eq!(query, Ok(Query::DisjunctionMax {
+            queries: vec![
+                Query::Bool {
+                    must: vec![],
+                    must_not: vec![],
+                    should: vec![
+                        Query::MatchTerm {
+                            field: "bar".to_string(),
+                            term: Term::String("foo".to_string()),
+                            matcher: TermMatcher::Exact,
+                            boost: 1.0f64,
+                        }
+                    ],
+                    filter: vec![],
+                    minimum_should_match: 1,
+                    boost: 1.0f64,
+                },
+                Query::Bool {
+                    must: vec![],
+                    must_not: vec![],
+                    should: vec![
+                        Query::MatchTerm {
+                            field: "baz".to_string(),
+                            term: Term::String("foo".to_string()),
+                            matcher: TermMatcher::Exact,
+                            boost: 1.0f64,
+                        }
+                    ],
+                    filter: vec![],
+                    minimum_should_match: 1,
+                    boost: 1.0f64,
+                }
+            ],
+            boost: 1.0f64,
+        }));
+    }
+
+    #[test]
+    fn test_multi_term_multi_match_query() {
+        let query = parse(&QueryParseContext::new(&Index::new()), &Json::from_str("
+        {
+            \"query\": \"hello world\",
+            \"fields\": [\"bar\", \"baz\"]
+        }
+        ").unwrap());
+
+        assert_eq!(query, Ok(Query::DisjunctionMax {
+            queries: vec![
+                Query::Bool {
+                    must: vec![],
+                    must_not: vec![],
+                    should: vec![
+                        Query::MatchTerm {
+                            field: "bar".to_string(),
+                            term: Term::String("hello".to_string()),
+                            matcher: TermMatcher::Exact,
+                            boost: 1.0f64,
+                        },
+                        Query::MatchTerm {
+                            field: "bar".to_string(),
+                            term: Term::String("world".to_string()),
+                            matcher: TermMatcher::Exact,
+                            boost: 1.0f64,
+                        }
+                    ],
+                    filter: vec![],
+                    minimum_should_match: 1,
+                    boost: 1.0f64,
+                },
+                Query::Bool {
+                    must: vec![],
+                    must_not: vec![],
+                    should: vec![
+                        Query::MatchTerm {
+                            field: "baz".to_string(),
+                            term: Term::String("hello".to_string()),
+                            matcher: TermMatcher::Exact,
+                            boost: 1.0f64,
+                        },
+                        Query::MatchTerm {
+                            field: "baz".to_string(),
+                            term: Term::String("world".to_string()),
+                            matcher: TermMatcher::Exact,
+                            boost: 1.0f64,
+                        }
+                    ],
+                    filter: vec![],
+                    minimum_should_match: 1,
+                    boost: 1.0f64,
+                }
+            ],
+            boost: 1.0f64,
+        }));
+    }
+
+    #[test]
+    fn test_with_boost() {
+        let query = parse(&QueryParseContext::new(&Index::new()), &Json::from_str("
+        {
+            \"query\": \"foo\",
+            \"fields\": [\"bar\", \"baz\"],
+            \"boost\": 2.0
+        }
+        ").unwrap());
+
+        assert_eq!(query, Ok(Query::DisjunctionMax {
+            queries: vec![
+                Query::Bool {
+                    must: vec![],
+                    must_not: vec![],
+                    should: vec![
+                        Query::MatchTerm {
+                            field: "bar".to_string(),
+                            term: Term::String("foo".to_string()),
+                            matcher: TermMatcher::Exact,
+                            boost: 1.0f64,
+                        }
+                    ],
+                    filter: vec![],
+                    minimum_should_match: 1,
+                    boost: 1.0f64,
+                },
+                Query::Bool {
+                    must: vec![],
+                    must_not: vec![],
+                    should: vec![
+                        Query::MatchTerm {
+                            field: "baz".to_string(),
+                            term: Term::String("foo".to_string()),
+                            matcher: TermMatcher::Exact,
+                            boost: 1.0f64,
+                        }
+                    ],
+                    filter: vec![],
+                    minimum_should_match: 1,
+                    boost: 1.0f64,
+                }
+            ],
+            boost: 2.0f64,
+        }));
+    }
+
+    #[test]
+    fn test_with_boost_integer() {
+        let query = parse(&QueryParseContext::new(&Index::new()), &Json::from_str("
+        {
+            \"query\": \"foo\",
+            \"fields\": [\"bar\", \"baz\"],
+            \"boost\": 2
+        }
+        ").unwrap());
+
+        assert_eq!(query, Ok(Query::DisjunctionMax {
+            queries: vec![
+                Query::Bool {
+                    must: vec![],
+                    must_not: vec![],
+                    should: vec![
+                        Query::MatchTerm {
+                            field: "bar".to_string(),
+                            term: Term::String("foo".to_string()),
+                            matcher: TermMatcher::Exact,
+                            boost: 1.0f64,
+                        }
+                    ],
+                    filter: vec![],
+                    minimum_should_match: 1,
+                    boost: 1.0f64,
+                },
+                Query::Bool {
+                    must: vec![],
+                    must_not: vec![],
+                    should: vec![
+                        Query::MatchTerm {
+                            field: "baz".to_string(),
+                            term: Term::String("foo".to_string()),
+                            matcher: TermMatcher::Exact,
+                            boost: 1.0f64,
+                        }
+                    ],
+                    filter: vec![],
+                    minimum_should_match: 1,
+                    boost: 1.0f64,
+                }
+            ],
+            boost: 2.0f64,
+        }));
+    }
+
+    #[test]
+    fn test_with_field_boost() {
+        let query = parse(&QueryParseContext::new(&Index::new()), &Json::from_str("
+        {
+            \"query\": \"foo\",
+            \"fields\": [\"bar^2\", \"baz^3.0\"]
+        }
+        ").unwrap());
+
+        assert_eq!(query, Ok(Query::DisjunctionMax {
+            queries: vec![
+                Query::Bool {
+                    must: vec![],
+                    must_not: vec![],
+                    should: vec![
+                        Query::MatchTerm {
+                            field: "bar".to_string(),
+                            term: Term::String("foo".to_string()),
+                            matcher: TermMatcher::Exact,
+                            boost: 1.0f64,
+                        }
+                    ],
+                    filter: vec![],
+                    minimum_should_match: 1,
+                    boost: 2.0f64,
+                },
+                Query::Bool {
+                    must: vec![],
+                    must_not: vec![],
+                    should: vec![
+                        Query::MatchTerm {
+                            field: "baz".to_string(),
+                            term: Term::String("foo".to_string()),
+                            matcher: TermMatcher::Exact,
+                            boost: 1.0f64,
+                        }
+                    ],
+                    filter: vec![],
+                    minimum_should_match: 1,
+                    boost: 3.0f64,
+                }
+            ],
+            boost: 1.0f64,
+        }));
+    }
+
+    #[test]
+    fn test_with_and_operator() {
+        let query = parse(&QueryParseContext::new(&Index::new()), &Json::from_str("
+        {
+            \"query\": \"foo\",
+            \"fields\": [\"bar\", \"baz\"],
+            \"operator\": \"and\"
+        }
+        ").unwrap());
+
+        assert_eq!(query, Ok(Query::DisjunctionMax {
+            queries: vec![
+                Query::Bool {
+                    must: vec![
+                        Query::MatchTerm {
+                            field: "bar".to_string(),
+                            term: Term::String("foo".to_string()),
+                            matcher: TermMatcher::Exact,
+                            boost: 1.0f64,
+                        }
+                    ],
+                    must_not: vec![],
+                    should: vec![],
+                    filter: vec![],
+                    minimum_should_match: 0,
+                    boost: 1.0f64,
+                },
+                Query::Bool {
+                    must: vec![
+                        Query::MatchTerm {
+                            field: "baz".to_string(),
+                            term: Term::String("foo".to_string()),
+                            matcher: TermMatcher::Exact,
+                            boost: 1.0f64,
+                        }
+                    ],
+                    must_not: vec![],
+                    should: vec![],
+                    filter: vec![],
+                    minimum_should_match: 0,
+                    boost: 1.0f64,
+                }
+            ],
+            boost: 1.0f64,
+        }));
+    }
+
+    #[test]
+    fn test_gives_error_for_incorrect_type() {
+        // String
+        let query = parse(&QueryParseContext::new(&Index::new()), &Json::from_str("
+        \"foo\"
+        ").unwrap());
+
+        assert_eq!(query, Err(QueryParseError::ExpectedObject));
+
+        // Array
+        let query = parse(&QueryParseContext::new(&Index::new()), &Json::from_str("
+        [
+            \"foo\"
+        ]
+        ").unwrap());
+
+        assert_eq!(query, Err(QueryParseError::ExpectedObject));
+
+        // Integer
+        let query = parse(&QueryParseContext::new(&Index::new()), &Json::from_str("
+        123
+        ").unwrap());
+
+        assert_eq!(query, Err(QueryParseError::ExpectedObject));
+
+        // Float
+        let query = parse(&QueryParseContext::new(&Index::new()), &Json::from_str("
+        123.1234
+        ").unwrap());
+
+        assert_eq!(query, Err(QueryParseError::ExpectedObject));
+    }
+
+    #[test]
+    fn test_gives_error_for_incorrect_query_type() {
+        // Object
+        let query = parse(&QueryParseContext::new(&Index::new()), &Json::from_str("
+        {
+            \"query\": {
+                \"foo\": \"bar\"
+            },
+            \"fields\": [\"bar\", \"baz\"]
+        }
+        ").unwrap());
+
+        assert_eq!(query, Err(QueryParseError::ExpectedString));
+
+        // Array
+        let query = parse(&QueryParseContext::new(&Index::new()), &Json::from_str("
+        {
+            \"query\": [\"foo\"],
+            \"fields\": [\"bar\", \"baz\"]
+        }
+        ").unwrap());
+
+        assert_eq!(query, Err(QueryParseError::ExpectedString));
+
+        // Integer
+        let query = parse(&QueryParseContext::new(&Index::new()), &Json::from_str("
+        {
+            \"query\": 123,
+            \"fields\": [\"bar\", \"baz\"]
+        }
+        ").unwrap());
+
+        assert_eq!(query, Err(QueryParseError::ExpectedString));
+
+        // Float
+        let query = parse(&QueryParseContext::new(&Index::new()), &Json::from_str("
+        {
+            \"query\": 123.456,
+            \"fields\": [\"bar\", \"baz\"]
+        }        ").unwrap());
+
+        assert_eq!(query, Err(QueryParseError::ExpectedString));
+    }
+
+    #[test]
+    fn test_gives_error_for_incorrect_fields_type() {
+        // String
+        let query = parse(&QueryParseContext::new(&Index::new()), &Json::from_str("
+        {
+            \"query\": \"foo\",
+            \"fields\": \"bar\"
+        }
+        ").unwrap());
+
+        assert_eq!(query, Err(QueryParseError::ExpectedArray));
+
+        // Object
+        let query = parse(&QueryParseContext::new(&Index::new()), &Json::from_str("
+        {
+            \"query\": \"foo\",
+            \"fields\": {
+                \"value\": [\"bar\", \"baz\"]
+            }
+        }
+        ").unwrap());
+
+        assert_eq!(query, Err(QueryParseError::ExpectedArray));
+
+        // Integer
+        let query = parse(&QueryParseContext::new(&Index::new()), &Json::from_str("
+        {
+            \"query\": \"foo\",
+            \"fields\": 123
+        }
+        ").unwrap());
+
+        assert_eq!(query, Err(QueryParseError::ExpectedArray));
+
+        // Float
+        let query = parse(&QueryParseContext::new(&Index::new()), &Json::from_str("
+        {
+            \"query\": \"foo\",
+            \"fields\": 123.456
+        }
+        ").unwrap());
+
+        assert_eq!(query, Err(QueryParseError::ExpectedArray));
+    }
+
+    #[test]
+    fn test_gives_error_for_incorrect_boost_type() {
+        // String
+        let query = parse(&QueryParseContext::new(&Index::new()), &Json::from_str("
+        {
+            \"query\": \"foo\",
+            \"fields\": [\"bar\", \"baz\"],
+            \"boost\": \"2\"
+        }
+        ").unwrap());
+
+        assert_eq!(query, Err(QueryParseError::ExpectedFloat));
+
+        // Array
+        let query = parse(&QueryParseContext::new(&Index::new()), &Json::from_str("
+        {
+            \"query\": \"foo\",
+            \"fields\": [\"bar\", \"baz\"],
+            \"boost\": [2]
+        }
+        ").unwrap());
+
+        assert_eq!(query, Err(QueryParseError::ExpectedFloat));
+
+        // Object
+        let query = parse(&QueryParseContext::new(&Index::new()), &Json::from_str("
+        {
+            \"query\": \"foo\",
+            \"fields\": [\"bar\", \"baz\"],
+            \"boost\": {
+                \"value\": 2
+            }
+        }
+        ").unwrap());
+
+        assert_eq!(query, Err(QueryParseError::ExpectedFloat));
+    }
+
+    #[test]
+    fn test_gives_error_for_missing_query() {
+        let query = parse(&QueryParseContext::new(&Index::new()), &Json::from_str("
+        {
+            \"fields\": [\"bar\", \"baz\"]
+        }
+        ").unwrap());
+
+        assert_eq!(query, Err(QueryParseError::ExpectedKey("query")));
+    }
+
+    #[test]
+    fn test_gives_error_for_missing_fields() {
+        let query = parse(&QueryParseContext::new(&Index::new()), &Json::from_str("
+        {
+            \"query\": \"foo\"
+        }
+        ").unwrap());
+
+        assert_eq!(query, Err(QueryParseError::ExpectedKey("fields")));
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_gives_error_for_extra_key() {
+        let query = parse(&QueryParseContext::new(&Index::new()), &Json::from_str("
+        {
+            \"query\": \"foo\",
+            \"fields\": [\"bar\", \"baz\"],
+            \"hello\": \"world\"
+        }
+        ").unwrap());
+
+        assert_eq!(query, Err(QueryParseError::ExpectedSingleKey));
+    }
+}

@@ -57,3 +57,191 @@ pub fn parse(context: &QueryParseContext, json: &Json) -> Result<Query, QueryPar
         boost: 1.0f64,
     })
 }
+
+
+#[cfg(test)]
+mod tests {
+    use rustc_serialize::json::Json;
+
+    use term::Term;
+    use query::{Query, TermMatcher};
+    use query::parser::{QueryParseContext, QueryParseError};
+    use index::Index;
+
+    use super::parse;
+
+    #[test]
+    fn test_filtered_query() {
+        let query = parse(&QueryParseContext::new(&Index::new()), &Json::from_str("
+        {
+            \"query\": {
+                \"term\": {
+                    \"the\": \"query\"
+                }
+            },
+            \"filter\": {
+                \"term\": {
+                    \"the\": \"filter\"
+                }
+            }
+        }
+        ").unwrap());
+
+        assert_eq!(query, Ok(Query::Bool {
+            must: vec![
+                Query::MatchTerm {
+                    field: "the".to_string(),
+                    term: Term::String("query".to_string()),
+                    boost: 1.0f64,
+                    matcher: TermMatcher::Exact
+                }
+            ],
+            must_not: vec![],
+            should: vec![],
+            filter: vec![
+                Query::MatchTerm {
+                    field: "the".to_string(),
+                    term: Term::String("filter".to_string()),
+                    boost: 1.0f64,
+                    matcher: TermMatcher::Exact
+                }
+            ],
+            minimum_should_match: 0,
+            boost: 1.0f64,
+        }))
+    }
+
+    #[test]
+    fn test_without_sub_query() {
+        let query = parse(&QueryParseContext::new(&Index::new()), &Json::from_str("
+        {
+            \"filter\": {
+                \"term\": {
+                    \"the\": \"filter\"
+                }
+            }
+        }
+        ").unwrap());
+
+        assert_eq!(query, Ok(Query::Bool {
+            must: vec![
+                Query::MatchAll {
+                    boost: 1.0f64,
+                }
+            ],
+            must_not: vec![],
+            should: vec![],
+            filter: vec![
+                Query::MatchTerm {
+                    field: "the".to_string(),
+                    term: Term::String("filter".to_string()),
+                    boost: 1.0f64,
+                    matcher: TermMatcher::Exact
+                }
+            ],
+            minimum_should_match: 0,
+            boost: 1.0f64,
+        }))
+    }
+
+    #[test]
+    fn test_gives_error_for_incorrect_type() {
+        // String
+        let query = parse(&QueryParseContext::new(&Index::new()), &Json::from_str("
+        \"hello\"
+        ").unwrap());
+
+        assert_eq!(query, Err(QueryParseError::ExpectedObject));
+
+        // Array
+        let query = parse(&QueryParseContext::new(&Index::new()), &Json::from_str("
+        [
+            \"foo\"
+        ]
+        ").unwrap());
+
+        assert_eq!(query, Err(QueryParseError::ExpectedObject));
+
+        // Integer
+        let query = parse(&QueryParseContext::new(&Index::new()), &Json::from_str("
+        123
+        ").unwrap());
+
+        assert_eq!(query, Err(QueryParseError::ExpectedObject));
+
+        // Float
+        let query = parse(&QueryParseContext::new(&Index::new()), &Json::from_str("
+        123.1234
+        ").unwrap());
+
+        assert_eq!(query, Err(QueryParseError::ExpectedObject));
+    }
+
+    #[test]
+    fn test_gives_error_for_invalid_query() {
+        let query = parse(&QueryParseContext::new(&Index::new()), &Json::from_str("
+        {
+            \"query\": \"foo\",
+            \"filter\": {
+                \"term\": {
+                    \"the\": \"filter\"
+                }
+            }
+        }
+        ").unwrap());
+
+        assert_eq!(query, Err(QueryParseError::ExpectedObject));
+    }
+
+    #[test]
+    fn test_gives_error_for_missing_filter() {
+        let query = parse(&QueryParseContext::new(&Index::new()), &Json::from_str("
+        {
+            \"query\": {
+                \"term\": {
+                    \"the\": \"query\"
+                }
+            }
+        }
+        ").unwrap());
+
+        assert_eq!(query, Err(QueryParseError::ExpectedKey("filter")));
+    }
+
+    #[test]
+    fn test_gives_error_for_invalid_filter() {
+        let query = parse(&QueryParseContext::new(&Index::new()), &Json::from_str("
+        {
+            \"query\": {
+                \"term\": {
+                    \"the\": \"query\"
+                }
+            },
+            \"filter\": \"foo\"
+        }
+        ").unwrap());
+
+        assert_eq!(query, Err(QueryParseError::ExpectedObject));
+    }
+
+    #[test]
+    fn test_gives_error_for_unexpected_key() {
+        let query = parse(&QueryParseContext::new(&Index::new()), &Json::from_str("
+        {
+            \"query\": {
+                \"term\": {
+                    \"the\": \"query\"
+                }
+            },
+            \"filter\": {
+                \"term\": {
+                    \"the\": \"filter\"
+                }
+            },
+            \"foo\": \"bar\"
+        }
+        ").unwrap());
+
+        assert_eq!(query, Err(QueryParseError::UnrecognisedKey("foo".to_string())));
+    }
+}

@@ -126,3 +126,298 @@ pub fn parse(context: &QueryParseContext, json: &Json) -> Result<Query, QueryPar
         }
     }
 }
+
+
+#[cfg(test)]
+mod tests {
+    use rustc_serialize::json::Json;
+
+    use term::Term;
+    use query::{Query, TermMatcher};
+    use query::parser::{QueryParseContext, QueryParseError};
+    use index::Index;
+
+    use super::parse;
+
+    #[test]
+    fn test_match_query() {
+        let query = parse(&QueryParseContext::new(&Index::new()), &Json::from_str("
+        {
+            \"foo\": {
+                \"query\": \"bar\"
+            }
+        }
+        ").unwrap());
+
+        assert_eq!(query, Ok(Query::Bool {
+            must: vec![],
+            must_not: vec![],
+            should: vec![
+                Query::MatchTerm {
+                    field: "foo".to_string(),
+                    term: Term::String("bar".to_string()),
+                    boost: 1.0f64,
+                    matcher: TermMatcher::Exact
+                }
+            ],
+            filter: vec![],
+            minimum_should_match: 1,
+            boost: 1.0f64,
+        }))
+    }
+
+    #[test]
+    fn test_multi_term_match_query() {
+        let query = parse(&QueryParseContext::new(&Index::new()), &Json::from_str("
+        {
+            \"foo\": {
+                \"query\": \"bar baz\"
+            }
+        }
+        ").unwrap());
+
+        assert_eq!(query, Ok(Query::Bool {
+            must: vec![],
+            must_not: vec![],
+            should: vec![
+                Query::MatchTerm {
+                    field: "foo".to_string(),
+                    term: Term::String("bar".to_string()),
+                    boost: 1.0f64,
+                    matcher: TermMatcher::Exact
+                },
+                Query::MatchTerm {
+                    field: "foo".to_string(),
+                    term: Term::String("baz".to_string()),
+                    boost: 1.0f64,
+                    matcher: TermMatcher::Exact
+                }
+            ],
+            filter: vec![],
+            minimum_should_match: 1,
+            boost: 1.0f64,
+        }))
+    }
+
+    #[test]
+    fn test_simple_multi_term_match_query() {
+        let query = parse(&QueryParseContext::new(&Index::new()), &Json::from_str("
+        {
+            \"foo\": \"bar baz\"
+        }
+        ").unwrap());
+
+        assert_eq!(query, Ok(Query::Bool {
+            must: vec![],
+            must_not: vec![],
+            should: vec![
+                Query::MatchTerm {
+                    field: "foo".to_string(),
+                    term: Term::String("bar".to_string()),
+                    boost: 1.0f64,
+                    matcher: TermMatcher::Exact
+                },
+                Query::MatchTerm {
+                    field: "foo".to_string(),
+                    term: Term::String("baz".to_string()),
+                    boost: 1.0f64,
+                    matcher: TermMatcher::Exact
+                }
+            ],
+            filter: vec![],
+            minimum_should_match: 1,
+            boost: 1.0f64,
+        }))
+    }
+
+    #[test]
+    fn test_with_boost() {
+        let query = parse(&QueryParseContext::new(&Index::new()), &Json::from_str("
+        {
+            \"foo\": {
+                \"query\": \"bar\",
+                \"boost\": 2.0
+            }
+        }
+        ").unwrap());
+
+        assert_eq!(query, Ok(Query::Bool {
+            must: vec![],
+            must_not: vec![],
+            should: vec![
+                Query::MatchTerm {
+                    field: "foo".to_string(),
+                    term: Term::String("bar".to_string()),
+                    boost: 1.0f64,
+                    matcher: TermMatcher::Exact
+                }
+            ],
+            filter: vec![],
+            minimum_should_match: 1,
+            boost: 2.0f64,
+        }))
+    }
+
+    #[test]
+    fn test_with_boost_integer() {
+        let query = parse(&QueryParseContext::new(&Index::new()), &Json::from_str("
+        {
+            \"foo\": {
+                \"query\": \"bar\",
+                \"boost\": 2
+            }
+        }
+        ").unwrap());
+
+        assert_eq!(query, Ok(Query::Bool {
+            must: vec![],
+            must_not: vec![],
+            should: vec![
+                Query::MatchTerm {
+                    field: "foo".to_string(),
+                    term: Term::String("bar".to_string()),
+                    boost: 1.0f64,
+                    matcher: TermMatcher::Exact
+                }
+            ],
+            filter: vec![],
+            minimum_should_match: 1,
+            boost: 2.0f64,
+        }))
+    }
+
+    #[test]
+    fn test_with_and_operator() {
+        let query = parse(&QueryParseContext::new(&Index::new()), &Json::from_str("
+        {
+            \"foo\": {
+                \"query\": \"bar\",
+                \"operator\": \"and\"
+            }
+        }
+        ").unwrap());
+
+        assert_eq!(query, Ok(Query::Bool {
+            must: vec![
+                Query::MatchTerm {
+                    field: "foo".to_string(),
+                    term: Term::String("bar".to_string()),
+                    boost: 1.0f64,
+                    matcher: TermMatcher::Exact
+                }
+            ],
+            must_not: vec![],
+            should: vec![],
+            filter: vec![],
+            minimum_should_match: 0,
+            boost: 1.0f64,
+        }))
+    }
+
+    #[test]
+    fn test_gives_error_for_incorrect_type() {
+        // Array
+        let query = parse(&QueryParseContext::new(&Index::new()), &Json::from_str("
+        [
+            \"foo\"
+        ]
+        ").unwrap());
+
+        assert_eq!(query, Err(QueryParseError::ExpectedObject));
+
+        // Integer
+        let query = parse(&QueryParseContext::new(&Index::new()), &Json::from_str("
+        123
+        ").unwrap());
+
+        assert_eq!(query, Err(QueryParseError::ExpectedObject));
+
+        // Float
+        let query = parse(&QueryParseContext::new(&Index::new()), &Json::from_str("
+        123.1234
+        ").unwrap());
+
+        assert_eq!(query, Err(QueryParseError::ExpectedObject));
+    }
+
+    #[test]
+    fn test_gives_error_for_incorrect_boost_type() {
+        // String
+        let query = parse(&QueryParseContext::new(&Index::new()), &Json::from_str("
+        {
+            \"foo\": {
+                \"query\": \"bar\",
+                \"boost\": \"2\"
+            }
+        }
+        ").unwrap());
+
+        assert_eq!(query, Err(QueryParseError::ExpectedFloat));
+
+        // Array
+        let query = parse(&QueryParseContext::new(&Index::new()), &Json::from_str("
+        {
+            \"foo\": {
+                \"query\": \"bar\",
+                \"boost\": [2]
+            }
+        }
+        ").unwrap());
+
+        assert_eq!(query, Err(QueryParseError::ExpectedFloat));
+
+        // Object
+        let query = parse(&QueryParseContext::new(&Index::new()), &Json::from_str("
+        {
+            \"foo\": {
+                \"query\": \"bar\",
+                \"boost\": {
+                    \"value\": 2
+                }
+            }
+        }
+        ").unwrap());
+
+        assert_eq!(query, Err(QueryParseError::ExpectedFloat));
+    }
+
+    #[test]
+    fn test_gives_error_for_missing_query() {
+        let query = parse(&QueryParseContext::new(&Index::new()), &Json::from_str("
+        {
+            \"foo\": {
+            }
+        }
+        ").unwrap());
+
+        assert_eq!(query, Err(QueryParseError::ExpectedKey("query")));
+    }
+
+    #[test]
+    fn test_gives_error_for_extra_key() {
+        let query = parse(&QueryParseContext::new(&Index::new()), &Json::from_str("
+        {
+            \"foo\": {
+                \"query\": \"bar\"
+            },
+            \"hello\": \"world\"
+        }
+        ").unwrap());
+
+        assert_eq!(query, Err(QueryParseError::ExpectedSingleKey));
+    }
+
+    #[test]
+    fn test_gives_error_for_extra_inner_key() {
+        let query = parse(&QueryParseContext::new(&Index::new()), &Json::from_str("
+        {
+            \"foo\": {
+                \"query\": \"bar\",
+                \"hello\": \"world\"
+            }
+        }
+        ").unwrap());
+
+        assert_eq!(query, Err(QueryParseError::UnrecognisedKey("hello".to_string())));
+    }
+}
