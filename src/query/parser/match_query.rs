@@ -44,7 +44,7 @@ pub fn parse(context: &QueryParseContext, json: &Json) -> Result<Query, QueryPar
         Json::Object(ref inner_object) => {
             let mut has_query_key = false;
 
-            for (key, value) in object.iter() {
+            for (key, value) in inner_object.iter() {
                 match key.as_ref() {
                     "query" => {
                         has_query_key = true;
