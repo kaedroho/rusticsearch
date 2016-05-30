@@ -65,7 +65,6 @@ pub fn parse(context: &QueryParseContext, json: &Json) -> Result<Query, QueryPar
                 field: field_name.clone(),
                 term: token.term,
                 matcher: TermMatcher::Exact,
-                boost: 1.0f64,
             });
         }
 
@@ -147,7 +146,6 @@ mod tests {
                             field: "bar".to_string(),
                             term: Term::String("foo".to_string()),
                             matcher: TermMatcher::Exact,
-                            boost: 1.0f64,
                         }
                     ],
                     filter: vec![],
@@ -161,7 +159,6 @@ mod tests {
                             field: "baz".to_string(),
                             term: Term::String("foo".to_string()),
                             matcher: TermMatcher::Exact,
-                            boost: 1.0f64,
                         }
                     ],
                     filter: vec![],
@@ -190,13 +187,11 @@ mod tests {
                             field: "bar".to_string(),
                             term: Term::String("hello".to_string()),
                             matcher: TermMatcher::Exact,
-                            boost: 1.0f64,
                         },
                         Query::MatchTerm {
                             field: "bar".to_string(),
                             term: Term::String("world".to_string()),
                             matcher: TermMatcher::Exact,
-                            boost: 1.0f64,
                         }
                     ],
                     filter: vec![],
@@ -210,13 +205,11 @@ mod tests {
                             field: "baz".to_string(),
                             term: Term::String("hello".to_string()),
                             matcher: TermMatcher::Exact,
-                            boost: 1.0f64,
                         },
                         Query::MatchTerm {
                             field: "baz".to_string(),
                             term: Term::String("world".to_string()),
                             matcher: TermMatcher::Exact,
-                            boost: 1.0f64,
                         }
                     ],
                     filter: vec![],
@@ -247,7 +240,6 @@ mod tests {
                                 field: "bar".to_string(),
                                 term: Term::String("foo".to_string()),
                                 matcher: TermMatcher::Exact,
-                                boost: 1.0f64,
                             }
                         ],
                         filter: vec![],
@@ -261,7 +253,6 @@ mod tests {
                                 field: "baz".to_string(),
                                 term: Term::String("foo".to_string()),
                                 matcher: TermMatcher::Exact,
-                                boost: 1.0f64,
                             }
                         ],
                         filter: vec![],
@@ -294,7 +285,6 @@ mod tests {
                                 field: "bar".to_string(),
                                 term: Term::String("foo".to_string()),
                                 matcher: TermMatcher::Exact,
-                                boost: 1.0f64,
                             }
                         ],
                         filter: vec![],
@@ -308,7 +298,6 @@ mod tests {
                                 field: "baz".to_string(),
                                 term: Term::String("foo".to_string()),
                                 matcher: TermMatcher::Exact,
-                                boost: 1.0f64,
                             }
                         ],
                         filter: vec![],
@@ -340,7 +329,6 @@ mod tests {
                                 field: "bar".to_string(),
                                 term: Term::String("foo".to_string()),
                                 matcher: TermMatcher::Exact,
-                                boost: 1.0f64,
                             }
                         ],
                         filter: vec![],
@@ -356,7 +344,6 @@ mod tests {
                             field: "baz".to_string(),
                             term: Term::String("foo".to_string()),
                             matcher: TermMatcher::Exact,
-                            boost: 1.0f64,
                         }
                     ],
                     filter: vec![],
@@ -384,7 +371,6 @@ mod tests {
                             field: "bar".to_string(),
                             term: Term::String("foo".to_string()),
                             matcher: TermMatcher::Exact,
-                            boost: 1.0f64,
                         }
                     ],
                     must_not: vec![],
@@ -398,7 +384,6 @@ mod tests {
                             field: "baz".to_string(),
                             term: Term::String("foo".to_string()),
                             matcher: TermMatcher::Exact,
-                            boost: 1.0f64,
                         }
                     ],
                     must_not: vec![],

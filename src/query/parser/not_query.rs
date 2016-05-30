@@ -48,7 +48,6 @@ mod tests {
                 Query::MatchTerm {
                     field: "test".to_string(),
                     term: Term::String("foo".to_string()),
-                    boost: 1.0f64,
                     matcher: TermMatcher::Exact
                 }
             ],

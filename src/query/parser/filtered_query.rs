@@ -89,7 +89,6 @@ mod tests {
                 Query::MatchTerm {
                     field: "the".to_string(),
                     term: Term::String("query".to_string()),
-                    boost: 1.0f64,
                     matcher: TermMatcher::Exact
                 }
             ],
@@ -99,7 +98,6 @@ mod tests {
                 Query::MatchTerm {
                     field: "the".to_string(),
                     term: Term::String("filter".to_string()),
-                    boost: 1.0f64,
                     matcher: TermMatcher::Exact
                 }
             ],
@@ -129,7 +127,6 @@ mod tests {
                 Query::MatchTerm {
                     field: "the".to_string(),
                     term: Term::String("filter".to_string()),
-                    boost: 1.0f64,
                     matcher: TermMatcher::Exact
                 }
             ],

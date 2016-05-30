@@ -59,12 +59,21 @@ pub fn parse(context: &QueryParseContext, json: &Json) -> Result<Query, QueryPar
 
     match value {
         Some(value) => {
-            Ok(Query::MatchTerm {
+            let mut query = Query::MatchTerm {
                 field: field_name.clone(),
                 term: Term::from_json(value),
                 matcher: TermMatcher::Prefix,
-                boost: boost,
-            })
+            };
+
+            // Add boost
+            if boost != 1.0f64 {
+                query = Query::BoostScore {
+                    query: Box::new(query),
+                    boost: boost,
+                };
+            }
+
+            Ok(query)
         }
         None => Err(QueryParseError::ExpectedKey("value"))
     }
@@ -95,7 +104,6 @@ mod tests {
         assert_eq!(query, Ok(Query::MatchTerm {
             field: "foo".to_string(),
             term: Term::String("bar".to_string()),
-            boost: 1.0f64,
             matcher: TermMatcher::Prefix
         }));
     }
@@ -111,7 +119,6 @@ mod tests {
         assert_eq!(query, Ok(Query::MatchTerm {
             field: "foo".to_string(),
             term: Term::String("bar".to_string()),
-            boost: 1.0f64,
             matcher: TermMatcher::Prefix
         }));
     }
@@ -129,7 +136,6 @@ mod tests {
         assert_eq!(query, Ok(Query::MatchTerm {
             field: "foo".to_string(),
             term: Term::String("bar".to_string()),
-            boost: 1.0f64,
             matcher: TermMatcher::Prefix
         }));
     }
@@ -145,11 +151,13 @@ mod tests {
         }
         ").unwrap());
 
-        assert_eq!(query, Ok(Query::MatchTerm {
-            field: "foo".to_string(),
-            term: Term::String("bar".to_string()),
+        assert_eq!(query, Ok(Query::BoostScore {
+            query: Box::new(Query::MatchTerm {
+                field: "foo".to_string(),
+                term: Term::String("bar".to_string()),
+                matcher: TermMatcher::Prefix
+            }),
             boost: 2.0f64,
-            matcher: TermMatcher::Prefix
         }));
     }
 
@@ -164,11 +172,13 @@ mod tests {
         }
         ").unwrap());
 
-        assert_eq!(query, Ok(Query::MatchTerm {
-            field: "foo".to_string(),
-            term: Term::String("bar".to_string()),
+        assert_eq!(query, Ok(Query::BoostScore {
+            query: Box::new(Query::MatchTerm {
+                field: "foo".to_string(),
+                term: Term::String("bar".to_string()),
+                matcher: TermMatcher::Prefix
+            }),
             boost: 2.0f64,
-            matcher: TermMatcher::Prefix
         }));
     }
 

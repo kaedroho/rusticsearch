@@ -19,7 +19,6 @@ pub enum Query {
     MatchTerm {
         field: String,
         term: Term,
-        boost: f64,
         matcher: TermMatcher,
     },
     Bool {

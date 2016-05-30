@@ -7,11 +7,11 @@ impl Query {
         match *self {
             Query::MatchAll => Some(1.0f64),
             Query::MatchNone => None,
-            Query::MatchTerm{ref field, ref term, ref matcher, boost} => {
+            Query::MatchTerm{ref field, ref term, ref matcher} => {
                 if let Some(field_value) = doc.fields.get(field) {
                     for field_token in field_value.iter() {
                         if matcher.matches(&field_token.term, term) {
-                            return Some(boost);
+                            return Some(1.0f64);
                         }
                     }
                 }

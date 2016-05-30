@@ -98,7 +98,6 @@ pub fn parse(context: &QueryParseContext, json: &Json) -> Result<Query, QueryPar
             field: field_name.clone(),
             term: token.term,
             matcher: TermMatcher::Exact,
-            boost: 1.0f64,
         });
     }
 
@@ -164,7 +163,6 @@ mod tests {
                 Query::MatchTerm {
                     field: "foo".to_string(),
                     term: Term::String("bar".to_string()),
-                    boost: 1.0f64,
                     matcher: TermMatcher::Exact
                 }
             ],
@@ -190,13 +188,11 @@ mod tests {
                 Query::MatchTerm {
                     field: "foo".to_string(),
                     term: Term::String("bar".to_string()),
-                    boost: 1.0f64,
                     matcher: TermMatcher::Exact
                 },
                 Query::MatchTerm {
                     field: "foo".to_string(),
                     term: Term::String("baz".to_string()),
-                    boost: 1.0f64,
                     matcher: TermMatcher::Exact
                 }
             ],
@@ -220,13 +216,11 @@ mod tests {
                 Query::MatchTerm {
                     field: "foo".to_string(),
                     term: Term::String("bar".to_string()),
-                    boost: 1.0f64,
                     matcher: TermMatcher::Exact
                 },
                 Query::MatchTerm {
                     field: "foo".to_string(),
                     term: Term::String("baz".to_string()),
-                    boost: 1.0f64,
                     matcher: TermMatcher::Exact
                 }
             ],
@@ -254,7 +248,6 @@ mod tests {
                     Query::MatchTerm {
                         field: "foo".to_string(),
                         term: Term::String("bar".to_string()),
-                        boost: 1.0f64,
                         matcher: TermMatcher::Exact
                     }
                 ],
@@ -284,7 +277,6 @@ mod tests {
                     Query::MatchTerm {
                         field: "foo".to_string(),
                         term: Term::String("bar".to_string()),
-                        boost: 1.0f64,
                         matcher: TermMatcher::Exact
                     }
                 ],
@@ -311,7 +303,6 @@ mod tests {
                 Query::MatchTerm {
                     field: "foo".to_string(),
                     term: Term::String("bar".to_string()),
-                    boost: 1.0f64,
                     matcher: TermMatcher::Exact
                 }
             ],

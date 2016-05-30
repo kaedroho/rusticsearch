@@ -41,12 +41,21 @@ pub fn parse(context: &QueryParseContext, json: &Json) -> Result<Query, QueryPar
 
     match term {
         Some(term) => {
-            Ok(Query::MatchTerm {
+            let mut query = Query::MatchTerm {
                 field: field_name.clone(),
                 term: term,
                 matcher: TermMatcher::Exact,
-                boost: boost,
-            })
+            };
+
+            // Add boost
+            if boost != 1.0f64 {
+                query = Query::BoostScore {
+                    query: Box::new(query),
+                    boost: boost,
+                };
+            }
+
+            Ok(query)
         }
         None => Err(QueryParseError::ExpectedKey("value"))
     }
@@ -77,7 +86,6 @@ mod tests {
         assert_eq!(query, Ok(Query::MatchTerm {
             field: "foo".to_string(),
             term: Term::String("bar".to_string()),
-            boost: 1.0f64,
             matcher: TermMatcher::Exact
         }));
     }
@@ -95,7 +103,6 @@ mod tests {
         assert_eq!(query, Ok(Query::MatchTerm {
             field: "foo".to_string(),
             term: Term::U64(123),
-            boost: 1.0f64,
             matcher: TermMatcher::Exact
         }));
     }
@@ -111,7 +118,6 @@ mod tests {
         assert_eq!(query, Ok(Query::MatchTerm {
             field: "foo".to_string(),
             term: Term::String("bar".to_string()),
-            boost: 1.0f64,
             matcher: TermMatcher::Exact
         }));
     }
@@ -127,11 +133,13 @@ mod tests {
         }
         ").unwrap());
 
-        assert_eq!(query, Ok(Query::MatchTerm {
-            field: "foo".to_string(),
-            term: Term::String("bar".to_string()),
+        assert_eq!(query, Ok(Query::BoostScore {
+            query: Box::new(Query::MatchTerm {
+                field: "foo".to_string(),
+                term: Term::String("bar".to_string()),
+                matcher: TermMatcher::Exact
+            }),
             boost: 2.0f64,
-            matcher: TermMatcher::Exact
         }));
     }
 
@@ -146,11 +154,13 @@ mod tests {
         }
         ").unwrap());
 
-        assert_eq!(query, Ok(Query::MatchTerm {
-            field: "foo".to_string(),
-            term: Term::String("bar".to_string()),
+        assert_eq!(query, Ok(Query::BoostScore {
+            query: Box::new(Query::MatchTerm {
+                field: "foo".to_string(),
+                term: Term::String("bar".to_string()),
+                matcher: TermMatcher::Exact
+            }),
             boost: 2.0f64,
-            matcher: TermMatcher::Exact
         }));
     }
 
