@@ -24,7 +24,7 @@ impl TermMatcher {
 impl Query {
     pub fn matches(&self, doc: &Document) -> bool {
         match *self {
-            Query::MatchAll{ref boost} => true,
+            Query::MatchAll => true,
             Query::MatchNone => false,
             Query::MatchTerm{ref field, ref term, ref matcher, boost} => {
                 if let Some(field_value) = doc.fields.get(field) {

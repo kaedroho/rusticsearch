@@ -5,7 +5,7 @@ use query::Query;
 impl Query {
     pub fn rank(&self, doc: &Document) -> Option<f64> {
         match *self {
-            Query::MatchAll{boost} => Some(boost),
+            Query::MatchAll => Some(1.0f64),
             Query::MatchNone => None,
             Query::MatchTerm{ref field, ref term, ref matcher, boost} => {
                 if let Some(field_value) = doc.fields.get(field) {

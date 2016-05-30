@@ -14,9 +14,7 @@ pub enum TermMatcher {
 
 #[derive(Debug, PartialEq)]
 pub enum Query {
-    MatchAll {
-        boost: f64,
-    },
+    MatchAll,
     MatchNone,
     MatchTerm {
         field: String,

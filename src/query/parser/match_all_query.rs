@@ -20,9 +20,18 @@ pub fn parse(context: &QueryParseContext, json: &Json) -> Result<Query, QueryPar
         }
     }
 
-    Ok(Query::MatchAll {
-        boost: boost,
-    })
+
+    let mut query = Query::MatchAll;
+
+    // Add boost
+    if boost != 1.0f64 {
+        query = Query::BoostScore {
+            query: Box::new(query),
+            boost: boost,
+        };
+    }
+
+    return Ok(query);
 }
 
 
@@ -44,9 +53,7 @@ mod tests {
         }
         ").unwrap());
 
-        assert_eq!(query, Ok(Query::MatchAll {
-            boost: 1.0f64,
-        }))
+        assert_eq!(query, Ok(Query::MatchAll))
     }
 
     #[test]
@@ -57,7 +64,8 @@ mod tests {
         }
         ").unwrap());
 
-        assert_eq!(query, Ok(Query::MatchAll {
+        assert_eq!(query, Ok(Query::BoostScore {
+            query: Box::new(Query::MatchAll),
             boost: 2.0f64,
         }))
     }
@@ -70,7 +78,8 @@ mod tests {
         }
         ").unwrap());
 
-        assert_eq!(query, Ok(Query::MatchAll {
+        assert_eq!(query, Ok(Query::BoostScore {
+            query: Box::new(Query::MatchAll),
             boost: 2.0f64,
         }))
     }

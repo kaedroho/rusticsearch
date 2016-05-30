@@ -9,9 +9,7 @@ pub fn parse(context: &QueryParseContext, json: &Json) -> Result<Query, QueryPar
 
     Ok(Query::Bool {
         must: vec![
-            Query::MatchAll {
-                boost: 1.0f64,
-            }
+            Query::MatchAll
         ],
         must_not: vec![sub_query],
         should: vec![],
@@ -45,9 +43,7 @@ mod tests {
 
         assert_eq!(query, Ok(Query::Bool {
             must: vec![
-                Query::MatchAll {
-                    boost: 1.0f64
-                }
+                Query::MatchAll
             ],
             must_not: vec![
                 Query::MatchTerm {

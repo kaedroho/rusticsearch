@@ -24,9 +24,7 @@ pub fn parse(context: &QueryParseContext, json: &Json) -> Result<Query, QueryPar
     //    }
     // }
     //
-    let mut query = Query::MatchAll{
-        boost: 1.0f64,
-    };
+    let mut query = Query::MatchAll;
 
     let mut filter = Query::MatchNone;
     let mut has_filter_key = false;
@@ -125,9 +123,7 @@ mod tests {
 
         assert_eq!(query, Ok(Query::Bool {
             must: vec![
-                Query::MatchAll {
-                    boost: 1.0f64,
-                }
+                Query::MatchAll
             ],
             must_not: vec![],
             should: vec![],
