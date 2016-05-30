@@ -83,6 +83,12 @@ impl Query {
                     None
                 }
             }
+            Query::BoostScore{ref query, boost} => {
+                match query.rank(doc) {
+                    Some(score) => Some(score * boost),
+                    None => None
+                }
+            }
         }
     }
 }

@@ -86,6 +86,9 @@ impl Query {
 
                 return false;
             }
+            Query::BoostScore{ref query, boost} => {
+                query.matches(doc)
+            }
         }
     }
 }

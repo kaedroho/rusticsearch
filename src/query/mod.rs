@@ -36,4 +36,8 @@ pub enum Query {
         queries: Vec<Query>,
         boost: f64,
     },
+    BoostScore {
+        query: Box<Query>,
+        boost: f64,
+    }
 }
