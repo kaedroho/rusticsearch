@@ -103,28 +103,36 @@ pub fn parse(context: &QueryParseContext, json: &Json) -> Result<Query, QueryPar
     }
 
     // Combine the term queries
-    match operator {
+    let mut query = match operator {
         Operator::Or => {
-            Ok(Query::Bool {
+            Query::Bool {
                 must: vec![],
                 must_not: vec![],
                 should: sub_queries,
                 filter: vec![],
                 minimum_should_match: 1,
-                boost: boost,
-            })
+            }
         }
         Operator::And => {
-            Ok(Query::Bool {
+            Query::Bool {
                 must: sub_queries,
                 must_not: vec![],
                 should: vec![],
                 filter: vec![],
                 minimum_should_match: 0,
-                boost: boost,
-            })
+            }
         }
+    };
+
+    // Add boost
+    if boost != 1.0f64 {
+        query = Query::BoostScore {
+            query: Box::new(query),
+            boost: boost,
+        };
     }
+
+    return Ok(query);
 }
 
 
@@ -162,7 +170,6 @@ mod tests {
             ],
             filter: vec![],
             minimum_should_match: 1,
-            boost: 1.0f64,
         }))
     }
 
@@ -195,7 +202,6 @@ mod tests {
             ],
             filter: vec![],
             minimum_should_match: 1,
-            boost: 1.0f64,
         }))
     }
 
@@ -226,7 +232,6 @@ mod tests {
             ],
             filter: vec![],
             minimum_should_match: 1,
-            boost: 1.0f64,
         }))
     }
 
@@ -241,19 +246,21 @@ mod tests {
         }
         ").unwrap());
 
-        assert_eq!(query, Ok(Query::Bool {
-            must: vec![],
-            must_not: vec![],
-            should: vec![
-                Query::MatchTerm {
-                    field: "foo".to_string(),
-                    term: Term::String("bar".to_string()),
-                    boost: 1.0f64,
-                    matcher: TermMatcher::Exact
-                }
-            ],
-            filter: vec![],
-            minimum_should_match: 1,
+        assert_eq!(query, Ok(Query::BoostScore {
+            query: Box::new(Query::Bool {
+                must: vec![],
+                must_not: vec![],
+                should: vec![
+                    Query::MatchTerm {
+                        field: "foo".to_string(),
+                        term: Term::String("bar".to_string()),
+                        boost: 1.0f64,
+                        matcher: TermMatcher::Exact
+                    }
+                ],
+                filter: vec![],
+                minimum_should_match: 1,
+            }),
             boost: 2.0f64,
         }))
     }
@@ -269,19 +276,21 @@ mod tests {
         }
         ").unwrap());
 
-        assert_eq!(query, Ok(Query::Bool {
-            must: vec![],
-            must_not: vec![],
-            should: vec![
-                Query::MatchTerm {
-                    field: "foo".to_string(),
-                    term: Term::String("bar".to_string()),
-                    boost: 1.0f64,
-                    matcher: TermMatcher::Exact
-                }
-            ],
-            filter: vec![],
-            minimum_should_match: 1,
+        assert_eq!(query, Ok(Query::BoostScore {
+            query: Box::new(Query::Bool {
+                must: vec![],
+                must_not: vec![],
+                should: vec![
+                    Query::MatchTerm {
+                        field: "foo".to_string(),
+                        term: Term::String("bar".to_string()),
+                        boost: 1.0f64,
+                        matcher: TermMatcher::Exact
+                    }
+                ],
+                filter: vec![],
+                minimum_should_match: 1,
+            }),
             boost: 2.0f64,
         }))
     }
@@ -310,7 +319,6 @@ mod tests {
             should: vec![],
             filter: vec![],
             minimum_should_match: 0,
-            boost: 1.0f64,
         }))
     }
 

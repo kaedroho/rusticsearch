@@ -18,7 +18,6 @@ pub fn parse(context: &QueryParseContext, json: &Json) -> Result<Query, QueryPar
         should: sub_queries,
         filter: vec![],
         minimum_should_match: 1,
-        boost: 1.0f64,
     })
 }
 
@@ -70,7 +69,6 @@ mod tests {
             ],
             filter: vec![],
             minimum_should_match: 1,
-            boost: 1.0f64,
         }))
     }
 

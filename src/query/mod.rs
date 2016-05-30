@@ -28,7 +28,6 @@ pub enum Query {
         should: Vec<Query>,
         filter: Vec<Query>,
         minimum_should_match: i32,
-        boost: f64,
     },
     DisjunctionMax {
         queries: Vec<Query>,

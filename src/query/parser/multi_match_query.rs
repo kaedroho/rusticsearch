@@ -69,7 +69,7 @@ pub fn parse(context: &QueryParseContext, json: &Json) -> Result<Query, QueryPar
             });
         }
 
-        field_queries.push(match operator {
+        let mut field_query = match operator {
             Operator::Or => {
                 Query::Bool {
                     must: vec![],
@@ -77,7 +77,6 @@ pub fn parse(context: &QueryParseContext, json: &Json) -> Result<Query, QueryPar
                     should: term_queries,
                     filter: vec![],
                     minimum_should_match: 1,
-                    boost: field_boost,
                 }
             }
             Operator::And => {
@@ -87,10 +86,19 @@ pub fn parse(context: &QueryParseContext, json: &Json) -> Result<Query, QueryPar
                     should: vec![],
                     filter: vec![],
                     minimum_should_match: 0,
-                    boost: field_boost,
                 }
             }
-        });
+        };
+
+        // Add boost
+        if field_boost != 1.0f64 {
+            field_query = Query::BoostScore {
+                query: Box::new(field_query),
+                boost: field_boost,
+            };
+        }
+
+        field_queries.push(field_query);
     }
 
     let mut query = Query::DisjunctionMax {
@@ -144,7 +152,6 @@ mod tests {
                     ],
                     filter: vec![],
                     minimum_should_match: 1,
-                    boost: 1.0f64,
                 },
                 Query::Bool {
                     must: vec![],
@@ -159,7 +166,6 @@ mod tests {
                     ],
                     filter: vec![],
                     minimum_should_match: 1,
-                    boost: 1.0f64,
                 }
             ],
         }));
@@ -195,7 +201,6 @@ mod tests {
                     ],
                     filter: vec![],
                     minimum_should_match: 1,
-                    boost: 1.0f64,
                 },
                 Query::Bool {
                     must: vec![],
@@ -216,7 +221,6 @@ mod tests {
                     ],
                     filter: vec![],
                     minimum_should_match: 1,
-                    boost: 1.0f64,
                 }
             ],
         }));
@@ -248,7 +252,6 @@ mod tests {
                         ],
                         filter: vec![],
                         minimum_should_match: 1,
-                        boost: 1.0f64,
                     },
                     Query::Bool {
                         must: vec![],
@@ -263,7 +266,6 @@ mod tests {
                         ],
                         filter: vec![],
                         minimum_should_match: 1,
-                        boost: 1.0f64,
                     }
                 ],
             }),
@@ -297,7 +299,6 @@ mod tests {
                         ],
                         filter: vec![],
                         minimum_should_match: 1,
-                        boost: 1.0f64,
                     },
                     Query::Bool {
                         must: vec![],
@@ -312,7 +313,6 @@ mod tests {
                         ],
                         filter: vec![],
                         minimum_should_match: 1,
-                        boost: 1.0f64,
                     }
                 ],
             }),
@@ -325,25 +325,27 @@ mod tests {
         let query = parse(&QueryParseContext::new(&Index::new()), &Json::from_str("
         {
             \"query\": \"foo\",
-            \"fields\": [\"bar^2\", \"baz^3.0\"]
+            \"fields\": [\"bar^2\", \"baz^1.0\"]
         }
         ").unwrap());
 
         assert_eq!(query, Ok(Query::DisjunctionMax {
             queries: vec![
-                Query::Bool {
-                    must: vec![],
-                    must_not: vec![],
-                    should: vec![
-                        Query::MatchTerm {
-                            field: "bar".to_string(),
-                            term: Term::String("foo".to_string()),
-                            matcher: TermMatcher::Exact,
-                            boost: 1.0f64,
-                        }
-                    ],
-                    filter: vec![],
-                    minimum_should_match: 1,
+                Query::BoostScore {
+                    query: Box::new(Query::Bool {
+                        must: vec![],
+                        must_not: vec![],
+                        should: vec![
+                            Query::MatchTerm {
+                                field: "bar".to_string(),
+                                term: Term::String("foo".to_string()),
+                                matcher: TermMatcher::Exact,
+                                boost: 1.0f64,
+                            }
+                        ],
+                        filter: vec![],
+                        minimum_should_match: 1,
+                    }),
                     boost: 2.0f64,
                 },
                 Query::Bool {
@@ -359,7 +361,6 @@ mod tests {
                     ],
                     filter: vec![],
                     minimum_should_match: 1,
-                    boost: 3.0f64,
                 }
             ],
         }));
@@ -390,7 +391,6 @@ mod tests {
                     should: vec![],
                     filter: vec![],
                     minimum_should_match: 0,
-                    boost: 1.0f64,
                 },
                 Query::Bool {
                     must: vec![
@@ -405,7 +405,6 @@ mod tests {
                     should: vec![],
                     filter: vec![],
                     minimum_should_match: 0,
-                    boost: 1.0f64,
                 }
             ],
         }));

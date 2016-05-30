@@ -18,7 +18,7 @@ impl Query {
 
                 None
             }
-            Query::Bool{ref must, ref must_not, ref should, ref filter, minimum_should_match, boost} => {
+            Query::Bool{ref must, ref must_not, ref should, ref filter, minimum_should_match} => {
                 let mut total_score: f64 = 0.0;
 
                 // Must not
@@ -59,7 +59,7 @@ impl Query {
                 }
 
                 // Return average score of matched queries
-                Some((total_score * boost) / (must.len() + should.len()) as f64)
+                Some(total_score / (must.len() + should.len()) as f64)
             }
             Query::DisjunctionMax{ref queries} => {
                 let mut something_matched = false;

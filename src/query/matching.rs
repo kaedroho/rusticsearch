@@ -37,7 +37,7 @@ impl Query {
 
                 false
             }
-            Query::Bool{ref must, ref must_not, ref should, ref filter, minimum_should_match, boost} => {
+            Query::Bool{ref must, ref must_not, ref should, ref filter, minimum_should_match} => {
                 // Must not
                 for query in must_not {
                     if query.matches(doc) {
