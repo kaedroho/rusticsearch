@@ -61,7 +61,7 @@ impl Query {
                 // Return average score of matched queries
                 Some((total_score * boost) / (must.len() + should.len()) as f64)
             }
-            Query::DisjunctionMax{ref queries, boost} => {
+            Query::DisjunctionMax{ref queries} => {
                 let mut something_matched = false;
                 let mut max_score = 0.0f64;
 
@@ -78,7 +78,7 @@ impl Query {
                 }
 
                 if something_matched {
-                    Some(max_score * boost)
+                    Some(max_score)
                 } else {
                     None
                 }

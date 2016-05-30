@@ -34,7 +34,6 @@ pub enum Query {
     },
     DisjunctionMax {
         queries: Vec<Query>,
-        boost: f64,
     },
     BoostScore {
         query: Box<Query>,

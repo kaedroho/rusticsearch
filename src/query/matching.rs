@@ -77,7 +77,7 @@ impl Query {
 
                 return true;
             }
-            Query::DisjunctionMax{ref queries, boost} => {
+            Query::DisjunctionMax{ref queries} => {
                 for query in queries {
                     if query.matches(doc) {
                         return true;
