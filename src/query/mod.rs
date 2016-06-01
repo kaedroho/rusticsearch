@@ -21,13 +21,6 @@ pub enum Query {
         term: Term,
         matcher: TermMatcher,
     },
-    Bool {
-        must: Vec<Query>,
-        must_not: Vec<Query>,
-        should: Vec<Query>,
-        filter: Vec<Query>,
-        minimum_should_match: i32,
-    },
     And {
         queries: Vec<Query>,
     },

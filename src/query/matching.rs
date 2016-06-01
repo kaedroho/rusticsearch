@@ -37,46 +37,6 @@ impl Query {
 
                 false
             }
-            Query::Bool{ref must, ref must_not, ref should, ref filter, minimum_should_match} => {
-                // Must not
-                for query in must_not {
-                    if query.matches(doc) {
-                        return false;
-                    }
-                }
-
-                // Filter
-                for filter in filter {
-                    if !filter.matches(doc) {
-                        return false;
-                    }
-                }
-
-                // Must
-                for query in must {
-                    if !query.matches(doc) {
-                        return false;
-                    }
-                }
-
-                // Should
-                if minimum_should_match > 0 {
-                    let mut should_matched: i32 = 0;
-                    for query in should {
-                        if query.matches(doc) {
-                            should_matched += 1;
-
-                            if should_matched >= minimum_should_match {
-                                return true;
-                            }
-                        }
-                    }
-
-                    return false;
-                }
-
-                return true;
-            }
             Query::And{ref queries} => {
                 for query in queries {
                     if !query.matches(doc) {
