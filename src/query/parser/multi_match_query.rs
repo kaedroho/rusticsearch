@@ -70,21 +70,13 @@ pub fn parse(context: &QueryParseContext, json: &Json) -> Result<Query, QueryPar
 
         let mut field_query = match operator {
             Operator::Or => {
-                Query::Bool {
-                    must: vec![],
-                    must_not: vec![],
-                    should: term_queries,
-                    filter: vec![],
-                    minimum_should_match: 1,
+                Query::Or {
+                    queries: term_queries,
                 }
             }
             Operator::And => {
-                Query::Bool {
-                    must: term_queries,
-                    must_not: vec![],
-                    should: vec![],
-                    filter: vec![],
-                    minimum_should_match: 0,
+                Query::And {
+                    queries: term_queries,
                 }
             }
         };
@@ -138,31 +130,23 @@ mod tests {
 
         assert_eq!(query, Ok(Query::DisjunctionMax {
             queries: vec![
-                Query::Bool {
-                    must: vec![],
-                    must_not: vec![],
-                    should: vec![
+                Query::Or {
+                    queries: vec![
                         Query::MatchTerm {
                             field: "bar".to_string(),
                             term: Term::String("foo".to_string()),
                             matcher: TermMatcher::Exact,
                         }
                     ],
-                    filter: vec![],
-                    minimum_should_match: 1,
                 },
-                Query::Bool {
-                    must: vec![],
-                    must_not: vec![],
-                    should: vec![
+                Query::Or {
+                    queries: vec![
                         Query::MatchTerm {
                             field: "baz".to_string(),
                             term: Term::String("foo".to_string()),
                             matcher: TermMatcher::Exact,
                         }
                     ],
-                    filter: vec![],
-                    minimum_should_match: 1,
                 }
             ],
         }));
@@ -179,10 +163,8 @@ mod tests {
 
         assert_eq!(query, Ok(Query::DisjunctionMax {
             queries: vec![
-                Query::Bool {
-                    must: vec![],
-                    must_not: vec![],
-                    should: vec![
+                Query::Or {
+                    queries: vec![
                         Query::MatchTerm {
                             field: "bar".to_string(),
                             term: Term::String("hello".to_string()),
@@ -194,13 +176,9 @@ mod tests {
                             matcher: TermMatcher::Exact,
                         }
                     ],
-                    filter: vec![],
-                    minimum_should_match: 1,
                 },
-                Query::Bool {
-                    must: vec![],
-                    must_not: vec![],
-                    should: vec![
+                Query::Or {
+                    queries: vec![
                         Query::MatchTerm {
                             field: "baz".to_string(),
                             term: Term::String("hello".to_string()),
@@ -212,8 +190,6 @@ mod tests {
                             matcher: TermMatcher::Exact,
                         }
                     ],
-                    filter: vec![],
-                    minimum_should_match: 1,
                 }
             ],
         }));
@@ -232,31 +208,23 @@ mod tests {
         assert_eq!(query, Ok(Query::BoostScore {
             query: Box::new(Query::DisjunctionMax {
                 queries: vec![
-                    Query::Bool {
-                        must: vec![],
-                        must_not: vec![],
-                        should: vec![
+                    Query::Or {
+                        queries: vec![
                             Query::MatchTerm {
                                 field: "bar".to_string(),
                                 term: Term::String("foo".to_string()),
                                 matcher: TermMatcher::Exact,
                             }
                         ],
-                        filter: vec![],
-                        minimum_should_match: 1,
                     },
-                    Query::Bool {
-                        must: vec![],
-                        must_not: vec![],
-                        should: vec![
+                    Query::Or {
+                        queries: vec![
                             Query::MatchTerm {
                                 field: "baz".to_string(),
                                 term: Term::String("foo".to_string()),
                                 matcher: TermMatcher::Exact,
                             }
                         ],
-                        filter: vec![],
-                        minimum_should_match: 1,
                     }
                 ],
             }),
@@ -277,31 +245,23 @@ mod tests {
         assert_eq!(query, Ok(Query::BoostScore {
             query: Box::new(Query::DisjunctionMax {
                 queries: vec![
-                    Query::Bool {
-                        must: vec![],
-                        must_not: vec![],
-                        should: vec![
+                    Query::Or {
+                        queries: vec![
                             Query::MatchTerm {
                                 field: "bar".to_string(),
                                 term: Term::String("foo".to_string()),
                                 matcher: TermMatcher::Exact,
                             }
                         ],
-                        filter: vec![],
-                        minimum_should_match: 1,
                     },
-                    Query::Bool {
-                        must: vec![],
-                        must_not: vec![],
-                        should: vec![
+                    Query::Or {
+                        queries: vec![
                             Query::MatchTerm {
                                 field: "baz".to_string(),
                                 term: Term::String("foo".to_string()),
                                 matcher: TermMatcher::Exact,
                             }
                         ],
-                        filter: vec![],
-                        minimum_should_match: 1,
                     }
                 ],
             }),
@@ -321,33 +281,25 @@ mod tests {
         assert_eq!(query, Ok(Query::DisjunctionMax {
             queries: vec![
                 Query::BoostScore {
-                    query: Box::new(Query::Bool {
-                        must: vec![],
-                        must_not: vec![],
-                        should: vec![
+                    query: Box::new(Query::Or {
+                        queries: vec![
                             Query::MatchTerm {
                                 field: "bar".to_string(),
                                 term: Term::String("foo".to_string()),
                                 matcher: TermMatcher::Exact,
                             }
                         ],
-                        filter: vec![],
-                        minimum_should_match: 1,
                     }),
                     boost: 2.0f64,
                 },
-                Query::Bool {
-                    must: vec![],
-                    must_not: vec![],
-                    should: vec![
+                Query::Or {
+                    queries: vec![
                         Query::MatchTerm {
                             field: "baz".to_string(),
                             term: Term::String("foo".to_string()),
                             matcher: TermMatcher::Exact,
                         }
                     ],
-                    filter: vec![],
-                    minimum_should_match: 1,
                 }
             ],
         }));
@@ -365,31 +317,23 @@ mod tests {
 
         assert_eq!(query, Ok(Query::DisjunctionMax {
             queries: vec![
-                Query::Bool {
-                    must: vec![
+                Query::And {
+                    queries: vec![
                         Query::MatchTerm {
                             field: "bar".to_string(),
                             term: Term::String("foo".to_string()),
                             matcher: TermMatcher::Exact,
                         }
                     ],
-                    must_not: vec![],
-                    should: vec![],
-                    filter: vec![],
-                    minimum_should_match: 0,
                 },
-                Query::Bool {
-                    must: vec![
+                Query::And {
+                    queries: vec![
                         Query::MatchTerm {
                             field: "baz".to_string(),
                             term: Term::String("foo".to_string()),
                             matcher: TermMatcher::Exact,
                         }
                     ],
-                    must_not: vec![],
-                    should: vec![],
-                    filter: vec![],
-                    minimum_should_match: 0,
                 }
             ],
         }));
