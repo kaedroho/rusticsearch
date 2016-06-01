@@ -89,6 +89,13 @@ impl Query {
                     None => None
                 }
             }
+            Query::ConstantScore{ref query, score} => {
+                if query.matches(doc) {
+                    Some(score)
+                } else {
+                    None
+                }
+            }
         }
     }
 }

@@ -89,6 +89,9 @@ impl Query {
             Query::BoostScore{ref query, boost} => {
                 query.matches(doc)
             }
+            Query::ConstantScore{ref query, score} => {
+                query.matches(doc)
+            }
         }
     }
 }

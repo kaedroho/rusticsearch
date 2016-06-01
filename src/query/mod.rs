@@ -34,5 +34,9 @@ pub enum Query {
     BoostScore {
         query: Box<Query>,
         boost: f64,
-    }
+    },
+    ConstantScore {
+        query: Box<Query>,
+        score: f64,
+    },
 }
