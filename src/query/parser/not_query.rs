@@ -5,16 +5,9 @@ use query::parser::{QueryParseContext, QueryParseError, parse as parse_query};
 
 
 pub fn parse(context: &QueryParseContext, json: &Json) -> Result<Query, QueryParseError> {
-    let sub_query = try!(parse_query(context, json));
-
-    Ok(Query::Bool {
-        must: vec![
-            Query::MatchAll
-        ],
-        must_not: vec![sub_query],
-        should: vec![],
-        filter: vec![],
-        minimum_should_match: 0,
+    Ok(Query::NegativeFilter {
+        query: Box::new(Query::MatchAll),
+        filter: Box::new(try!(parse_query(context, json))),
     })
 }
 
@@ -40,20 +33,13 @@ mod tests {
         }
         ").unwrap());
 
-        assert_eq!(query, Ok(Query::Bool {
-            must: vec![
-                Query::MatchAll
-            ],
-            must_not: vec![
-                Query::MatchTerm {
-                    field: "test".to_string(),
-                    term: Term::String("foo".to_string()),
-                    matcher: TermMatcher::Exact
-                }
-            ],
-            should: vec![],
-            filter: vec![],
-            minimum_should_match: 0,
+        assert_eq!(query, Ok(Query::NegativeFilter {
+            query: Box::new(Query::MatchAll),
+            filter: Box::new(Query::MatchTerm {
+                field: "test".to_string(),
+                term: Term::String("foo".to_string()),
+                matcher: TermMatcher::Exact
+            }),
         }))
     }
 
