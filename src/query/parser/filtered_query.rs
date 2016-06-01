@@ -46,12 +46,9 @@ pub fn parse(context: &QueryParseContext, json: &Json) -> Result<Query, QueryPar
         return Err(QueryParseError::ExpectedKey("filter"))
     }
 
-    return Ok(Query::Bool {
-        must: vec![query],
-        must_not: vec![],
-        should: vec![],
-        filter: vec![filter],
-        minimum_should_match: 0,
+    return Ok(Query::Filter {
+        query: Box::new(query),
+        filter: Box::new(filter),
     })
 }
 
@@ -84,24 +81,17 @@ mod tests {
         }
         ").unwrap());
 
-        assert_eq!(query, Ok(Query::Bool {
-            must: vec![
-                Query::MatchTerm {
-                    field: "the".to_string(),
-                    term: Term::String("query".to_string()),
-                    matcher: TermMatcher::Exact
-                }
-            ],
-            must_not: vec![],
-            should: vec![],
-            filter: vec![
-                Query::MatchTerm {
-                    field: "the".to_string(),
-                    term: Term::String("filter".to_string()),
-                    matcher: TermMatcher::Exact
-                }
-            ],
-            minimum_should_match: 0,
+        assert_eq!(query, Ok(Query::Filter {
+            query: Box::new(Query::MatchTerm {
+                field: "the".to_string(),
+                term: Term::String("query".to_string()),
+                matcher: TermMatcher::Exact
+            }),
+            filter: Box::new(Query::MatchTerm {
+                field: "the".to_string(),
+                term: Term::String("filter".to_string()),
+                matcher: TermMatcher::Exact
+            }),
         }))
     }
 
@@ -117,20 +107,13 @@ mod tests {
         }
         ").unwrap());
 
-        assert_eq!(query, Ok(Query::Bool {
-            must: vec![
-                Query::MatchAll
-            ],
-            must_not: vec![],
-            should: vec![],
-            filter: vec![
-                Query::MatchTerm {
-                    field: "the".to_string(),
-                    term: Term::String("filter".to_string()),
-                    matcher: TermMatcher::Exact
-                }
-            ],
-            minimum_should_match: 0,
+        assert_eq!(query, Ok(Query::Filter {
+            query: Box::new(Query::MatchAll),
+            filter: Box::new(Query::MatchTerm {
+                field: "the".to_string(),
+                term: Term::String("filter".to_string()),
+                matcher: TermMatcher::Exact
+            }),
         }))
     }
 
