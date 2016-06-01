@@ -77,6 +77,15 @@ impl Query {
 
                 return true;
             }
+            Query::And{ref queries} => {
+                for query in queries {
+                    if !query.matches(doc) {
+                        return false;
+                    }
+                }
+
+                return true;
+            }
             Query::DisjunctionMax{ref queries} => {
                 for query in queries {
                     if query.matches(doc) {

@@ -61,6 +61,20 @@ impl Query {
                 // Return average score of matched queries
                 Some(total_score / (must.len() + should.len()) as f64)
             }
+            Query::And{ref queries} => {
+                let mut total_score = 0.0f64;
+
+                for query in queries {
+                    match query.rank(doc) {
+                        Some(score) => {
+                            total_score += score;
+                        }
+                        None => return None
+                    }
+                }
+
+                Some(total_score / queries.len() as f64)
+            }
             Query::DisjunctionMax{ref queries} => {
                 let mut something_matched = false;
                 let mut max_score = 0.0f64;
