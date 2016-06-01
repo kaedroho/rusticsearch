@@ -86,6 +86,21 @@ impl Query {
 
                 return true;
             }
+            Query::Or{ref queries, minimum_should_match} => {
+                let mut should_matched = 0;
+
+                for query in queries {
+                    if query.matches(doc) {
+                        should_matched += 1;
+
+                        if should_matched >= minimum_should_match {
+                            return true;
+                        }
+                    }
+                }
+
+                return false;
+            }
             Query::DisjunctionMax{ref queries} => {
                 for query in queries {
                     if query.matches(doc) {

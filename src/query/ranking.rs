@@ -75,6 +75,23 @@ impl Query {
 
                 Some(total_score / queries.len() as f64)
             }
+            Query::Or{ref queries, minimum_should_match} => {
+                let mut should_matched = 0;
+                let mut total_score = 0.0f64;
+
+                for query in queries {
+                    if let Some(score) = query.rank(doc) {
+                        should_matched += 1;
+                        total_score += score;
+                    }
+                }
+
+                if should_matched < minimum_should_match {
+                    return None;
+                }
+
+                Some(total_score / queries.len() as f64)
+            }
             Query::DisjunctionMax{ref queries} => {
                 let mut something_matched = false;
                 let mut max_score = 0.0f64;
