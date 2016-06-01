@@ -12,12 +12,8 @@ pub fn parse(context: &QueryParseContext, json: &Json) -> Result<Query, QueryPar
         sub_queries.push(try!(parse_query(context, filter)));
     }
 
-    Ok(Query::Bool {
-        must: sub_queries,
-        must_not: vec![],
-        should: vec![],
-        filter: vec![],
-        minimum_should_match: 0,
+    Ok(Query::And {
+        queries: sub_queries,
     })
 }
 
@@ -50,8 +46,8 @@ mod tests {
         ]
         ").unwrap());
 
-        assert_eq!(query, Ok(Query::Bool {
-            must: vec![
+        assert_eq!(query, Ok(Query::And {
+            queries: vec![
                 Query::MatchTerm {
                     field: "test".to_string(),
                     term: Term::String("foo".to_string()),
@@ -63,10 +59,6 @@ mod tests {
                     matcher: TermMatcher::Exact
                 },
             ],
-            must_not: vec![],
-            should: vec![],
-            filter: vec![],
-            minimum_should_match: 0,
         }))
     }
 
