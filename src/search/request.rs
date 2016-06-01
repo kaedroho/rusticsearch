@@ -27,7 +27,7 @@ impl SearchRequest {
         }
 
         // Sort by score
-        hits.sort_by(|a, b| a.score.partial_cmp(&b.score).unwrap_or(Ordering::Less));
+        hits.sort_by(|a, b| b.score.partial_cmp(&a.score).unwrap_or(Ordering::Less));
 
         // Pagination
         let total_hits = hits.len();
