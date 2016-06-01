@@ -131,6 +131,13 @@ impl Query {
                     None
                 }
             }
+            Query::Filter{ref query, ref filter} => {
+                if filter.matches(doc) {
+                    query.rank(doc)
+                } else {
+                    None
+                }
+            }
             Query::BoostScore{ref query, boost} => {
                 match query.rank(doc) {
                     Some(score) => Some(score * boost),
