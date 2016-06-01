@@ -74,11 +74,7 @@ pub fn view_post_bulk(req: &mut Request) -> IronResult<Response> {
                     };
 
                     // Create document
-                    if let Some(data) = json_from_request_body!(req) {
-                        Document::from_json(doc_id.to_string(), data, mapping)
-                    } else {
-                        return Ok(json_response(status::NotFound, "{\"message\": \"No data\"}"));
-                    }
+                    Document::from_json(doc_id.to_string(), doc_json, mapping)
                 };
 
                 index.insert_or_update_document(doc);
