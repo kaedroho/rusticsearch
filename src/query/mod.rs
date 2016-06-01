@@ -45,6 +45,10 @@ pub enum Query {
         query: Box<Query>,
         filter: Box<Query>
     },
+    NegativeFilter {
+        query: Box<Query>,
+        filter: Box<Query>
+    },
     BoostScore {
         query: Box<Query>,
         boost: f64,
