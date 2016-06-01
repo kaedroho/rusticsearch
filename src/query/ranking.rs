@@ -75,7 +75,24 @@ impl Query {
 
                 Some(total_score / queries.len() as f64)
             }
-            Query::Or{ref queries, minimum_should_match} => {
+            Query::Or{ref queries} => {
+                let mut something_matched = false;
+                let mut total_score = 0.0f64;
+
+                for query in queries {
+                    if let Some(score) = query.rank(doc) {
+                        something_matched = true;
+                        total_score += score;
+                    }
+                }
+
+                if something_matched {
+                    Some(total_score / queries.len() as f64)
+                } else {
+                    None
+                }
+            }
+            Query::MultiOr{ref queries, minimum_should_match} => {
                 let mut should_matched = 0;
                 let mut total_score = 0.0f64;
 

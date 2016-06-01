@@ -86,7 +86,16 @@ impl Query {
 
                 return true;
             }
-            Query::Or{ref queries, minimum_should_match} => {
+            Query::Or{ref queries} => {
+                for query in queries {
+                    if query.matches(doc) {
+                        return true;
+                    }
+                }
+
+                return false;
+            }
+            Query::MultiOr{ref queries, minimum_should_match} => {
                 let mut should_matched = 0;
 
                 for query in queries {

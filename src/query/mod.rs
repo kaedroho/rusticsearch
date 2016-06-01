@@ -33,6 +33,9 @@ pub enum Query {
     },
     Or {
         queries: Vec<Query>,
+    },
+    MultiOr {
+        queries: Vec<Query>,
         minimum_should_match: i32,
     },
     DisjunctionMax {
