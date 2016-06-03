@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::ops::{Deref, DerefMut};
 
 use rustc_serialize::json::Json;
 
@@ -218,5 +219,36 @@ impl FieldMapping {
         }
 
         field_mapping
+    }
+}
+
+
+#[derive(Debug)]
+pub struct MappingRegistry {
+    mappings: HashMap<String, Mapping>,
+}
+
+
+impl MappingRegistry {
+    pub fn new() -> MappingRegistry {
+        MappingRegistry {
+            mappings: HashMap::new(),
+        }
+    }
+}
+
+
+impl Deref for MappingRegistry {
+    type Target = HashMap<String, Mapping>;
+
+    fn deref(&self) -> &HashMap<String, Mapping> {
+        &self.mappings
+    }
+}
+
+
+impl DerefMut for MappingRegistry {
+    fn deref_mut(&mut self) -> &mut HashMap<String, Mapping> {
+        &mut self.mappings
     }
 }

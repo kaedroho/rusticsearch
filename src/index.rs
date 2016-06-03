@@ -1,13 +1,13 @@
 use std::collections::{BTreeMap, HashMap, HashSet};
 
 use term::Term;
-use mapping::{Mapping, FieldMapping};
+use mapping::{Mapping, FieldMapping, MappingRegistry};
 use document::Document;
 
 
 #[derive(Debug)]
 pub struct Index {
-    pub mappings: HashMap<String, Mapping>,
+    pub mappings: MappingRegistry,
     pub docs: BTreeMap<u64, Document>,
     pub index: BTreeMap<Term, BTreeMap<String, Vec<(u64, u32)>>>,
     pub aliases: HashSet<String>,
@@ -19,7 +19,7 @@ pub struct Index {
 impl Index {
     pub fn new() -> Index {
         Index {
-            mappings: HashMap::new(),
+            mappings: MappingRegistry::new(),
             docs: BTreeMap::new(),
             index: BTreeMap::new(),
             aliases: HashSet::new(),
