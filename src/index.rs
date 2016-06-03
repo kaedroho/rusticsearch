@@ -122,12 +122,12 @@ impl Index {
     }
 
     pub fn next(&self, term: &Term, field_name: &str, position: Option<(u64, u32)>) -> Option<(u64, u32)> {
-        let posting_columns = match self.index.get(term) {
-            Some(posting_columns) => posting_columns,
+        let posting_fields = match self.index.get(term) {
+            Some(posting_fields) => posting_fields,
             None => return None,
         };
 
-        let postings = match posting_columns.get(field_name) {
+        let postings = match posting_fields.get(field_name) {
             Some(postings) => postings,
             None => return None,
         };
@@ -153,12 +153,12 @@ impl Index {
     }
 
     pub fn prev(&self, term: &Term, field_name: &str, position: Option<(u64, u32)>) -> Option<(u64, u32)> {
-        let posting_columns = match self.index.get(term) {
-            Some(posting_columns) => posting_columns,
+        let posting_fields = match self.index.get(term) {
+            Some(posting_fields) => posting_fields,
             None => return None,
         };
 
-        let postings = match posting_columns.get(field_name) {
+        let postings = match posting_fields.get(field_name) {
             Some(postings) => postings,
             None => return None,
         };
