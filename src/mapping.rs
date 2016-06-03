@@ -235,6 +235,16 @@ impl MappingRegistry {
             mappings: HashMap::new(),
         }
     }
+
+    pub fn get_field(&self, name: &str) -> Option<&FieldMapping> {
+        for mapping in self.mappings.values() {
+            if let Some(ref field_mapping) = mapping.fields.get(name) {
+                return Some(field_mapping);
+            }
+        }
+
+        None
+    }
 }
 
 
