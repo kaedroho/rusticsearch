@@ -18,17 +18,23 @@ use query::Query;
 
 #[derive(Debug, Clone)]
 pub struct QueryParseContext<'a> {
-    pub mappings: &'a MappingRegistry,
+    pub mappings: Option<&'a MappingRegistry>,
     score_required: bool,
 }
 
 
 impl<'a> QueryParseContext<'a> {
-    pub fn new(mappings: &'a MappingRegistry) -> QueryParseContext<'a> {
+    pub fn new() -> QueryParseContext<'a> {
         QueryParseContext {
-            mappings: mappings,
+            mappings: None,
             score_required: true
         }
+    }
+
+    #[inline]
+    pub fn set_mappings(mut self, mappings: &'a MappingRegistry) -> QueryParseContext<'a> {
+        self.mappings = Some(mappings);
+        self
     }
 
     #[inline]

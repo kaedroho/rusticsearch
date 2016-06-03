@@ -32,7 +32,10 @@ pub fn parse(context: &QueryParseContext, json: &Json) -> Result<Query, QueryPar
     };
 
     // Get mapping for field
-    let field_mapping = context.mappings.get_field(field_name);
+    let field_mapping = match context.mappings {
+        Some(mappings) => mappings.get_field(field_name),
+        None => None,
+    };
 
     // Get configuration
     let mut query = Json::Null;
@@ -134,13 +137,12 @@ mod tests {
     use term::Term;
     use query::{Query, TermMatcher};
     use query::parser::{QueryParseContext, QueryParseError};
-    use mapping::MappingRegistry;
 
     use super::parse;
 
     #[test]
     fn test_match_query() {
-        let query = parse(&QueryParseContext::new(&MappingRegistry::new()), &Json::from_str("
+        let query = parse(&QueryParseContext::new(), &Json::from_str("
         {
             \"foo\": {
                 \"query\": \"bar\"
@@ -161,7 +163,7 @@ mod tests {
 
     #[test]
     fn test_multi_term_match_query() {
-        let query = parse(&QueryParseContext::new(&MappingRegistry::new()), &Json::from_str("
+        let query = parse(&QueryParseContext::new(), &Json::from_str("
         {
             \"foo\": {
                 \"query\": \"bar baz\"
@@ -187,7 +189,7 @@ mod tests {
 
     #[test]
     fn test_simple_multi_term_match_query() {
-        let query = parse(&QueryParseContext::new(&MappingRegistry::new()), &Json::from_str("
+        let query = parse(&QueryParseContext::new(), &Json::from_str("
         {
             \"foo\": \"bar baz\"
         }
@@ -211,7 +213,7 @@ mod tests {
 
     #[test]
     fn test_with_boost() {
-        let query = parse(&QueryParseContext::new(&MappingRegistry::new()), &Json::from_str("
+        let query = parse(&QueryParseContext::new(), &Json::from_str("
         {
             \"foo\": {
                 \"query\": \"bar\",
@@ -236,7 +238,7 @@ mod tests {
 
     #[test]
     fn test_with_boost_integer() {
-        let query = parse(&QueryParseContext::new(&MappingRegistry::new()), &Json::from_str("
+        let query = parse(&QueryParseContext::new(), &Json::from_str("
         {
             \"foo\": {
                 \"query\": \"bar\",
@@ -261,7 +263,7 @@ mod tests {
 
     #[test]
     fn test_with_and_operator() {
-        let query = parse(&QueryParseContext::new(&MappingRegistry::new()), &Json::from_str("
+        let query = parse(&QueryParseContext::new(), &Json::from_str("
         {
             \"foo\": {
                 \"query\": \"bar\",
@@ -284,7 +286,7 @@ mod tests {
     #[test]
     fn test_gives_error_for_incorrect_type() {
         // Array
-        let query = parse(&QueryParseContext::new(&MappingRegistry::new()), &Json::from_str("
+        let query = parse(&QueryParseContext::new(), &Json::from_str("
         [
             \"foo\"
         ]
@@ -293,14 +295,14 @@ mod tests {
         assert_eq!(query, Err(QueryParseError::ExpectedObject));
 
         // Integer
-        let query = parse(&QueryParseContext::new(&MappingRegistry::new()), &Json::from_str("
+        let query = parse(&QueryParseContext::new(), &Json::from_str("
         123
         ").unwrap());
 
         assert_eq!(query, Err(QueryParseError::ExpectedObject));
 
         // Float
-        let query = parse(&QueryParseContext::new(&MappingRegistry::new()), &Json::from_str("
+        let query = parse(&QueryParseContext::new(), &Json::from_str("
         123.1234
         ").unwrap());
 
@@ -310,7 +312,7 @@ mod tests {
     #[test]
     fn test_gives_error_for_incorrect_boost_type() {
         // String
-        let query = parse(&QueryParseContext::new(&MappingRegistry::new()), &Json::from_str("
+        let query = parse(&QueryParseContext::new(), &Json::from_str("
         {
             \"foo\": {
                 \"query\": \"bar\",
@@ -322,7 +324,7 @@ mod tests {
         assert_eq!(query, Err(QueryParseError::ExpectedFloat));
 
         // Array
-        let query = parse(&QueryParseContext::new(&MappingRegistry::new()), &Json::from_str("
+        let query = parse(&QueryParseContext::new(), &Json::from_str("
         {
             \"foo\": {
                 \"query\": \"bar\",
@@ -334,7 +336,7 @@ mod tests {
         assert_eq!(query, Err(QueryParseError::ExpectedFloat));
 
         // Object
-        let query = parse(&QueryParseContext::new(&MappingRegistry::new()), &Json::from_str("
+        let query = parse(&QueryParseContext::new(), &Json::from_str("
         {
             \"foo\": {
                 \"query\": \"bar\",
@@ -350,7 +352,7 @@ mod tests {
 
     #[test]
     fn test_gives_error_for_missing_query() {
-        let query = parse(&QueryParseContext::new(&MappingRegistry::new()), &Json::from_str("
+        let query = parse(&QueryParseContext::new(), &Json::from_str("
         {
             \"foo\": {
             }
@@ -362,7 +364,7 @@ mod tests {
 
     #[test]
     fn test_gives_error_for_extra_key() {
-        let query = parse(&QueryParseContext::new(&MappingRegistry::new()), &Json::from_str("
+        let query = parse(&QueryParseContext::new(), &Json::from_str("
         {
             \"foo\": {
                 \"query\": \"bar\"
@@ -376,7 +378,7 @@ mod tests {
 
     #[test]
     fn test_gives_error_for_extra_inner_key() {
-        let query = parse(&QueryParseContext::new(&MappingRegistry::new()), &Json::from_str("
+        let query = parse(&QueryParseContext::new(), &Json::from_str("
         {
             \"foo\": {
                 \"query\": \"bar\",
