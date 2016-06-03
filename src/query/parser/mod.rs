@@ -12,21 +12,21 @@ pub mod not_query;
 
 use rustc_serialize::json::Json;
 
-use index::Index;
+use mapping::MappingRegistry;
 use query::Query;
 
 
 #[derive(Debug, Clone)]
 pub struct QueryParseContext<'a> {
-    pub index: &'a Index,
+    pub mappings: &'a MappingRegistry,
     score_required: bool,
 }
 
 
 impl<'a> QueryParseContext<'a> {
-    pub fn new(index: &'a Index) -> QueryParseContext<'a> {
+    pub fn new(mappings: &'a MappingRegistry) -> QueryParseContext<'a> {
         QueryParseContext {
-            index: index,
+            mappings: mappings,
             score_required: true
         }
     }
