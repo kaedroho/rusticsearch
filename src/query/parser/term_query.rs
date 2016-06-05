@@ -49,9 +49,10 @@ pub fn parse(context: &QueryParseContext, json: &Json) -> Result<Query, QueryPar
 
             // Add boost
             if boost != 1.0f64 {
-                query = Query::BoostScore {
+                query = Query::Score {
                     query: Box::new(query),
-                    boost: boost,
+                    mul: boost,
+                    add: 0.0f64,
                 };
             }
 
@@ -132,13 +133,14 @@ mod tests {
         }
         ").unwrap());
 
-        assert_eq!(query, Ok(Query::BoostScore {
+        assert_eq!(query, Ok(Query::Score {
             query: Box::new(Query::MatchTerm {
                 field: "foo".to_string(),
                 term: Term::String("bar".to_string()),
                 matcher: TermMatcher::Exact
             }),
-            boost: 2.0f64,
+            mul: 2.0f64,
+            add: 0.0f64,
         }));
     }
 
@@ -153,13 +155,14 @@ mod tests {
         }
         ").unwrap());
 
-        assert_eq!(query, Ok(Query::BoostScore {
+        assert_eq!(query, Ok(Query::Score {
             query: Box::new(Query::MatchTerm {
                 field: "foo".to_string(),
                 term: Term::String("bar".to_string()),
                 matcher: TermMatcher::Exact
             }),
-            boost: 2.0f64,
+            mul: 2.0f64,
+            add: 0.0f64,
         }));
     }
 

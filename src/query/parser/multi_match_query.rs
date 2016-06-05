@@ -83,9 +83,10 @@ pub fn parse(context: &QueryParseContext, json: &Json) -> Result<Query, QueryPar
 
         // Add boost
         if field_boost != 1.0f64 {
-            field_query = Query::BoostScore {
+            field_query = Query::Score {
                 query: Box::new(field_query),
-                boost: field_boost,
+                mul: field_boost,
+                add: 0.0f64,
             };
         }
 
@@ -98,9 +99,10 @@ pub fn parse(context: &QueryParseContext, json: &Json) -> Result<Query, QueryPar
 
     // Add boost
     if boost != 1.0f64 {
-        query = Query::BoostScore {
+        query = Query::Score {
             query: Box::new(query),
-            boost: boost,
+            mul: boost,
+            add: 0.0f64,
         };
     }
 
@@ -204,7 +206,7 @@ mod tests {
         }
         ").unwrap());
 
-        assert_eq!(query, Ok(Query::BoostScore {
+        assert_eq!(query, Ok(Query::Score {
             query: Box::new(Query::DisjunctionMax {
                 queries: vec![
                     Query::Or {
@@ -227,7 +229,8 @@ mod tests {
                     }
                 ],
             }),
-            boost: 2.0f64,
+            mul: 2.0f64,
+            add: 0.0f64,
         }));
     }
 
@@ -241,7 +244,7 @@ mod tests {
         }
         ").unwrap());
 
-        assert_eq!(query, Ok(Query::BoostScore {
+        assert_eq!(query, Ok(Query::Score {
             query: Box::new(Query::DisjunctionMax {
                 queries: vec![
                     Query::Or {
@@ -264,7 +267,8 @@ mod tests {
                     }
                 ],
             }),
-            boost: 2.0f64,
+            mul: 2.0f64,
+            add: 0.0f64,
         }));
     }
 
@@ -279,7 +283,7 @@ mod tests {
 
         assert_eq!(query, Ok(Query::DisjunctionMax {
             queries: vec![
-                Query::BoostScore {
+                Query::Score {
                     query: Box::new(Query::Or {
                         queries: vec![
                             Query::MatchTerm {
@@ -289,7 +293,8 @@ mod tests {
                             }
                         ],
                     }),
-                    boost: 2.0f64,
+                    mul: 2.0f64,
+                    add: 0.0f64,
                 },
                 Query::Or {
                     queries: vec![

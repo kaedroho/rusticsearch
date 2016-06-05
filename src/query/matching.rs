@@ -85,10 +85,7 @@ impl Query {
             Query::NegativeFilter{ref query, ref filter} => {
                 query.matches(doc) && !filter.matches(doc)
             }
-            Query::BoostScore{ref query, boost} => {
-                query.matches(doc)
-            }
-            Query::ConstantScore{ref query, score} => {
+            Query::Score{ref query, mul, add} => {
                 query.matches(doc)
             }
         }

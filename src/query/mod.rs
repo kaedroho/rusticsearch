@@ -42,12 +42,9 @@ pub enum Query {
         query: Box<Query>,
         filter: Box<Query>
     },
-    BoostScore {
+    Score {
         query: Box<Query>,
-        boost: f64,
-    },
-    ConstantScore {
-        query: Box<Query>,
-        score: f64,
+        mul: f64,
+        add: f64,
     },
 }

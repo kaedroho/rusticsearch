@@ -102,17 +102,19 @@ impl Query {
                     None
                 }
             }
-            Query::BoostScore{ref query, boost} => {
-                match query.rank(doc) {
-                    Some(score) => Some(score * boost),
-                    None => None
-                }
-            }
-            Query::ConstantScore{ref query, score} => {
-                if query.matches(doc) {
-                    Some(score)
+            Query::Score{ref query, mul, add} => {
+                if mul == 0.0f64 {
+                    // Score of inner query isn't needed
+                    if query.matches(doc) {
+                        Some(add)
+                    } else {
+                        None
+                    }
                 } else {
-                    None
+                    match query.rank(doc) {
+                        Some(score) => Some(score.mul_add(mul, add)),
+                        None => None
+                    }
                 }
             }
         }
