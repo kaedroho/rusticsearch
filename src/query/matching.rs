@@ -82,8 +82,8 @@ impl Query {
             Query::Filter{ref query, ref filter} => {
                 query.matches(doc) && filter.matches(doc)
             }
-            Query::NegativeFilter{ref query, ref filter} => {
-                query.matches(doc) && !filter.matches(doc)
+            Query::Exclude{ref query, ref exclude} => {
+                query.matches(doc) && !exclude.matches(doc)
             }
             Query::Score{ref query, mul, add} => {
                 query.matches(doc)

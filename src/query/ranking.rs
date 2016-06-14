@@ -95,8 +95,8 @@ impl Query {
                     None
                 }
             }
-            Query::NegativeFilter{ref query, ref filter} => {
-                if !filter.matches(doc) {
+            Query::Exclude{ref query, ref exclude} => {
+                if !exclude.matches(doc) {
                     query.rank(doc)
                 } else {
                     None

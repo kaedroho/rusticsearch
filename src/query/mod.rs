@@ -38,9 +38,9 @@ pub enum Query {
         query: Box<Query>,
         filter: Box<Query>
     },
-    NegativeFilter {
+    Exclude {
         query: Box<Query>,
-        filter: Box<Query>
+        exclude: Box<Query>
     },
     Score {
         query: Box<Query>,

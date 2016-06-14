@@ -5,9 +5,9 @@ use query::parser::{QueryParseContext, QueryParseError, parse as parse_query};
 
 
 pub fn parse(context: &QueryParseContext, json: &Json) -> Result<Query, QueryParseError> {
-    Ok(Query::NegativeFilter {
+    Ok(Query::Exclude {
         query: Box::new(Query::MatchAll),
-        filter: Box::new(try!(parse_query(context, json))),
+        exclude: Box::new(try!(parse_query(context, json))),
     })
 }
 
@@ -32,9 +32,9 @@ mod tests {
         }
         ").unwrap());
 
-        assert_eq!(query, Ok(Query::NegativeFilter {
+        assert_eq!(query, Ok(Query::Exclude {
             query: Box::new(Query::MatchAll),
-            filter: Box::new(Query::MatchTerm {
+            exclude: Box::new(Query::MatchTerm {
                 field: "test".to_string(),
                 term: Term::String("foo".to_string()),
                 matcher: TermMatcher::Exact
