@@ -1,8 +1,10 @@
 pub mod parser;
 pub mod matching;
 pub mod ranking;
+pub mod boolean;
 
 use term::Term;
+use query::boolean::BooleanQuery;
 
 
 #[derive(Debug, PartialEq)]
@@ -36,11 +38,11 @@ pub enum Query {
     },
     Filter {
         query: Box<Query>,
-        filter: Box<Query>
+        filter: Box<BooleanQuery>
     },
     Exclude {
         query: Box<Query>,
-        exclude: Box<Query>
+        exclude: Box<BooleanQuery>
     },
     Score {
         query: Box<Query>,

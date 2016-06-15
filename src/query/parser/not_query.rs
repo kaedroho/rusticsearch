@@ -7,7 +7,7 @@ use query::parser::{QueryParseContext, QueryParseError, parse as parse_query};
 pub fn parse(context: &QueryParseContext, json: &Json) -> Result<Query, QueryParseError> {
     Ok(Query::Exclude {
         query: Box::new(Query::MatchAll),
-        exclude: Box::new(try!(parse_query(context, json))),
+        exclude: Box::new(try!(parse_query(context, json)).to_boolean_query()),
     })
 }
 
@@ -18,6 +18,7 @@ mod tests {
 
     use term::Term;
     use query::{Query, TermMatcher};
+    use query::boolean::BooleanQuery;
     use query::parser::{QueryParseContext, QueryParseError};
 
     use super::parse;
@@ -34,7 +35,7 @@ mod tests {
 
         assert_eq!(query, Ok(Query::Exclude {
             query: Box::new(Query::MatchAll),
-            exclude: Box::new(Query::MatchTerm {
+            exclude: Box::new(BooleanQuery::MatchTerm {
                 field: "test".to_string(),
                 term: Term::String("foo".to_string()),
                 matcher: TermMatcher::Exact
