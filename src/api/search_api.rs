@@ -49,7 +49,7 @@ pub fn view_count(req: &mut Request) -> IronResult<Response> {
                 }
             }
         }
-        None => index.docs.len(),
+        None => index.backend.docs.len(),
     };
 
     return Ok(json_response(status::Ok, format!("{{\"count\": {}}}", count)));

@@ -33,7 +33,7 @@ pub fn view_get_doc(req: &mut Request) -> IronResult<Response> {
     };
 
     // Find document
-    let doc = match index.get_document_by_id(doc_id) {
+    let doc = match index.backend.get_document_by_id(doc_id) {
         Some(doc) => doc,
         None => {
             return Ok(json_response(status::NotFound, "{\"message\": \"Document not found\"}"));
@@ -82,7 +82,7 @@ pub fn view_put_doc(req: &mut Request) -> IronResult<Response> {
         }
     };
 
-    index.insert_or_update_document(doc);
+    index.backend.insert_or_update_document(doc);
 
     // TODO: {"_index":"wagtail","_type":"searchtests_searchtest","_id":"searchtests_searchtest:5378","_version":1,"created":true}
     return Ok(json_response(status::Ok, "{}"));
@@ -102,12 +102,12 @@ pub fn view_delete_doc(req: &mut Request) -> IronResult<Response> {
     let mut index = get_index_or_404_mut!(indices, *index_name);
 
     // Make sure the document exists
-    if !index.contains_document_id(doc_id) {
+    if !index.backend.contains_document_id(doc_id) {
         return Ok(json_response(status::NotFound, "{\"message\": \"Document not found\"}"));
     }
 
     // Delete document
-    index.remove_document_by_id(doc_id);
+    index.backend.remove_document_by_id(doc_id);
 
     return Ok(json_response(status::Ok, "{}"));
 }

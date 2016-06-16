@@ -17,7 +17,7 @@ impl SearchRequest {
     pub fn run<'a>(&self, index: &'a Index) -> SearchResponse<'a> {
         // Find all hits
         let mut hits = Vec::new();
-        for (_, doc) in index.docs.iter() {
+        for (_, doc) in index.backend.docs.iter() {
             if let Some(score) = self.query.rank(&doc) {
                 hits.push(SearchHit {
                     doc: &doc,

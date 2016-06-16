@@ -77,7 +77,7 @@ pub fn view_post_bulk(req: &mut Request) -> IronResult<Response> {
                     Document::from_json(doc_id.to_string(), doc_json, mapping)
                 };
 
-                index.insert_or_update_document(doc);
+                index.backend.insert_or_update_document(doc);
 
                 // Insert into "items" array
                 let mut item = HashMap::new();
