@@ -12,7 +12,7 @@ use index::store::memory::MemoryIndexStore;
 pub struct Index {
     pub mappings: MappingRegistry,
     pub aliases: HashSet<String>,
-    pub backend: MemoryIndexStore,
+    pub store: MemoryIndexStore,
 }
 
 
@@ -21,7 +21,7 @@ impl Index {
         Index {
             mappings: MappingRegistry::new(),
             aliases: HashSet::new(),
-            backend: MemoryIndexStore::new(),
+            store: MemoryIndexStore::new(),
         }
     }
 
