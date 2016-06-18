@@ -6,8 +6,8 @@ use document::Document;
 
 #[derive(Debug)]
 pub struct MemoryIndexStore {
-    pub docs: BTreeMap<u64, Document>,
-    pub index: BTreeMap<Term, BTreeMap<String, Vec<(u64, u32)>>>,
+    docs: BTreeMap<u64, Document>,
+    index: BTreeMap<Term, BTreeMap<String, Vec<(u64, u32)>>>,
     next_doc_num: u64,
     doc_id_map: HashMap<String, u64>,
 }
@@ -162,5 +162,13 @@ impl MemoryIndexStore {
                 return postings.last().cloned();
             }
         }
+    }
+
+    pub fn total_docs(&self) -> usize {
+        self.docs.len()
+    }
+
+    pub fn iter_docs<'a>(&'a self) -> Box<Iterator<Item=&'a Document> + 'a> {
+        Box::new(self.docs.values())
     }
 }
