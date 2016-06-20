@@ -3,6 +3,7 @@ use rustc_serialize::json::Json;
 use query::Query;
 use query::parser::{QueryParseContext, QueryParseError};
 use query::parser::utils::parse_float;
+use query::parser::builders::build_score_query;
 
 
 pub fn parse(context: &QueryParseContext, json: &Json) -> Result<Query, QueryParseError> {
@@ -24,13 +25,7 @@ pub fn parse(context: &QueryParseContext, json: &Json) -> Result<Query, QueryPar
     let mut query = Query::MatchAll;
 
     // Add boost
-    if boost != 1.0f64 {
-        query = Query::Score {
-            query: Box::new(query),
-            mul: boost,
-            add: 0.0f64,
-        };
-    }
+    query = build_score_query(query, boost, 0.0f64);
 
     return Ok(query);
 }

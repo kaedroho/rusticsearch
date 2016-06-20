@@ -6,7 +6,7 @@ use term::Term;
 use query::{Query, TermMatcher};
 use query::parser::{QueryParseContext, QueryParseError};
 use query::parser::utils::{parse_string, parse_float, Operator, parse_operator, parse_field_and_boost};
-
+use query::parser::builders::{build_and_query, build_or_query, build_disjunction_max_query, build_score_query};
 
 pub fn parse(context: &QueryParseContext, json: &Json) -> Result<Query, QueryParseError> {
     let object = try!(json.as_object().ok_or(QueryParseError::ExpectedObject));
@@ -70,41 +70,23 @@ pub fn parse(context: &QueryParseContext, json: &Json) -> Result<Query, QueryPar
 
         let mut field_query = match operator {
             Operator::Or => {
-                Query::Or {
-                    queries: term_queries,
-                }
+                try!(build_or_query(term_queries))
             }
             Operator::And => {
-                Query::And {
-                    queries: term_queries,
-                }
+                try!(build_and_query(term_queries))
             }
         };
 
         // Add boost
-        if field_boost != 1.0f64 {
-            field_query = Query::Score {
-                query: Box::new(field_query),
-                mul: field_boost,
-                add: 0.0f64,
-            };
-        }
+        field_query = build_score_query(field_query, field_boost, 0.0f64);
 
         field_queries.push(field_query);
     }
 
-    let mut query = Query::DisjunctionMax {
-        queries: field_queries,
-    };
+    let mut query = try!(build_disjunction_max_query(field_queries));
 
     // Add boost
-    if boost != 1.0f64 {
-        query = Query::Score {
-            query: Box::new(query),
-            mul: boost,
-            add: 0.0f64,
-        };
-    }
+    query = build_score_query(query, boost, 0.0f64);
 
     return Ok(query);
 }
@@ -131,23 +113,15 @@ mod tests {
 
         assert_eq!(query, Ok(Query::DisjunctionMax {
             queries: vec![
-                Query::Or {
-                    queries: vec![
-                        Query::MatchTerm {
-                            field: "bar".to_string(),
-                            term: Term::String("foo".to_string()),
-                            matcher: TermMatcher::Exact,
-                        }
-                    ],
+                Query::MatchTerm {
+                    field: "bar".to_string(),
+                    term: Term::String("foo".to_string()),
+                    matcher: TermMatcher::Exact,
                 },
-                Query::Or {
-                    queries: vec![
-                        Query::MatchTerm {
-                            field: "baz".to_string(),
-                            term: Term::String("foo".to_string()),
-                            matcher: TermMatcher::Exact,
-                        }
-                    ],
+                Query::MatchTerm {
+                    field: "baz".to_string(),
+                    term: Term::String("foo".to_string()),
+                    matcher: TermMatcher::Exact,
                 }
             ],
         }));
@@ -209,23 +183,15 @@ mod tests {
         assert_eq!(query, Ok(Query::Score {
             query: Box::new(Query::DisjunctionMax {
                 queries: vec![
-                    Query::Or {
-                        queries: vec![
-                            Query::MatchTerm {
-                                field: "bar".to_string(),
-                                term: Term::String("foo".to_string()),
-                                matcher: TermMatcher::Exact,
-                            }
-                        ],
+                    Query::MatchTerm {
+                        field: "bar".to_string(),
+                        term: Term::String("foo".to_string()),
+                        matcher: TermMatcher::Exact,
                     },
-                    Query::Or {
-                        queries: vec![
-                            Query::MatchTerm {
-                                field: "baz".to_string(),
-                                term: Term::String("foo".to_string()),
-                                matcher: TermMatcher::Exact,
-                            }
-                        ],
+                    Query::MatchTerm {
+                        field: "baz".to_string(),
+                        term: Term::String("foo".to_string()),
+                        matcher: TermMatcher::Exact,
                     }
                 ],
             }),
@@ -247,23 +213,15 @@ mod tests {
         assert_eq!(query, Ok(Query::Score {
             query: Box::new(Query::DisjunctionMax {
                 queries: vec![
-                    Query::Or {
-                        queries: vec![
-                            Query::MatchTerm {
-                                field: "bar".to_string(),
-                                term: Term::String("foo".to_string()),
-                                matcher: TermMatcher::Exact,
-                            }
-                        ],
+                    Query::MatchTerm {
+                        field: "bar".to_string(),
+                        term: Term::String("foo".to_string()),
+                        matcher: TermMatcher::Exact,
                     },
-                    Query::Or {
-                        queries: vec![
-                            Query::MatchTerm {
-                                field: "baz".to_string(),
-                                term: Term::String("foo".to_string()),
-                                matcher: TermMatcher::Exact,
-                            }
-                        ],
+                    Query::MatchTerm {
+                        field: "baz".to_string(),
+                        term: Term::String("foo".to_string()),
+                        matcher: TermMatcher::Exact,
                     }
                 ],
             }),
@@ -284,26 +242,18 @@ mod tests {
         assert_eq!(query, Ok(Query::DisjunctionMax {
             queries: vec![
                 Query::Score {
-                    query: Box::new(Query::Or {
-                        queries: vec![
-                            Query::MatchTerm {
-                                field: "bar".to_string(),
-                                term: Term::String("foo".to_string()),
-                                matcher: TermMatcher::Exact,
-                            }
-                        ],
+                    query: Box::new(Query::MatchTerm {
+                        field: "bar".to_string(),
+                        term: Term::String("foo".to_string()),
+                        matcher: TermMatcher::Exact,
                     }),
                     mul: 2.0f64,
                     add: 0.0f64,
                 },
-                Query::Or {
-                    queries: vec![
-                        Query::MatchTerm {
-                            field: "baz".to_string(),
-                            term: Term::String("foo".to_string()),
-                            matcher: TermMatcher::Exact,
-                        }
-                    ],
+                Query::MatchTerm {
+                    field: "baz".to_string(),
+                    term: Term::String("foo".to_string()),
+                    matcher: TermMatcher::Exact,
                 }
             ],
         }));
@@ -313,8 +263,8 @@ mod tests {
     fn test_with_and_operator() {
         let query = parse(&QueryParseContext::new(), &Json::from_str("
         {
-            \"query\": \"foo\",
-            \"fields\": [\"bar\", \"baz\"],
+            \"query\": \"foo bar\",
+            \"fields\": [\"baz\", \"quux\"],
             \"operator\": \"and\"
         }
         ").unwrap());
@@ -324,8 +274,13 @@ mod tests {
                 Query::And {
                     queries: vec![
                         Query::MatchTerm {
-                            field: "bar".to_string(),
+                            field: "baz".to_string(),
                             term: Term::String("foo".to_string()),
+                            matcher: TermMatcher::Exact,
+                        },
+                        Query::MatchTerm {
+                            field: "baz".to_string(),
+                            term: Term::String("bar".to_string()),
                             matcher: TermMatcher::Exact,
                         }
                     ],
@@ -333,8 +288,13 @@ mod tests {
                 Query::And {
                     queries: vec![
                         Query::MatchTerm {
-                            field: "baz".to_string(),
+                            field: "quux".to_string(),
                             term: Term::String("foo".to_string()),
+                            matcher: TermMatcher::Exact,
+                        },
+                        Query::MatchTerm {
+                            field: "quux".to_string(),
+                            term: Term::String("bar".to_string()),
                             matcher: TermMatcher::Exact,
                         }
                     ],
