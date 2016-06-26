@@ -6,7 +6,7 @@ use mapping::FieldMapping;
 use query::{Query, TermMatcher};
 use query::parser::{QueryParseContext, QueryParseError};
 use query::parser::utils::{parse_string, parse_float, Operator, parse_operator};
-use query::parser::builders::{build_and_query, build_or_query, build_score_query};
+use query::parser::builders::{build_conjunction_query, build_disjunction_query, build_score_query};
 
 
 pub fn parse(context: &QueryParseContext, json: &Json) -> Result<Query, QueryParseError> {
@@ -108,10 +108,10 @@ pub fn parse(context: &QueryParseContext, json: &Json) -> Result<Query, QueryPar
     // Combine the term queries
     let mut query = match operator {
         Operator::Or => {
-            try!(build_or_query(sub_queries))
+            try!(build_disjunction_query(sub_queries))
         }
         Operator::And => {
-            try!(build_and_query(sub_queries))
+            try!(build_conjunction_query(sub_queries))
         }
     };
 
@@ -159,7 +159,7 @@ mod tests {
         }
         ").unwrap());
 
-        assert_eq!(query, Ok(Query::Or {
+        assert_eq!(query, Ok(Query::Disjunction {
             queries: vec![
                 Query::MatchTerm {
                     field: "foo".to_string(),
@@ -183,7 +183,7 @@ mod tests {
         }
         ").unwrap());
 
-        assert_eq!(query, Ok(Query::Or {
+        assert_eq!(query, Ok(Query::Disjunction {
             queries: vec![
                 Query::MatchTerm {
                     field: "foo".to_string(),
@@ -254,7 +254,7 @@ mod tests {
         }
         ").unwrap());
 
-        assert_eq!(query, Ok(Query::And {
+        assert_eq!(query, Ok(Query::Conjunction {
             queries: vec![
                 Query::MatchTerm {
                     field: "foo".to_string(),

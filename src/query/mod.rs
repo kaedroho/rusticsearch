@@ -23,13 +23,13 @@ pub enum Query {
         term: Term,
         matcher: TermMatcher,
     },
-    And {
+    Conjunction {
         queries: Vec<Query>,
     },
-    Or {
+    Disjunction {
         queries: Vec<Query>,
     },
-    MultiOr {
+    NDisjunction {
         queries: Vec<Query>,
         minimum_should_match: i32,
     },

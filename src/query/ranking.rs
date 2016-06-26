@@ -18,7 +18,7 @@ impl Query {
 
                 None
             }
-            Query::And{ref queries} => {
+            Query::Conjunction{ref queries} => {
                 let mut total_score = 0.0f64;
 
                 for query in queries {
@@ -32,7 +32,7 @@ impl Query {
 
                 Some(total_score / queries.len() as f64)
             }
-            Query::Or{ref queries} => {
+            Query::Disjunction{ref queries} => {
                 let mut something_matched = false;
                 let mut total_score = 0.0f64;
 
@@ -49,7 +49,7 @@ impl Query {
                     None
                 }
             }
-            Query::MultiOr{ref queries, minimum_should_match} => {
+            Query::NDisjunction{ref queries, minimum_should_match} => {
                 let mut should_matched = 0;
                 let mut total_score = 0.0f64;
 

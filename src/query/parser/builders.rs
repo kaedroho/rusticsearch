@@ -2,7 +2,7 @@ use query::Query;
 use query::parser::QueryParseError;
 
 
-pub fn build_and_query(queries: Vec<Query>) -> Result<Query, QueryParseError> {
+pub fn build_conjunction_query(queries: Vec<Query>) -> Result<Query, QueryParseError> {
     if queries.len() == 0 {
         // TODO: raise error
         Ok(Query::MatchNone)
@@ -14,14 +14,14 @@ pub fn build_and_query(queries: Vec<Query>) -> Result<Query, QueryParseError> {
 
         unreachable!();
     } else {
-        Ok(Query::And {
+        Ok(Query::Conjunction {
             queries: queries,
         })
     }
 }
 
 
-pub fn build_or_query(queries: Vec<Query>) -> Result<Query, QueryParseError> {
+pub fn build_disjunction_query(queries: Vec<Query>) -> Result<Query, QueryParseError> {
     if queries.len() == 0 {
         // TODO: raise error
         Ok(Query::MatchNone)
@@ -33,7 +33,7 @@ pub fn build_or_query(queries: Vec<Query>) -> Result<Query, QueryParseError> {
 
         unreachable!();
     } else {
-        Ok(Query::Or {
+        Ok(Query::Disjunction {
             queries: queries,
         })
     }

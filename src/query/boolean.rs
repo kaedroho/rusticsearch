@@ -17,10 +17,10 @@ pub enum BooleanQuery {
         term: Term,
         matcher: TermMatcher,
     },
-    And {
+    Conjunction {
         queries: Vec<BooleanQuery>,
     },
-    Or {
+    Disjunction {
         queries: Vec<BooleanQuery>,
     },
 }
@@ -53,7 +53,7 @@ impl BooleanQuery {
 
                 true
             }
-            BooleanQuery::And{ref queries} => {
+            BooleanQuery::Conjunction{ref queries} => {
                 for query in queries {
                     if !query.matches(doc) {
                         return false;
@@ -62,7 +62,7 @@ impl BooleanQuery {
 
                 return true;
             }
-            BooleanQuery::Or{ref queries} => {
+            BooleanQuery::Disjunction{ref queries} => {
                 for query in queries {
                     if query.matches(doc) {
                         return true;
@@ -92,23 +92,23 @@ impl BooleanQuery {
                     matcher: matcher,
                 }
             }
-            BooleanQuery::And{queries} => {
+            BooleanQuery::Conjunction{queries} => {
                 let mut negated_queries = Vec::new();
                 for query in queries {
                     negated_queries.push(query);
                 }
 
-                BooleanQuery::Or{
+                BooleanQuery::Disjunction{
                     queries: negated_queries,
                 }
             }
-            BooleanQuery::Or{queries} => {
+            BooleanQuery::Disjunction{queries} => {
                 let mut negated_queries = Vec::new();
                 for query in queries {
                     negated_queries.push(query);
                 }
 
-                BooleanQuery::And{
+                BooleanQuery::Conjunction{
                     queries: negated_queries,
                 }
             }
@@ -128,36 +128,36 @@ impl Query {
                     matcher: matcher,
                 }
             }
-            Query::And{queries} => {
+            Query::Conjunction{queries} => {
                 let mut boolean_queries = Vec::with_capacity(queries.len());
 
                 for query in queries {
                     boolean_queries.push(query.to_boolean_query());
                 }
 
-                BooleanQuery::And {
+                BooleanQuery::Conjunction {
                     queries: boolean_queries,
                 }
             }
-            Query::Or{queries} => {
+            Query::Disjunction{queries} => {
                 let mut boolean_queries = Vec::with_capacity(queries.len());
 
                 for query in queries {
                     boolean_queries.push(query.to_boolean_query());
                 }
 
-                BooleanQuery::Or {
+                BooleanQuery::Disjunction {
                     queries: boolean_queries,
                 }
             }
-            Query::MultiOr{queries, minimum_should_match} => {
+            Query::NDisjunction{queries, minimum_should_match} => {
                 let mut boolean_queries = Vec::with_capacity(queries.len());
 
                 for query in queries {
                     boolean_queries.push(query.to_boolean_query());
                 }
 
-                BooleanQuery::Or {
+                BooleanQuery::Disjunction {
                     queries: boolean_queries,
                 }
             }
@@ -168,12 +168,12 @@ impl Query {
                     boolean_queries.push(query.to_boolean_query());
                 }
 
-                BooleanQuery::Or {
+                BooleanQuery::Disjunction {
                     queries: boolean_queries,
                 }
             }
             Query::Filter{query, filter} => {
-                BooleanQuery::And {
+                BooleanQuery::Conjunction {
                     queries: vec![
                         query.to_boolean_query(),
                         *filter,

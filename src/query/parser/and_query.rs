@@ -2,7 +2,7 @@ use rustc_serialize::json::Json;
 
 use query::Query;
 use query::parser::{QueryParseContext, QueryParseError, parse as parse_query};
-use query::parser::builders::build_and_query;
+use query::parser::builders::build_conjunction_query;
 
 
 pub fn parse(context: &QueryParseContext, json: &Json) -> Result<Query, QueryParseError> {
@@ -13,7 +13,7 @@ pub fn parse(context: &QueryParseContext, json: &Json) -> Result<Query, QueryPar
         sub_queries.push(try!(parse_query(context, filter)));
     }
 
-    build_and_query(sub_queries)
+    build_conjunction_query(sub_queries)
 }
 
 
@@ -44,7 +44,7 @@ mod tests {
         ]
         ").unwrap());
 
-        assert_eq!(query, Ok(Query::And {
+        assert_eq!(query, Ok(Query::Conjunction {
             queries: vec![
                 Query::MatchTerm {
                     field: "test".to_string(),

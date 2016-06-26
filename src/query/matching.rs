@@ -37,7 +37,7 @@ impl Query {
 
                 false
             }
-            Query::And{ref queries} => {
+            Query::Conjunction{ref queries} => {
                 for query in queries {
                     if !query.matches(doc) {
                         return false;
@@ -46,7 +46,7 @@ impl Query {
 
                 return true;
             }
-            Query::Or{ref queries} => {
+            Query::Disjunction{ref queries} => {
                 for query in queries {
                     if query.matches(doc) {
                         return true;
@@ -55,7 +55,7 @@ impl Query {
 
                 return false;
             }
-            Query::MultiOr{ref queries, minimum_should_match} => {
+            Query::NDisjunction{ref queries, minimum_should_match} => {
                 let mut should_matched = 0;
 
                 for query in queries {

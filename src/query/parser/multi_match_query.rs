@@ -6,7 +6,7 @@ use term::Term;
 use query::{Query, TermMatcher};
 use query::parser::{QueryParseContext, QueryParseError};
 use query::parser::utils::{parse_string, parse_float, Operator, parse_operator, parse_field_and_boost};
-use query::parser::builders::{build_and_query, build_or_query, build_disjunction_max_query, build_score_query};
+use query::parser::builders::{build_conjunction_query, build_disjunction_query, build_disjunction_max_query, build_score_query};
 
 pub fn parse(context: &QueryParseContext, json: &Json) -> Result<Query, QueryParseError> {
     let object = try!(json.as_object().ok_or(QueryParseError::ExpectedObject));
@@ -70,10 +70,10 @@ pub fn parse(context: &QueryParseContext, json: &Json) -> Result<Query, QueryPar
 
         let mut field_query = match operator {
             Operator::Or => {
-                try!(build_or_query(term_queries))
+                try!(build_disjunction_query(term_queries))
             }
             Operator::And => {
-                try!(build_and_query(term_queries))
+                try!(build_conjunction_query(term_queries))
             }
         };
 
@@ -138,7 +138,7 @@ mod tests {
 
         assert_eq!(query, Ok(Query::DisjunctionMax {
             queries: vec![
-                Query::Or {
+                Query::Disjunction {
                     queries: vec![
                         Query::MatchTerm {
                             field: "bar".to_string(),
@@ -152,7 +152,7 @@ mod tests {
                         }
                     ],
                 },
-                Query::Or {
+                Query::Disjunction {
                     queries: vec![
                         Query::MatchTerm {
                             field: "baz".to_string(),
@@ -271,7 +271,7 @@ mod tests {
 
         assert_eq!(query, Ok(Query::DisjunctionMax {
             queries: vec![
-                Query::And {
+                Query::Conjunction {
                     queries: vec![
                         Query::MatchTerm {
                             field: "baz".to_string(),
@@ -285,7 +285,7 @@ mod tests {
                         }
                     ],
                 },
-                Query::And {
+                Query::Conjunction {
                     queries: vec![
                         Query::MatchTerm {
                             field: "quux".to_string(),
