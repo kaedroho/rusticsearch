@@ -180,14 +180,6 @@ impl Query {
                     ]
                 }
             }
-            Query::Exclude{query, exclude} => {
-                BooleanQuery::And {
-                    queries: vec![
-                        query.to_boolean_query(),
-                        exclude.negate(),
-                    ]
-                }
-            }
             Query::Score{query, mul, add} => {
                 query.to_boolean_query()
             }

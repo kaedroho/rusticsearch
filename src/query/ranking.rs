@@ -95,13 +95,6 @@ impl Query {
                     None
                 }
             }
-            Query::Exclude{ref query, ref exclude} => {
-                if !exclude.matches(doc) {
-                    query.rank(doc)
-                } else {
-                    None
-                }
-            }
             Query::Score{ref query, mul, add} => {
                 if mul == 0.0f64 {
                     // Score of inner query isn't needed

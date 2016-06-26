@@ -40,10 +40,6 @@ pub enum Query {
         query: Box<Query>,
         filter: Box<BooleanQuery>
     },
-    Exclude {
-        query: Box<Query>,
-        exclude: Box<BooleanQuery>
-    },
     Score {
         query: Box<Query>,
         mul: f64,
