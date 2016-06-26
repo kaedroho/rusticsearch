@@ -12,15 +12,17 @@ pub enum BooleanQuery {
         term: Term,
         matcher: TermMatcher,
     },
+    NotMatchTerm {
+        field: String,
+        term: Term,
+        matcher: TermMatcher,
+    },
     And {
         queries: Vec<BooleanQuery>,
     },
     Or {
         queries: Vec<BooleanQuery>,
     },
-    Not {
-        query: Box<BooleanQuery>,
-    }
 }
 
 
@@ -40,6 +42,17 @@ impl BooleanQuery {
 
                 false
             }
+            BooleanQuery::NotMatchTerm{ref field, ref term, ref matcher} => {
+                if let Some(field_value) = doc.fields.get(field) {
+                    for field_token in field_value.iter() {
+                        if matcher.matches(&field_token.term, term) {
+                            return false;
+                        }
+                    }
+                }
+
+                true
+            }
             BooleanQuery::And{ref queries} => {
                 for query in queries {
                     if !query.matches(doc) {
@@ -58,8 +71,46 @@ impl BooleanQuery {
 
                 return false;
             }
-            BooleanQuery::Not{ref query} => {
-                !query.matches(doc)
+        }
+    }
+
+    pub fn negate(self) -> BooleanQuery {
+        match self {
+            BooleanQuery::MatchAll => BooleanQuery::MatchNone,
+            BooleanQuery::MatchNone => BooleanQuery::MatchAll,
+            BooleanQuery::MatchTerm{field, term, matcher} => {
+                BooleanQuery::NotMatchTerm {
+                    field: field,
+                    term: term,
+                    matcher: matcher,
+                }
+            }
+            BooleanQuery::NotMatchTerm{field, term, matcher} => {
+                BooleanQuery::MatchTerm {
+                    field: field,
+                    term: term,
+                    matcher: matcher,
+                }
+            }
+            BooleanQuery::And{queries} => {
+                let mut negated_queries = Vec::new();
+                for query in queries {
+                    negated_queries.push(query);
+                }
+
+                BooleanQuery::Or{
+                    queries: negated_queries,
+                }
+            }
+            BooleanQuery::Or{queries} => {
+                let mut negated_queries = Vec::new();
+                for query in queries {
+                    negated_queries.push(query);
+                }
+
+                BooleanQuery::And{
+                    queries: negated_queries,
+                }
             }
         }
     }
@@ -133,9 +184,7 @@ impl Query {
                 BooleanQuery::And {
                     queries: vec![
                         query.to_boolean_query(),
-                        BooleanQuery::Not {
-                            query: exclude,
-                        }
+                        exclude.negate(),
                     ]
                 }
             }
