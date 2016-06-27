@@ -83,11 +83,6 @@ fn main() {
     println!("rusticsearch ({})", VERSION);
     println!("");
 
-    println!("{:?}",
-             analysis::Analyzer::EdgeNGram.run("Up from the bowels of hell he sail. Weilding a \
-                                                tankard of freshly brewed ale."
-                                                   .to_string()));
-
     logger::init().unwrap();
 
     let indices_path = Path::new("./indices").to_path_buf();
