@@ -5,7 +5,7 @@ use rustc_serialize::json::Json;
 
 use search::term::Term;
 use search::token::Token;
-use analysis::Analyzer;
+use search::analysis::Analyzer;
 
 
 #[derive(Debug, PartialEq)]
