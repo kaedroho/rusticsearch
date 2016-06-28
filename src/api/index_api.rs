@@ -6,7 +6,8 @@ use iron::status;
 use router::Router;
 use rustc_serialize::json::Json;
 
-use index::Index;
+use search::index::Index;
+
 use super::persistent;
 use super::utils::json_response;
 use super::super::Globals;

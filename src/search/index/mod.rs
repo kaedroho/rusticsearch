@@ -5,7 +5,7 @@ use std::collections::{BTreeMap, HashMap, HashSet};
 use search::term::Term;
 use search::mapping::{Mapping, FieldMapping, MappingRegistry};
 use search::document::Document;
-use index::store::memory::MemoryIndexStore;
+use search::index::store::memory::MemoryIndexStore;
 
 
 #[derive(Debug)]

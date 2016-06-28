@@ -10,7 +10,6 @@ extern crate unicode_segmentation;
 extern crate log;
 
 mod api;
-mod index;
 mod search;
 mod logger;
 
@@ -22,7 +21,7 @@ use std::fs;
 use iron::prelude::*;
 use iron::typemap::Key;
 
-use index::Index;
+use search::index::Index;
 
 
 const VERSION: &'static str = "0.1a0";
