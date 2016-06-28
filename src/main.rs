@@ -14,7 +14,6 @@ mod term;
 mod token;
 mod document;
 mod index;
-mod query;
 mod mapping;
 mod analysis;
 mod search;

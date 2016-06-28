@@ -3,10 +3,10 @@ use rustc_serialize::json::Json;
 use analysis::Analyzer;
 use term::Term;
 
-use query::{Query, TermMatcher};
-use query::parser::{QueryParseContext, QueryParseError};
-use query::parser::utils::{parse_string, parse_float, Operator, parse_operator, parse_field_and_boost};
-use query::parser::builders::{build_conjunction_query, build_disjunction_query, build_disjunction_max_query, build_score_query};
+use search::query::{Query, TermMatcher};
+use search::query::parser::{QueryParseContext, QueryParseError};
+use search::query::parser::utils::{parse_string, parse_float, Operator, parse_operator, parse_field_and_boost};
+use search::query::parser::builders::{build_conjunction_query, build_disjunction_query, build_disjunction_max_query, build_score_query};
 
 pub fn parse(context: &QueryParseContext, json: &Json) -> Result<Query, QueryParseError> {
     let object = try!(json.as_object().ok_or(QueryParseError::ExpectedObject));
@@ -97,8 +97,8 @@ mod tests {
     use rustc_serialize::json::Json;
 
     use term::Term;
-    use query::{Query, TermMatcher};
-    use query::parser::{QueryParseContext, QueryParseError};
+    use search::query::{Query, TermMatcher};
+    use search::query::parser::{QueryParseContext, QueryParseError};
 
     use super::parse;
 

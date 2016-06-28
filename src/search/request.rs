@@ -1,7 +1,7 @@
 use std::cmp::Ordering;
 
 use index::Index;
-use query::Query;
+use search::query::Query;
 use search::response::{SearchResponse, SearchHit};
 
 

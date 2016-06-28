@@ -1,9 +1,9 @@
 use rustc_serialize::json::Json;
 
-use query::Query;
-use query::parser::{QueryParseContext, QueryParseError};
-use query::parser::utils::parse_float;
-use query::parser::builders::build_score_query;
+use search::query::Query;
+use search::query::parser::{QueryParseContext, QueryParseError};
+use search::query::parser::utils::parse_float;
+use search::query::parser::builders::build_score_query;
 
 
 pub fn parse(context: &QueryParseContext, json: &Json) -> Result<Query, QueryParseError> {
@@ -36,8 +36,8 @@ mod tests {
     use rustc_serialize::json::Json;
 
     use term::Term;
-    use query::{Query, TermMatcher};
-    use query::parser::{QueryParseContext, QueryParseError};
+    use search::query::{Query, TermMatcher};
+    use search::query::parser::{QueryParseContext, QueryParseError};
 
     use super::parse;
 

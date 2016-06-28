@@ -6,7 +6,7 @@ use router::Router;
 use rustc_serialize::json::{self, Json};
 use url::form_urlencoded;
 
-use query::parser::{QueryParseContext, parse as parse_query};
+use search::query::parser::{QueryParseContext, parse as parse_query};
 use search::request::SearchRequest;
 use super::persistent;
 use super::utils::json_response;

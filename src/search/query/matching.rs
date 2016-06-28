@@ -1,6 +1,6 @@
 use term::Term;
 use document::Document;
-use query::{TermMatcher, Query};
+use search::query::{TermMatcher, Query};
 
 
 impl TermMatcher {

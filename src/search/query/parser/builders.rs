@@ -1,5 +1,5 @@
-use query::Query;
-use query::parser::QueryParseError;
+use search::query::Query;
+use search::query::parser::QueryParseError;
 
 
 pub fn build_conjunction_query(queries: Vec<Query>) -> Result<Query, QueryParseError> {

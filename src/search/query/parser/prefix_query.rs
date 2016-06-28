@@ -2,15 +2,29 @@ use rustc_serialize::json::Json;
 
 use term::Term;
 
-use query::{Query, TermMatcher};
-use query::parser::{QueryParseContext, QueryParseError};
-use query::parser::utils::parse_float;
-use query::parser::builders::build_score_query;
+use search::query::{Query, TermMatcher};
+use search::query::parser::{QueryParseContext, QueryParseError};
+use search::query::parser::utils::parse_float;
+use search::query::parser::builders::build_score_query;
 
 
 pub fn parse(context: &QueryParseContext, json: &Json) -> Result<Query, QueryParseError> {
     let object = try!(json.as_object().ok_or(QueryParseError::ExpectedObject));
 
+    // Prefix queries are very similar to term queries except that they will also match prefixes
+    // of terms
+    //
+    // {
+    //     "foo": "bar"
+    // }
+    //
+    // {
+    //     "foo": {
+    //         "query": "bar",
+    //         "boost": 2.0
+    //     }
+    // }
+    //
     let field_name = if object.len() == 1 {
         object.keys().collect::<Vec<_>>()[0]
     } else {
@@ -20,15 +34,19 @@ pub fn parse(context: &QueryParseContext, json: &Json) -> Result<Query, QueryPar
     let object = object.get(field_name).unwrap();
 
     // Get configuration
-    let mut term: Option<Term> = None;
+    let mut value: Option<&Json> = None;
     let mut boost = 1.0f64;
 
     match *object {
+        Json::String(ref string) => value = Some(object),
         Json::Object(ref inner_object) => {
             for (key, val) in inner_object.iter() {
                 match key.as_ref() {
                     "value" => {
-                        term = Some(Term::from_json(val));
+                        value = Some(val);
+                    }
+                    "prefix" => {
+                        value = Some(val);
                     }
                     "boost" => {
                         boost = try!(parse_float(val));
@@ -37,15 +55,15 @@ pub fn parse(context: &QueryParseContext, json: &Json) -> Result<Query, QueryPar
                 }
             }
         }
-        _ => term = Some(Term::from_json(object)),
+        _ => return Err(QueryParseError::ExpectedObjectOrString),
     }
 
-    match term {
-        Some(term) => {
+    match value {
+        Some(value) => {
             let mut query = Query::MatchTerm {
                 field: field_name.clone(),
-                term: term,
-                matcher: TermMatcher::Exact,
+                term: Term::from_json(value),
+                matcher: TermMatcher::Prefix,
             };
 
             // Add boost
@@ -63,13 +81,13 @@ mod tests {
     use rustc_serialize::json::Json;
 
     use term::Term;
-    use query::{Query, TermMatcher};
-    use query::parser::{QueryParseContext, QueryParseError};
+    use search::query::{Query, TermMatcher};
+    use search::query::parser::{QueryParseContext, QueryParseError};
 
     use super::parse;
 
     #[test]
-    fn test_term_query() {
+    fn test_prefix_query() {
         let query = parse(&QueryParseContext::new(), &Json::from_str("
         {
             \"foo\": {
@@ -81,29 +99,12 @@ mod tests {
         assert_eq!(query, Ok(Query::MatchTerm {
             field: "foo".to_string(),
             term: Term::String("bar".to_string()),
-            matcher: TermMatcher::Exact
+            matcher: TermMatcher::Prefix
         }));
     }
 
     #[test]
-    fn test_with_number() {
-        let query = parse(&QueryParseContext::new(), &Json::from_str("
-        {
-            \"foo\": {
-                \"value\": 123
-            }
-        }
-        ").unwrap());
-
-        assert_eq!(query, Ok(Query::MatchTerm {
-            field: "foo".to_string(),
-            term: Term::U64(123),
-            matcher: TermMatcher::Exact
-        }));
-    }
-
-    #[test]
-    fn test_simple_term_query() {
+    fn test_simple_prefix_query() {
         let query = parse(&QueryParseContext::new(), &Json::from_str("
         {
             \"foo\": \"bar\"
@@ -113,7 +114,24 @@ mod tests {
         assert_eq!(query, Ok(Query::MatchTerm {
             field: "foo".to_string(),
             term: Term::String("bar".to_string()),
-            matcher: TermMatcher::Exact
+            matcher: TermMatcher::Prefix
+        }));
+    }
+
+    #[test]
+    fn test_with_prefix_key() {
+        let query = parse(&QueryParseContext::new(), &Json::from_str("
+        {
+            \"foo\": {
+                \"prefix\": \"bar\"
+            }
+        }
+        ").unwrap());
+
+        assert_eq!(query, Ok(Query::MatchTerm {
+            field: "foo".to_string(),
+            term: Term::String("bar".to_string()),
+            matcher: TermMatcher::Prefix
         }));
     }
 
@@ -132,7 +150,7 @@ mod tests {
             query: Box::new(Query::MatchTerm {
                 field: "foo".to_string(),
                 term: Term::String("bar".to_string()),
-                matcher: TermMatcher::Exact
+                matcher: TermMatcher::Prefix
             }),
             mul: 2.0f64,
             add: 0.0f64,
@@ -154,7 +172,7 @@ mod tests {
             query: Box::new(Query::MatchTerm {
                 field: "foo".to_string(),
                 term: Term::String("bar".to_string()),
-                matcher: TermMatcher::Exact
+                matcher: TermMatcher::Prefix
             }),
             mul: 2.0f64,
             add: 0.0f64,

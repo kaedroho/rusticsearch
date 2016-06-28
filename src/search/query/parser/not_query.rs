@@ -1,20 +1,14 @@
 use rustc_serialize::json::Json;
 
-use query::Query;
-use query::parser::{QueryParseContext, QueryParseError};
+use search::query::Query;
+use search::query::parser::{QueryParseContext, QueryParseError, parse as parse_query};
 
 
 pub fn parse(context: &QueryParseContext, json: &Json) -> Result<Query, QueryParseError> {
-    let object = try!(json.as_object().ok_or(QueryParseError::ExpectedObject));
-
-    // Get configuration
-    for (key, value) in object.iter() {
-        match &key[..] {
-            _ => return Err(QueryParseError::UnrecognisedKey(key.clone()))
-        }
-    }
-
-    Ok(Query::MatchNone)
+    Ok(Query::Filter {
+        query: Box::new(Query::MatchAll),
+        filter: Box::new(try!(parse_query(context, json)).to_filter().negate()),
+    })
 }
 
 
@@ -23,23 +17,41 @@ mod tests {
     use rustc_serialize::json::Json;
 
     use term::Term;
-    use query::{Query, TermMatcher};
-    use query::parser::{QueryParseContext, QueryParseError};
+    use search::query::{Query, TermMatcher};
+    use search::query::filter::Filter;
+    use search::query::parser::{QueryParseContext, QueryParseError};
 
     use super::parse;
 
     #[test]
-    fn test_match_none_query() {
+    fn test_not_query() {
         let query = parse(&QueryParseContext::new(), &Json::from_str("
         {
+            \"term\": {
+                \"test\":  \"foo\"
+            }
         }
         ").unwrap());
 
-        assert_eq!(query, Ok(Query::MatchNone))
+        assert_eq!(query, Ok(Query::Filter {
+            query: Box::new(Query::MatchAll),
+            filter: Box::new(Filter::NotMatchTerm {
+                field: "test".to_string(),
+                term: Term::String("foo".to_string()),
+                matcher: TermMatcher::Exact
+            }),
+        }))
     }
 
     #[test]
     fn test_gives_error_for_incorrect_type() {
+        // String
+        let query = parse(&QueryParseContext::new(), &Json::from_str("
+        \"hello\"
+        ").unwrap());
+
+        assert_eq!(query, Err(QueryParseError::ExpectedObject));
+
         // Array
         let query = parse(&QueryParseContext::new(), &Json::from_str("
         [
@@ -62,16 +74,5 @@ mod tests {
         ").unwrap());
 
         assert_eq!(query, Err(QueryParseError::ExpectedObject));
-    }
-
-    #[test]
-    fn test_gives_error_for_unrecognised_key() {
-        let query = parse(&QueryParseContext::new(), &Json::from_str("
-        {
-            \"hello\": \"world\"
-        }
-        ").unwrap());
-
-        assert_eq!(query, Err(QueryParseError::UnrecognisedKey("hello".to_string())));
     }
 }

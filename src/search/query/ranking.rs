@@ -1,5 +1,5 @@
 use document::Document;
-use query::Query;
+use search::query::Query;
 
 
 impl Query {

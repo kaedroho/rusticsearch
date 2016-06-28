@@ -3,10 +3,10 @@ use rustc_serialize::json::Json;
 use analysis::Analyzer;
 use term::Term;
 use mapping::FieldMapping;
-use query::{Query, TermMatcher};
-use query::parser::{QueryParseContext, QueryParseError};
-use query::parser::utils::{parse_string, parse_float, Operator, parse_operator};
-use query::parser::builders::{build_conjunction_query, build_disjunction_query, build_score_query};
+use search::query::{Query, TermMatcher};
+use search::query::parser::{QueryParseContext, QueryParseError};
+use search::query::parser::utils::{parse_string, parse_float, Operator, parse_operator};
+use search::query::parser::builders::{build_conjunction_query, build_disjunction_query, build_score_query};
 
 
 pub fn parse(context: &QueryParseContext, json: &Json) -> Result<Query, QueryParseError> {
@@ -127,8 +127,8 @@ mod tests {
     use rustc_serialize::json::Json;
 
     use term::Term;
-    use query::{Query, TermMatcher};
-    use query::parser::{QueryParseContext, QueryParseError};
+    use search::query::{Query, TermMatcher};
+    use search::query::parser::{QueryParseContext, QueryParseError};
 
     use super::parse;
 

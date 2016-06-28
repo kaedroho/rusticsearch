@@ -14,7 +14,7 @@ pub mod not_query;
 use rustc_serialize::json::Json;
 
 use mapping::MappingRegistry;
-use query::Query;
+use search::query::Query;
 
 
 #[derive(Debug, Clone)]

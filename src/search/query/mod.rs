@@ -4,7 +4,7 @@ pub mod ranking;
 pub mod filter;
 
 use term::Term;
-use query::filter::Filter;
+use search::query::filter::Filter;
 
 
 #[derive(Debug, PartialEq)]

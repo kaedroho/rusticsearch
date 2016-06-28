@@ -1,6 +1,6 @@
 use term::Term;
 use document::Document;
-use query::{Query, TermMatcher};
+use search::query::{Query, TermMatcher};
 
 
 #[derive(Debug, PartialEq)]
