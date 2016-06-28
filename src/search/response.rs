@@ -2,7 +2,7 @@ use std::collections::BTreeMap;
 
 use rustc_serialize::json::Json;
 
-use document::Document;
+use search::document::Document;
 
 
 #[derive(Debug)]

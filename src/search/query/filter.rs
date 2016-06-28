@@ -1,5 +1,5 @@
 use search::term::Term;
-use document::Document;
+use search::document::Document;
 use search::query::{Query, TermMatcher};
 
 

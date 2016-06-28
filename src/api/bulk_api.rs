@@ -5,7 +5,7 @@ use iron::prelude::*;
 use iron::status;
 use rustc_serialize::json::{self, Json};
 
-use document::Document;
+use search::document::Document;
 use super::persistent;
 use super::utils::{json_response, index_not_found_response};
 use super::super::Globals;

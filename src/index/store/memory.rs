@@ -1,7 +1,7 @@
 use std::collections::{BTreeMap, HashMap};
 
 use search::term::Term;
-use document::Document;
+use search::document::Document;
 
 
 #[derive(Debug)]

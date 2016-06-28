@@ -1,4 +1,4 @@
-use document::Document;
+use search::document::Document;
 use search::query::Query;
 
 

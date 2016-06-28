@@ -6,7 +6,7 @@ use iron::status;
 use router::Router;
 use rustc_serialize::json::{self, Json};
 
-use document::Document;
+use search::document::Document;
 use super::persistent;
 use super::utils::json_response;
 use super::super::Globals;

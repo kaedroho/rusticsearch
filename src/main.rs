@@ -11,7 +11,6 @@ extern crate log;
 
 mod api;
 mod token;
-mod document;
 mod index;
 mod mapping;
 mod analysis;

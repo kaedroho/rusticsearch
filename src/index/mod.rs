@@ -4,7 +4,7 @@ use std::collections::{BTreeMap, HashMap, HashSet};
 
 use search::term::Term;
 use mapping::{Mapping, FieldMapping, MappingRegistry};
-use document::Document;
+use search::document::Document;
 use index::store::memory::MemoryIndexStore;
 
 
