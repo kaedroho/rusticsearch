@@ -21,7 +21,7 @@ pub fn parse(context: &QueryParseContext, json: &Json) -> Result<Query, QueryPar
 mod tests {
     use rustc_serialize::json::Json;
 
-    use term::Term;
+    use search::term::Term;
     use search::query::{Query, TermMatcher};
     use search::query::parser::{QueryParseContext, QueryParseError};
 

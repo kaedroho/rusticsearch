@@ -1,6 +1,6 @@
 use std::collections::{BTreeMap, HashMap};
 
-use term::Term;
+use search::term::Term;
 use document::Document;
 
 

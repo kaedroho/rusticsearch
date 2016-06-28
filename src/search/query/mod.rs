@@ -3,7 +3,7 @@ pub mod matching;
 pub mod ranking;
 pub mod filter;
 
-use term::Term;
+use search::term::Term;
 use search::query::filter::Filter;
 
 

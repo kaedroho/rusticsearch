@@ -3,7 +3,7 @@ use std::ops::{Deref, DerefMut};
 
 use rustc_serialize::json::Json;
 
-use term::Term;
+use search::term::Term;
 use token::Token;
 use analysis::Analyzer;
 

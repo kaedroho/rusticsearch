@@ -2,7 +2,7 @@ pub mod store;
 
 use std::collections::{BTreeMap, HashMap, HashSet};
 
-use term::Term;
+use search::term::Term;
 use mapping::{Mapping, FieldMapping, MappingRegistry};
 use document::Document;
 use index::store::memory::MemoryIndexStore;

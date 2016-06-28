@@ -2,7 +2,7 @@ use std::collections::BTreeMap;
 
 use rustc_serialize::json::Json;
 
-use term::Term;
+use search::term::Term;
 use token::Token;
 use mapping::Mapping;
 

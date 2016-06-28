@@ -1,4 +1,4 @@
-use term::Term;
+use search::term::Term;
 
 #[derive(Debug, Clone)]
 pub struct Token {

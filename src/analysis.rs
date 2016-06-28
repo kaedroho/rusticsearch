@@ -3,7 +3,7 @@ use std::cmp;
 use unidecode::unidecode;
 use unicode_segmentation::UnicodeSegmentation;
 
-use term::Term;
+use search::term::Term;
 use token::Token;
 
 
