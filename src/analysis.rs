@@ -4,7 +4,7 @@ use unidecode::unidecode;
 use unicode_segmentation::UnicodeSegmentation;
 
 use search::term::Term;
-use token::Token;
+use search::token::Token;
 
 
 #[derive(Debug, PartialEq)]

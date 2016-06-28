@@ -10,7 +10,6 @@ extern crate unicode_segmentation;
 extern crate log;
 
 mod api;
-mod token;
 mod index;
 mod mapping;
 mod analysis;

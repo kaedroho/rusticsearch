@@ -3,7 +3,7 @@ use std::collections::BTreeMap;
 use rustc_serialize::json::Json;
 
 use search::term::Term;
-use token::Token;
+use search::token::Token;
 use mapping::Mapping;
 
 
