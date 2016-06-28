@@ -48,7 +48,7 @@ pub fn parse(context: &QueryParseContext, json: &Json) -> Result<Query, QueryPar
 
     return Ok(Query::Filter {
         query: Box::new(query),
-        filter: Box::new(filter.to_boolean_query()),
+        filter: Box::new(filter.to_filter()),
     })
 }
 
@@ -59,7 +59,7 @@ mod tests {
 
     use term::Term;
     use query::{Query, TermMatcher};
-    use query::boolean::BooleanQuery;
+    use query::filter::Filter;
     use query::parser::{QueryParseContext, QueryParseError};
 
     use super::parse;
@@ -87,7 +87,7 @@ mod tests {
                 term: Term::String("query".to_string()),
                 matcher: TermMatcher::Exact
             }),
-            filter: Box::new(BooleanQuery::MatchTerm {
+            filter: Box::new(Filter::MatchTerm {
                 field: "the".to_string(),
                 term: Term::String("filter".to_string()),
                 matcher: TermMatcher::Exact
@@ -109,7 +109,7 @@ mod tests {
 
         assert_eq!(query, Ok(Query::Filter {
             query: Box::new(Query::MatchAll),
-            filter: Box::new(BooleanQuery::MatchTerm {
+            filter: Box::new(Filter::MatchTerm {
                 field: "the".to_string(),
                 term: Term::String("filter".to_string()),
                 matcher: TermMatcher::Exact
