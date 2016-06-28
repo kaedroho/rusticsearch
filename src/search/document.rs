@@ -4,7 +4,7 @@ use rustc_serialize::json::Json;
 
 use search::term::Term;
 use search::token::Token;
-use mapping::Mapping;
+use search::mapping::Mapping;
 
 
 #[derive(Debug)]

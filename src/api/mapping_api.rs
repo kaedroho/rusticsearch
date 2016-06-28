@@ -5,9 +5,11 @@ use iron::status;
 use router::Router;
 use rustc_serialize::json::Json;
 
+use search::mapping;
+
 use super::persistent;
 use super::utils::json_response;
-use super::super::{Globals, mapping};
+use super::super::Globals;
 
 
 pub fn view_put_mapping(req: &mut Request) -> IronResult<Response> {
