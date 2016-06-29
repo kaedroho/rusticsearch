@@ -6,20 +6,21 @@ use iron::status;
 use router::Router;
 use rustc_serialize::json::{self, Json};
 
+use system::System;
 use search::document::Document;
+
 use super::persistent;
 use super::utils::json_response;
-use super::super::Globals;
 
 
 pub fn view_get_doc(req: &mut Request) -> IronResult<Response> {
-    let ref glob = get_globals!(req);
+    let ref system = get_system!(req);
     let ref index_name = read_path_parameter!(req, "index").unwrap_or("");
     let ref mapping_name = read_path_parameter!(req, "mapping").unwrap_or("");
     let ref doc_id = read_path_parameter!(req, "doc").unwrap_or("");
 
     // Lock index array
-    let indices = glob.indices.read().unwrap();
+    let indices = system.indices.read().unwrap();
 
     // Get index
     let index = get_index_or_404!(indices, *index_name);
@@ -54,13 +55,13 @@ pub fn view_get_doc(req: &mut Request) -> IronResult<Response> {
 
 
 pub fn view_put_doc(req: &mut Request) -> IronResult<Response> {
-    let ref glob = get_globals!(req);
+    let ref system = get_system!(req);
     let ref index_name = read_path_parameter!(req, "index").unwrap_or("");
     let ref mapping_name = read_path_parameter!(req, "mapping").unwrap_or("");
     let ref doc_id = read_path_parameter!(req, "doc").unwrap_or("");
 
     // Lock index array
-    let mut indices = glob.indices.write().unwrap();
+    let mut indices = system.indices.write().unwrap();
 
     // Get index
     let mut index = get_index_or_404_mut!(indices, *index_name);
@@ -90,13 +91,13 @@ pub fn view_put_doc(req: &mut Request) -> IronResult<Response> {
 
 
 pub fn view_delete_doc(req: &mut Request) -> IronResult<Response> {
-    let ref glob = get_globals!(req);
+    let ref system = get_system!(req);
     let ref index_name = read_path_parameter!(req, "index").unwrap_or("");
     let ref mapping_name = read_path_parameter!(req, "mapping").unwrap_or("");
     let ref doc_id = read_path_parameter!(req, "doc").unwrap_or("");
 
     // Lock index array
-    let mut indices = glob.indices.write().unwrap();
+    let mut indices = system.indices.write().unwrap();
 
     // Get index
     let mut index = get_index_or_404_mut!(indices, *index_name);

@@ -3,9 +3,9 @@ use iron::status;
 use iron::modifier::Modifier;
 
 
-macro_rules! get_globals {
+macro_rules! get_system {
     ($req: expr) => {{
-        $req.get::<persistent::Read<Globals>>().unwrap()
+        $req.get::<persistent::Read<System>>().unwrap()
     }}
 }
 

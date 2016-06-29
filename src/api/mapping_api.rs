@@ -6,19 +6,19 @@ use router::Router;
 use rustc_serialize::json::Json;
 
 use search::mapping;
+use system::System;
 
 use super::persistent;
 use super::utils::json_response;
-use super::super::Globals;
 
 
 pub fn view_put_mapping(req: &mut Request) -> IronResult<Response> {
-    let ref glob = get_globals!(req);
+    let ref system = get_system!(req);
     let ref index_name = read_path_parameter!(req, "index").unwrap_or("");
     let ref mapping_name = read_path_parameter!(req, "mapping").unwrap_or("");
 
     // Lock index array
-    let mut indices = glob.indices.write().unwrap();
+    let mut indices = system.indices.write().unwrap();
 
     // Get index
     let mut index = get_index_or_404_mut!(indices, *index_name);

@@ -6,19 +6,20 @@ use router::Router;
 use rustc_serialize::json::{self, Json};
 use url::form_urlencoded;
 
+use system::System;
 use search::query::parser::{QueryParseContext, parse as parse_query};
 use search::request::SearchRequest;
+
 use super::persistent;
 use super::utils::json_response;
-use super::super::Globals;
 
 
 pub fn view_count(req: &mut Request) -> IronResult<Response> {
-    let ref glob = get_globals!(req);
+    let ref system = get_system!(req);
     let ref index_name = read_path_parameter!(req, "index").unwrap_or("");
 
     // Lock index array
-    let indices = glob.indices.read().unwrap();
+    let indices = system.indices.read().unwrap();
 
     // Get index
     let index = get_index_or_404!(indices, *index_name);
@@ -57,11 +58,11 @@ pub fn view_count(req: &mut Request) -> IronResult<Response> {
 
 
 pub fn view_search(req: &mut Request) -> IronResult<Response> {
-    let ref glob = get_globals!(req);
+    let ref system = get_system!(req);
     let ref index_name = read_path_parameter!(req, "index").unwrap_or("");
 
     // Lock index array
-    let indices = glob.indices.read().unwrap();
+    let indices = system.indices.read().unwrap();
 
     // Get index
     let index = get_index_or_404!(indices, *index_name);
