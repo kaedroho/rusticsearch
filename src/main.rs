@@ -40,7 +40,7 @@ fn main() {
 
     logger::init().unwrap();
 
-    let mut system = System::new(Path::new(".").to_path_buf());
+    let mut system = System::new(Path::new("data/").to_path_buf());
     system.load_indices();
 
     let router = api::get_router();
