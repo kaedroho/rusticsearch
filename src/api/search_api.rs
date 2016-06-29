@@ -1,8 +1,5 @@
 use std::io::Read;
 
-use iron::prelude::*;
-use iron::status;
-use router::Router;
 use rustc_serialize::json::{self, Json};
 use url::form_urlencoded;
 
@@ -10,8 +7,11 @@ use system::System;
 use search::query::parser::{QueryParseContext, parse as parse_query};
 use search::request::SearchRequest;
 
-use super::persistent;
-use super::utils::json_response;
+use api::persistent;
+use api::iron::prelude::*;
+use api::iron::status;
+use api::router::Router;
+use api::utils::json_response;
 
 
 pub fn view_count(req: &mut Request) -> IronResult<Response> {

@@ -1,16 +1,16 @@
 use std::io::Read;
 use std::collections::BTreeMap;
 
-use iron::prelude::*;
-use iron::status;
-use router::Router;
 use rustc_serialize::json::{self, Json};
 
 use system::System;
 use search::document::Document;
 
-use super::persistent;
-use super::utils::json_response;
+use api::persistent;
+use api::iron::prelude::*;
+use api::iron::status;
+use api::router::Router;
+use api::utils::json_response;
 
 
 pub fn view_get_doc(req: &mut Request) -> IronResult<Response> {

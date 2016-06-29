@@ -1,15 +1,15 @@
 use std::io::Read;
 use std::collections::HashMap;
 
-use iron::prelude::*;
-use iron::status;
 use rustc_serialize::json::{self, Json};
 
 use system::System;
 use search::document::Document;
 
-use super::persistent;
-use super::utils::{json_response, index_not_found_response};
+use api::persistent;
+use api::iron::prelude::*;
+use api::iron::status;
+use api::utils::{json_response, index_not_found_response};
 
 
 pub fn view_post_bulk(req: &mut Request) -> IronResult<Response> {

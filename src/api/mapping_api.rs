@@ -1,15 +1,15 @@
 use std::io::Read;
 
-use iron::prelude::*;
-use iron::status;
-use router::Router;
 use rustc_serialize::json::Json;
 
 use search::mapping;
 use system::System;
 
-use super::persistent;
-use super::utils::json_response;
+use api::persistent;
+use api::iron::prelude::*;
+use api::iron::status;
+use api::router::Router;
+use api::utils::json_response;
 
 
 pub fn view_put_mapping(req: &mut Request) -> IronResult<Response> {

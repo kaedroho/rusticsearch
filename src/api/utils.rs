@@ -1,11 +1,13 @@
-use iron::prelude::*;
-use iron::status;
-use iron::modifier::Modifier;
+use api::iron::prelude::*;
+use api::iron::status;
+use api::iron::modifier::Modifier;
 
 
 macro_rules! get_system {
     ($req: expr) => {{
-        $req.get::<persistent::Read<System>>().unwrap()
+        use api::Context;
+
+        $req.get::<persistent::Read<Context>>().unwrap().system.clone()
     }}
 }
 

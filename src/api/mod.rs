@@ -1,3 +1,4 @@
+extern crate iron;
 extern crate router;
 extern crate persistent;
 
@@ -10,17 +11,22 @@ mod index_api;
 mod mapping_api;
 mod bulk_api;
 
-use iron::prelude::*;
-use iron::status;
-use router::Router;
+use std::sync::Arc;
+
+use api::iron::prelude::*;
+use api::iron::status;
+use api::iron::typemap::Key;
+use api::router::Router;
+
+use system::System;
 
 
-pub fn view_home(_: &mut Request) -> IronResult<Response> {
+fn view_home(_: &mut Request) -> IronResult<Response> {
     Ok(Response::with((status::Ok, "Hello World!")))
 }
 
 
-pub fn get_router() -> Router {
+fn get_router() -> Router {
     router!(get "/" => view_home,
             get "/:index/_count" => search_api::view_count,
             post "/:index/_count" => search_api::view_count,
@@ -39,4 +45,34 @@ pub fn get_router() -> Router {
             post "/:index/_refresh" => index_api::view_post_refresh_index,
             put "/:index/_mapping/:mapping" => mapping_api::view_put_mapping,
             post "/_bulk" => bulk_api::view_post_bulk)
+}
+
+
+// The "Context" struct just wraps Arc<System> so we can put it into chain.link()
+// Workaround for: https://github.com/iron/persistent/issues/55
+
+struct Context {
+    system: Arc<System>,
+}
+
+
+impl Context {
+    fn new(system: Arc<System>) -> Context {
+        Context {
+            system: system,
+        }
+    }
+}
+
+
+impl Key for Context {
+    type Value = Context;
+}
+
+
+pub fn api_main(system: Arc<System>) {
+    let router = get_router();
+    let mut chain = Chain::new(router);
+    chain.link(persistent::Read::<Context>::both(Context::new(system)));
+    Iron::new(chain).http("localhost:9200").unwrap();
 }
