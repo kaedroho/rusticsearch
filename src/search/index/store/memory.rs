@@ -78,6 +78,40 @@ impl MemoryIndexStore {
         self.docs.insert(doc_num, doc);
     }
 
+    pub fn next_doc(&self, term: &Term, field_name: &str, previous_doc: Option<u64>) -> Option<(u64, usize)> {
+        let fields = match self.index.get(term) {
+            Some(fields) => fields,
+            None => return None,
+        };
+
+        let docs = match fields.get(field_name) {
+            Some(docs) => docs,
+            None => return None,
+        };
+
+        match previous_doc {
+            Some(previous_doc) => {
+                // Find first doc after specified doc
+                // TODO: Speed this up (see section 2.1.2 of the IR book)
+                for (doc_id, postings) in docs.iter() {
+                    if *doc_id > previous_doc {
+                        return Some((*doc_id, postings.len()));
+                    }
+                }
+
+                // Ran out of docs
+                return None;
+            }
+            None => {
+                // Previous doc not specified, return first doc
+                match docs.iter().next() {
+                    Some((doc_id, postings)) => Some((*doc_id, postings.len())),
+                    None => None,
+                }
+            }
+        }
+    }
+
     pub fn num_docs(&self) -> usize {
         self.docs.len()
     }
