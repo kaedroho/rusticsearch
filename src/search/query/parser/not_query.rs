@@ -5,9 +5,9 @@ use search::query::parser::{QueryParseContext, QueryParseError, parse as parse_q
 
 
 pub fn parse(context: &QueryParseContext, json: &Json) -> Result<Query, QueryParseError> {
-    Ok(Query::Filter {
+    Ok(Query::Exclude {
         query: Box::new(Query::MatchAll),
-        filter: Box::new(try!(parse_query(context, json)).to_filter().negate()),
+        exclude: Box::new(try!(parse_query(&context.clone().no_score(), json))),
     })
 }
 
@@ -18,7 +18,6 @@ mod tests {
 
     use search::term::Term;
     use search::query::{Query, TermMatcher};
-    use search::query::filter::Filter;
     use search::query::parser::{QueryParseContext, QueryParseError};
 
     use super::parse;
@@ -33,9 +32,9 @@ mod tests {
         }
         ").unwrap());
 
-        assert_eq!(query, Ok(Query::Filter {
+        assert_eq!(query, Ok(Query::Exclude {
             query: Box::new(Query::MatchAll),
-            filter: Box::new(Filter::NotMatchTerm {
+            exclude: Box::new(Query::MatchTerm {
                 field: "test".to_string(),
                 term: Term::String("foo".to_string()),
                 matcher: TermMatcher::Exact
