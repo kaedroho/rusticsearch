@@ -164,7 +164,7 @@ impl MemoryIndexStore {
         }
     }
 
-    pub fn total_docs(&self) -> usize {
+    pub fn num_docs(&self) -> usize {
         self.docs.len()
     }
 
