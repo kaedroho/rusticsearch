@@ -8,8 +8,8 @@ use search::document::Document;
 pub struct MemoryIndexStore {
     docs: BTreeMap<u64, Document>,
     index: BTreeMap<Term, BTreeMap<String, BTreeMap<u64, Vec<u32>>>>,
-    next_doc_num: u64,
-    doc_id_map: HashMap<String, u64>,
+    next_doc_id: u64,
+    doc_key2id_map: HashMap<String, u64>,
 }
 
 
@@ -18,26 +18,26 @@ impl MemoryIndexStore {
         MemoryIndexStore {
             docs: BTreeMap::new(),
             index: BTreeMap::new(),
-            next_doc_num: 1,
-            doc_id_map: HashMap::new(),
+            next_doc_id: 1,
+            doc_key2id_map: HashMap::new(),
         }
     }
 
-    pub fn get_document_by_id(&self, id: &str) -> Option<&Document> {
-        match self.doc_id_map.get(id) {
-            Some(doc_num) => self.docs.get(doc_num),
+    pub fn get_document_by_key(&self, doc_key: &str) -> Option<&Document> {
+        match self.doc_key2id_map.get(doc_key) {
+            Some(doc_id) => self.docs.get(doc_id),
             None => None,
         }
     }
 
-    pub fn contains_document_id(&self, id: &str) -> bool {
-        self.doc_id_map.contains_key(id)
+    pub fn contains_document_key(&self, doc_key: &str) -> bool {
+        self.doc_key2id_map.contains_key(doc_key)
     }
 
-    pub fn remove_document_by_id(&mut self, id: &str) -> bool {
-        match self.doc_id_map.remove(id) {
-            Some(doc_num) => {
-                self.docs.remove(&doc_num);
+    pub fn remove_document_by_key(&mut self, doc_key: &str) -> bool {
+        match self.doc_key2id_map.remove(doc_key) {
+            Some(doc_id) => {
+                self.docs.remove(&doc_id);
 
                 true
             }
@@ -46,8 +46,8 @@ impl MemoryIndexStore {
     }
 
     pub fn insert_or_update_document(&mut self, doc: Document) {
-        let doc_num = self.next_doc_num;
-        self.next_doc_num += 1;
+        let doc_id = self.next_doc_id;
+        self.next_doc_id += 1;
 
         // Put field contents in inverted index
         for (field_name, tokens) in doc.fields.iter() {
@@ -65,17 +65,17 @@ impl MemoryIndexStore {
                 }
 
                 let mut index_docs = index_fields.get_mut(field_name).unwrap();
-                if !index_docs.contains_key(&doc_num) {
-                    index_docs.insert(doc_num, Vec::new());
+                if !index_docs.contains_key(&doc_id) {
+                    index_docs.insert(doc_id, Vec::new());
                 }
 
-                let mut postings_list = index_docs.get_mut(&doc_num).unwrap();
+                let mut postings_list = index_docs.get_mut(&doc_id).unwrap();
                 postings_list.push(token.position);
             }
         }
 
-        self.doc_id_map.insert(doc.id.clone(), doc_num);
-        self.docs.insert(doc_num, doc);
+        self.doc_key2id_map.insert(doc.key.clone(), doc_id);
+        self.docs.insert(doc_id, doc);
     }
 
     pub fn next_doc(&self, term: &Term, field_name: &str, previous_doc: Option<u64>) -> Option<(u64, usize)> {

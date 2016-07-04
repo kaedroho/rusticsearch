@@ -17,7 +17,7 @@ pub fn view_get_doc(req: &mut Request) -> IronResult<Response> {
     let ref system = get_system!(req);
     let ref index_name = read_path_parameter!(req, "index").unwrap_or("");
     let ref mapping_name = read_path_parameter!(req, "mapping").unwrap_or("");
-    let ref doc_id = read_path_parameter!(req, "doc").unwrap_or("");
+    let ref doc_key = read_path_parameter!(req, "doc").unwrap_or("");
 
     // Lock index array
     let indices = system.indices.read().unwrap();
@@ -34,7 +34,7 @@ pub fn view_get_doc(req: &mut Request) -> IronResult<Response> {
     };
 
     // Find document
-    let doc = match index.store.get_document_by_id(doc_id) {
+    let doc = match index.store.get_document_by_key(doc_key) {
         Some(doc) => doc,
         None => {
             return Ok(json_response(status::NotFound, "{\"message\": \"Document not found\"}"));
@@ -58,7 +58,7 @@ pub fn view_put_doc(req: &mut Request) -> IronResult<Response> {
     let ref system = get_system!(req);
     let ref index_name = read_path_parameter!(req, "index").unwrap_or("");
     let ref mapping_name = read_path_parameter!(req, "mapping").unwrap_or("");
-    let ref doc_id = read_path_parameter!(req, "doc").unwrap_or("");
+    let ref doc_key = read_path_parameter!(req, "doc").unwrap_or("");
 
     // Lock index array
     let mut indices = system.indices.write().unwrap();
@@ -77,7 +77,7 @@ pub fn view_put_doc(req: &mut Request) -> IronResult<Response> {
 
         // Create document
         if let Some(data) = json_from_request_body!(req) {
-            Document::from_json(doc_id.to_string(), data, mapping)
+            Document::from_json(doc_key.to_string(), data, mapping)
         } else {
             return Ok(json_response(status::NotFound, "{\"message\": \"No data\"}"));
         }
@@ -94,7 +94,7 @@ pub fn view_delete_doc(req: &mut Request) -> IronResult<Response> {
     let ref system = get_system!(req);
     let ref index_name = read_path_parameter!(req, "index").unwrap_or("");
     let ref mapping_name = read_path_parameter!(req, "mapping").unwrap_or("");
-    let ref doc_id = read_path_parameter!(req, "doc").unwrap_or("");
+    let ref doc_key = read_path_parameter!(req, "doc").unwrap_or("");
 
     // Lock index array
     let mut indices = system.indices.write().unwrap();
@@ -103,12 +103,12 @@ pub fn view_delete_doc(req: &mut Request) -> IronResult<Response> {
     let mut index = get_index_or_404_mut!(indices, *index_name);
 
     // Make sure the document exists
-    if !index.store.contains_document_id(doc_id) {
+    if !index.store.contains_document_key(doc_key) {
         return Ok(json_response(status::NotFound, "{\"message\": \"Document not found\"}"));
     }
 
     // Delete document
-    index.store.remove_document_by_id(doc_id);
+    index.store.remove_document_by_key(doc_key);
 
     return Ok(json_response(status::Ok, "{}"));
 }

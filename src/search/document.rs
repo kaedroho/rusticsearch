@@ -9,12 +9,12 @@ use search::mapping::Mapping;
 
 #[derive(Debug)]
 pub struct Document {
-    pub id: String,
+    pub key: String,
     pub fields: BTreeMap<String, Vec<Token>>,
 }
 
 impl Document {
-    pub fn from_json(id: String, data: Json, mapping: &Mapping) -> Document {
+    pub fn from_json(key: String, data: Json, mapping: &Mapping) -> Document {
         let mut fields = BTreeMap::new();
         let mut all_field_tokens: Vec<Token> = Vec::new();
 
@@ -52,7 +52,7 @@ impl Document {
         fields.insert("_all".to_owned(), all_field_tokens);
 
         Document {
-            id: id,
+            key: key,
             fields: fields,
         }
     }
