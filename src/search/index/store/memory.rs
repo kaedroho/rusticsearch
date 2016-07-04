@@ -7,7 +7,7 @@ use search::document::Document;
 #[derive(Debug)]
 pub struct MemoryIndexStore {
     docs: BTreeMap<u64, Document>,
-    index: BTreeMap<Term, BTreeMap<String, Vec<(u64, u32)>>>,
+    index: BTreeMap<Term, BTreeMap<String, BTreeMap<u64, Vec<u32>>>>,
     next_doc_num: u64,
     doc_id_map: HashMap<String, u64>,
 }
@@ -61,11 +61,16 @@ impl MemoryIndexStore {
                 let mut index_fields = self.index.get_mut(&token.term).unwrap();
 
                 if !index_fields.contains_key(field_name) {
-                    index_fields.insert(field_name.clone(), Vec::new());
+                    index_fields.insert(field_name.clone(), BTreeMap::new());
                 }
 
-                let mut postings_list = index_fields.get_mut(field_name).unwrap();
-                postings_list.push((doc_num, token.position));
+                let mut index_docs = index_fields.get_mut(field_name).unwrap();
+                if !index_docs.contains_key(&doc_num) {
+                    index_docs.insert(doc_num, Vec::new());
+                }
+
+                let mut postings_list = index_docs.get_mut(&doc_num).unwrap();
+                postings_list.push(token.position);
             }
         }
 
