@@ -1,7 +1,9 @@
 use std::collections::{BTreeMap, HashMap};
+use std::collections::Bound::{Excluded, Unbounded};
 
 use search::term::Term;
 use search::document::Document;
+use search::index::reader::{IndexReader, DocRefIterator};
 
 
 #[derive(Debug)]
@@ -28,6 +30,10 @@ impl MemoryIndexStore {
             Some(doc_id) => self.docs.get(doc_id),
             None => None,
         }
+    }
+
+    pub fn get_document_by_id(&self, doc_id: &u64) -> Option<&Document> {
+        self.docs.get(doc_id)
     }
 
     pub fn contains_document_key(&self, doc_key: &str) -> bool {
@@ -59,7 +65,6 @@ impl MemoryIndexStore {
                 }
 
                 let mut index_fields = self.index.get_mut(&token.term).unwrap();
-
                 if !index_fields.contains_key(field_name) {
                     index_fields.insert(field_name.clone(), BTreeMap::new());
                 }
@@ -112,11 +117,143 @@ impl MemoryIndexStore {
         }
     }
 
-    pub fn num_docs(&self) -> usize {
+    pub fn next_doc_all(&self, position: Option<u64>) -> Option<u64> {
+        match position {
+            Some(doc_id) => {
+                self.docs.range(Excluded(&doc_id), Unbounded).map(|(doc_id, doc)| *doc_id).nth(0)
+            }
+            None => {
+                self.docs.keys().nth(0).cloned()
+            }
+        }
+    }
+
+    pub fn iter_terms<'a>(&'a self) -> Box<Iterator<Item=&'a Term> + 'a> {
+        Box::new(self.index.keys())
+    }
+}
+
+
+impl<'a> IndexReader<'a> for MemoryIndexStore {
+    type AllDocRefIterator = MemoryIndexStoreAllDocRefIterator<'a>;
+    type TermDocRefIterator = MemoryIndexStoreTermDocRefIterator<'a>;
+
+    fn num_docs(&self) -> usize {
         self.docs.len()
     }
 
-    pub fn iter_docs<'a>(&'a self) -> Box<Iterator<Item=&'a Document> + 'a> {
-        Box::new(self.docs.values())
+    fn iter_docids_all(&'a self) -> MemoryIndexStoreAllDocRefIterator<'a> {
+        MemoryIndexStoreAllDocRefIterator {
+            store: self,
+            last_doc: None,
+        }
+    }
+
+    fn iter_docids_with_term(&'a self, term: Term, field_name: String) -> MemoryIndexStoreTermDocRefIterator<'a> {
+        MemoryIndexStoreTermDocRefIterator {
+            store: self,
+            term: term,
+            field_name: field_name,
+            last_doc: None,
+        }
+    }
+}
+
+
+struct MemoryIndexStoreAllDocRefIterator<'a> {
+    store: &'a MemoryIndexStore,
+    last_doc: Option<u64>,
+}
+
+impl<'a> Iterator for MemoryIndexStoreAllDocRefIterator<'a> {
+    type Item = u64;
+
+    fn next(&mut self) -> Option<u64> {
+        self.last_doc = self.store.next_doc_all(self.last_doc);
+
+        self.last_doc
+    }
+}
+
+impl<'a> DocRefIterator<'a> for MemoryIndexStoreAllDocRefIterator<'a> {
+
+}
+
+
+struct MemoryIndexStoreTermDocRefIterator<'a> {
+    store: &'a MemoryIndexStore,
+    term: Term,
+    field_name: String,
+    last_doc: Option<u64>,
+}
+
+impl<'a> Iterator for MemoryIndexStoreTermDocRefIterator<'a> {
+    type Item = u64;
+
+    fn next(&mut self) -> Option<u64> {
+        self.last_doc = match self.store.next_doc(&self.term, &self.field_name, self.last_doc) {
+            Some((doc_id, term_freq)) => Some(doc_id),
+            None => None,
+        };
+
+        self.last_doc
+    }
+}
+
+impl<'a> DocRefIterator<'a> for MemoryIndexStoreTermDocRefIterator<'a> {
+
+}
+
+
+#[cfg(test)]
+mod tests {
+    use super::MemoryIndexStore;
+
+    use search::term::Term;
+    use search::analysis::Analyzer;
+    use search::document::Document;
+    use search::index::reader::IndexReader;
+
+    fn make_test_store() -> MemoryIndexStore {
+        let mut store = MemoryIndexStore::new();
+
+        store.insert_or_update_document(Document {
+            key: "test_doc".to_string(),
+            fields: btreemap! {
+                "title".to_string() => Analyzer::Standard.run("hello world".to_string()),
+                "body".to_string() => Analyzer::Standard.run("lorem ipsum dolar".to_string()),
+            }
+        });
+
+        store.insert_or_update_document(Document {
+            key: "test_doc".to_string(),
+            fields: btreemap! {
+                "title".to_string() => Analyzer::Standard.run("howdy partner".to_string()),
+                "body".to_string() => Analyzer::Standard.run("lorem ipsum dolar".to_string()),
+            }
+        });
+
+        store
+    }
+
+    #[test]
+    fn test_num_docs() {
+        let store = make_test_store();
+
+        assert_eq!(store.num_docs(), 2);
+    }
+
+    #[test]
+    fn test_all_docs_iterator() {
+        let store = make_test_store();
+
+        assert_eq!(store.iter_docids_all().count(), 2);
+    }
+
+    #[test]
+    fn test_term_docs_iterator() {
+        let store = make_test_store();
+
+        assert_eq!(store.iter_docids_with_term(Term::String("hello".to_string()), "title".to_string()).count(), 1);
     }
 }

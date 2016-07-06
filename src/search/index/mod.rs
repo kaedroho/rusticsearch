@@ -1,3 +1,4 @@
+pub mod reader;
 pub mod store;
 
 use std::collections::{BTreeMap, HashMap, HashSet};

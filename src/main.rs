@@ -1,3 +1,5 @@
+#![feature(btree_range, collections_bound)]
+
 #[macro_use]
 extern crate router;
 extern crate url;
@@ -6,6 +8,8 @@ extern crate unidecode;
 extern crate unicode_segmentation;
 #[macro_use]
 extern crate log;
+#[macro_use]
+extern crate maplit;
 
 mod system;
 mod api;
