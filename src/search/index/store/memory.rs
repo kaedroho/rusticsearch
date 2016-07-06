@@ -127,10 +127,6 @@ impl MemoryIndexStore {
             }
         }
     }
-
-    pub fn iter_terms<'a>(&'a self) -> Box<Iterator<Item=&'a Term> + 'a> {
-        Box::new(self.index.keys())
-    }
 }
 
 
@@ -156,6 +152,10 @@ impl<'a> IndexReader<'a> for MemoryIndexStore {
             field_name: field_name,
             last_doc: None,
         }
+    }
+
+    fn iter_terms(&'a self) -> Box<Iterator<Item=&'a Term> + 'a> {
+        Box::new(self.index.keys())
     }
 }
 

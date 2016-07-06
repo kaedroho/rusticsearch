@@ -3,7 +3,7 @@ use std::cmp::Ordering;
 use search::index::Index;
 use search::query::Query;
 use search::response::{SearchResponse, SearchHit};
-use search::query_set::next_doc;
+use search::query_set::build_iterator_from_query;
 
 
 #[derive(Debug)]
@@ -18,17 +18,17 @@ impl SearchRequest {
     pub fn run<'a>(&self, index: &'a Index) -> SearchResponse<'a> {
         // Find all hits
         let mut hits = Vec::new();
-        let mut last_hit = next_doc(index, &self.query, None);
+        let mut iterator = build_iterator_from_query(&index.store, &self.query);
 
-        while let Some((doc_id, score)) = last_hit {
+        for doc_id in iterator {
             if let Some(doc) = index.store.get_document_by_id(&doc_id) {
-                hits.push(SearchHit {
-                    doc: &doc,
-                    score: score,
-                });
+                if let Some(score) = self.query.rank(&doc) {
+                    hits.push(SearchHit {
+                        doc: &doc,
+                        score: score,
+                    });
+                }
             }
-
-            last_hit = next_doc(index, &self.query, Some(doc_id));
         }
 
         // Sort by score
