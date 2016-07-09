@@ -10,6 +10,7 @@ extern crate unicode_segmentation;
 extern crate log;
 #[macro_use]
 extern crate maplit;
+extern crate chrono;
 
 mod system;
 mod api;

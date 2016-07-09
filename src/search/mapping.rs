@@ -2,6 +2,7 @@ use std::collections::HashMap;
 use std::ops::{Deref, DerefMut};
 
 use rustc_serialize::json::Json;
+use chrono::{DateTime, UTC};
 
 use search::term::Term;
 use search::token::Token;
@@ -106,6 +107,27 @@ impl FieldMapping {
                 }
             }
             FieldType::Boolean => Some(vec![Token{term: Term::Boolean(parse_boolean(&value)), position: 1}]),
+            FieldType::Date => {
+                match value {
+                    Json::String(string) => {
+                        let date_parsed = match string.parse::<DateTime<UTC>>() {
+                            Ok(date_parsed) => date_parsed,
+                            Err(error) => {
+                                // TODO: Handle this properly
+                                return None;
+                            }
+                        };
+
+                        Some(vec![Token{term: Term::DateTime(date_parsed), position: 1}])
+                    }
+                    Json::U64(num) => {
+                        // TODO needs to be interpreted as milliseconds since epoch
+                        // This would really help: https://github.com/lifthrasiir/rust-chrono/issues/74
+                        None
+                    }
+                    _ => None
+                }
+            }
             _ => None,
         }
     }
