@@ -4,6 +4,7 @@ pub mod store;
 use std::collections::{BTreeMap, HashMap, HashSet};
 
 use search::term::Term;
+use search::analysis::registry::AnalyzerRegistry;
 use search::mapping::{Mapping, FieldMapping, MappingRegistry};
 use search::document::Document;
 use search::index::store::memory::MemoryIndexStore;
@@ -11,6 +12,7 @@ use search::index::store::memory::MemoryIndexStore;
 
 #[derive(Debug)]
 pub struct Index {
+    pub analyzers: AnalyzerRegistry,
     pub mappings: MappingRegistry,
     pub aliases: HashSet<String>,
     pub store: MemoryIndexStore,
@@ -20,6 +22,7 @@ pub struct Index {
 impl Index {
     pub fn new() -> Index {
         Index {
+            analyzers: AnalyzerRegistry::new(),
             mappings: MappingRegistry::new(),
             aliases: HashSet::new(),
             store: MemoryIndexStore::new(),

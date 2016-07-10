@@ -1,3 +1,5 @@
+pub mod registry;
+
 use std::cmp;
 
 use unidecode::unidecode;
