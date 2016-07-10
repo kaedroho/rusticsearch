@@ -8,22 +8,6 @@ use search::query::parser::{parse as parse_query};
 pub fn parse(context: &QueryParseContext, json: &Json) -> Result<Query, QueryParseError> {
     let object = try!(json.as_object().ok_or(QueryParseError::ExpectedObject));
 
-    // Filtered queries contain two keys. The "filter" and the "query". Both keys are sub-queries
-    // except that the one specified in "filter" has its score ignored
-    //
-    // {
-    //     "filter": {
-    //         "term": {
-    //             "foo": "bar"
-    //         }
-    //     },
-    //     "query": {
-    //         "match": {
-    //             "baz": "quux"
-    //         }
-    //    }
-    // }
-    //
     let mut query = Query::MatchAll;
 
     let mut filter = Query::MatchNone;

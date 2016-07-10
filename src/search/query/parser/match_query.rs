@@ -12,20 +12,6 @@ use search::query::parser::utils::{parse_string, parse_float, Operator, parse_op
 pub fn parse(context: &QueryParseContext, json: &Json) -> Result<Query, QueryParseError> {
     let object = try!(json.as_object().ok_or(QueryParseError::ExpectedObject));
 
-    // Match queries are single-key objects. The key is the field name, the value is either a
-    // string or a sub-object with extra configuration:
-    //
-    // {
-    //     "foo": "bar"
-    // }
-    //
-    // {
-    //     "foo": {
-    //         "query": "bar",
-    //         "boost": 2.0
-    //     }
-    // }
-    //
     let field_name = if object.len() == 1 {
         object.keys().collect::<Vec<_>>()[0]
     } else {

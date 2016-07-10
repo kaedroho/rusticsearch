@@ -10,20 +10,6 @@ use search::query::parser::utils::parse_float;
 pub fn parse(context: &QueryParseContext, json: &Json) -> Result<Query, QueryParseError> {
     let object = try!(json.as_object().ok_or(QueryParseError::ExpectedObject));
 
-    // Prefix queries are very similar to term queries except that they will also match prefixes
-    // of terms
-    //
-    // {
-    //     "foo": "bar"
-    // }
-    //
-    // {
-    //     "foo": {
-    //         "query": "bar",
-    //         "boost": 2.0
-    //     }
-    // }
-    //
     let field_name = if object.len() == 1 {
         object.keys().collect::<Vec<_>>()[0]
     } else {
