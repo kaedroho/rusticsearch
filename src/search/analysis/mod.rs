@@ -1,4 +1,5 @@
 pub mod registry;
+pub mod tokenizers;
 
 use std::cmp;
 
