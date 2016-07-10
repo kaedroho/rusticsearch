@@ -1,3 +1,5 @@
+//! Parses "filtered" queries
+
 use rustc_serialize::json::Json;
 
 use search::query::Query;

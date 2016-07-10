@@ -1,3 +1,5 @@
+//! Parses Elasticsearch Query DSL
+
 pub mod utils;
 pub mod match_query;
 pub mod multi_match_query;

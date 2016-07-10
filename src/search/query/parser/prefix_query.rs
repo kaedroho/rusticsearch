@@ -1,3 +1,5 @@
+//! Parses "prefix" queries
+
 use rustc_serialize::json::Json;
 
 use search::term::Term;

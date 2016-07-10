@@ -1,3 +1,5 @@
+//! Parses "match_none" queries
+
 use rustc_serialize::json::Json;
 
 use search::query::Query;

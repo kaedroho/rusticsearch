@@ -1,3 +1,5 @@
+//! Parses "multi_match" queries
+
 use rustc_serialize::json::Json;
 
 use search::term::Term;
