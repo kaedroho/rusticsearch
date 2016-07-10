@@ -1,5 +1,6 @@
 pub mod registry;
 pub mod tokenizers;
+pub mod filters;
 
 use std::cmp;
 
