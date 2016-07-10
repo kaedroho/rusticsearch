@@ -13,12 +13,20 @@ pub struct Document {
     pub fields: BTreeMap<String, Vec<Token>>,
 }
 
-impl Document {
-    pub fn from_json(key: String, data: Json, mapping: &Mapping) -> Document {
+
+#[derive(Debug)]
+pub struct DocumentSource {
+    pub key: String,
+    pub data: Json,
+}
+
+
+impl DocumentSource {
+    pub fn prepare(&self, mapping: &Mapping) -> Document {
         let mut fields = BTreeMap::new();
         let mut all_field_tokens: Vec<Token> = Vec::new();
 
-        for (field_name, field_value) in data.as_object().unwrap() {
+        for (field_name, field_value) in self.data.as_object().unwrap() {
             match mapping.fields.get(field_name) {
                 Some(field_mapping) => {
                     let value = field_mapping.process_value_for_index(field_value.clone());
@@ -52,7 +60,7 @@ impl Document {
         fields.insert("_all".to_owned(), all_field_tokens);
 
         Document {
-            key: key,
+            key: self.key.clone(),
             fields: fields,
         }
     }

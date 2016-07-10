@@ -4,7 +4,7 @@ use std::collections::BTreeMap;
 use rustc_serialize::json::{self, Json};
 
 use system::System;
-use search::document::Document;
+use search::document::DocumentSource;
 
 use api::persistent;
 use api::iron::prelude::*;
@@ -77,7 +77,11 @@ pub fn view_put_doc(req: &mut Request) -> IronResult<Response> {
 
         // Create document
         if let Some(data) = json_from_request_body!(req) {
-            Document::from_json(doc_key.to_string(), data, mapping)
+            let document_source = DocumentSource {
+                key: doc_key.to_string(),
+                data: data,
+            };
+            document_source.prepare(mapping)
         } else {
             return Ok(json_response(status::NotFound, "{\"message\": \"No data\"}"));
         }

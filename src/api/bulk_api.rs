@@ -4,7 +4,7 @@ use std::collections::HashMap;
 use rustc_serialize::json::{self, Json};
 
 use system::System;
-use search::document::Document;
+use search::document::DocumentSource;
 
 use api::persistent;
 use api::iron::prelude::*;
@@ -75,7 +75,11 @@ pub fn view_post_bulk(req: &mut Request) -> IronResult<Response> {
                     };
 
                     // Create document
-                    Document::from_json(doc_id.to_string(), doc_json, mapping)
+                    let document_source = DocumentSource {
+                        key: doc_id.to_string(),
+                        data: doc_json,
+                    };
+                    document_source.prepare(mapping)
                 };
 
                 index.store.insert_or_update_document(doc);
