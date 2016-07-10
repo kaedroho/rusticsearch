@@ -160,7 +160,7 @@ impl<'a> IndexReader<'a> for MemoryIndexStore {
 }
 
 
-struct MemoryIndexStoreAllDocRefIterator<'a> {
+pub struct MemoryIndexStoreAllDocRefIterator<'a> {
     store: &'a MemoryIndexStore,
     last_doc: Option<u64>,
 }
@@ -180,7 +180,7 @@ impl<'a> DocRefIterator<'a> for MemoryIndexStoreAllDocRefIterator<'a> {
 }
 
 
-struct MemoryIndexStoreTermDocRefIterator<'a> {
+pub struct MemoryIndexStoreTermDocRefIterator<'a> {
     store: &'a MemoryIndexStore,
     term: Term,
     field_name: String,

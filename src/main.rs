@@ -12,9 +12,9 @@ extern crate log;
 extern crate maplit;
 extern crate chrono;
 
-mod system;
+pub mod system;
 mod api;
-mod search;
+pub mod search;
 mod logger;
 
 use std::path::Path;
