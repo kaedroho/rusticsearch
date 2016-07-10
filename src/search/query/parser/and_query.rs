@@ -2,7 +2,6 @@ use rustc_serialize::json::Json;
 
 use search::query::Query;
 use search::query::parser::{QueryParseContext, QueryParseError, parse as parse_query};
-use search::query::parser::builders::build_conjunction_query;
 
 
 pub fn parse(context: &QueryParseContext, json: &Json) -> Result<Query, QueryParseError> {
@@ -13,7 +12,7 @@ pub fn parse(context: &QueryParseContext, json: &Json) -> Result<Query, QueryPar
         sub_queries.push(try!(parse_query(context, filter)));
     }
 
-    build_conjunction_query(sub_queries)
+    Ok(Query::new_conjunction(sub_queries))
 }
 
 

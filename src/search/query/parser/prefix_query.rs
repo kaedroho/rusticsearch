@@ -5,7 +5,6 @@ use search::term::Term;
 use search::query::{Query, TermMatcher};
 use search::query::parser::{QueryParseContext, QueryParseError};
 use search::query::parser::utils::parse_float;
-use search::query::parser::builders::build_score_query;
 
 
 pub fn parse(context: &QueryParseContext, json: &Json) -> Result<Query, QueryParseError> {
@@ -67,7 +66,7 @@ pub fn parse(context: &QueryParseContext, json: &Json) -> Result<Query, QueryPar
             };
 
             // Add boost
-            query = build_score_query(query, boost, 0.0f64);
+            query = Query::new_score(query, boost, 0.0f64);
 
             Ok(query)
         }

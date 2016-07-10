@@ -6,7 +6,7 @@ use search::analysis::Analyzer;
 use search::query::{Query, TermMatcher};
 use search::query::parser::{QueryParseContext, QueryParseError};
 use search::query::parser::utils::{parse_string, parse_float, Operator, parse_operator, parse_field_and_boost};
-use search::query::parser::builders::{build_conjunction_query, build_disjunction_query, build_disjunction_max_query, build_score_query};
+
 
 pub fn parse(context: &QueryParseContext, json: &Json) -> Result<Query, QueryParseError> {
     let object = try!(json.as_object().ok_or(QueryParseError::ExpectedObject));
@@ -70,23 +70,23 @@ pub fn parse(context: &QueryParseContext, json: &Json) -> Result<Query, QueryPar
 
         let mut field_query = match operator {
             Operator::Or => {
-                try!(build_disjunction_query(term_queries))
+                Query::new_disjunction(term_queries)
             }
             Operator::And => {
-                try!(build_conjunction_query(term_queries))
+                Query::new_conjunction(term_queries)
             }
         };
 
         // Add boost
-        field_query = build_score_query(field_query, field_boost, 0.0f64);
+        field_query = Query::new_score(field_query, field_boost, 0.0f64);
 
         field_queries.push(field_query);
     }
 
-    let mut query = try!(build_disjunction_max_query(field_queries));
+    let mut query = Query::new_disjunction_max(field_queries);
 
     // Add boost
-    query = build_score_query(query, boost, 0.0f64);
+    query = Query::new_score(query, boost, 0.0f64);
 
     return Ok(query);
 }

@@ -1,5 +1,4 @@
 pub mod utils;
-pub mod builders;
 pub mod match_query;
 pub mod multi_match_query;
 pub mod match_all_query;

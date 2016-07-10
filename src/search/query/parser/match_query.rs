@@ -7,7 +7,6 @@ use search::mapping::FieldMapping;
 use search::query::{Query, TermMatcher};
 use search::query::parser::{QueryParseContext, QueryParseError};
 use search::query::parser::utils::{parse_string, parse_float, Operator, parse_operator};
-use search::query::parser::builders::{build_conjunction_query, build_disjunction_query, build_score_query};
 
 
 pub fn parse(context: &QueryParseContext, json: &Json) -> Result<Query, QueryParseError> {
@@ -109,15 +108,15 @@ pub fn parse(context: &QueryParseContext, json: &Json) -> Result<Query, QueryPar
     // Combine the term queries
     let mut query = match operator {
         Operator::Or => {
-            try!(build_disjunction_query(sub_queries))
+            Query::new_disjunction(sub_queries)
         }
         Operator::And => {
-            try!(build_conjunction_query(sub_queries))
+            Query::new_conjunction(sub_queries)
         }
     };
 
     // Add boost
-    query = build_score_query(query, boost, 0.0f64);
+    query = Query::new_score(query, boost, 0.0f64);
 
     return Ok(query);
 }
