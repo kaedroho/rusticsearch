@@ -4,7 +4,7 @@ use search::term::Term;
 use search::token::Token;
 
 
-struct StandardTokenizer<'a> {
+pub struct StandardTokenizer<'a> {
     input: &'a str,
     unicode_words: UnicodeWords<'a>,
     position_counter: u32,

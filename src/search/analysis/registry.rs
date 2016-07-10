@@ -2,11 +2,15 @@ use std::collections::HashMap;
 use std::ops::{Deref, DerefMut};
 
 use search::analysis::Analyzer;
+use search::analysis::tokenizers::TokenizerSpec;
+use search::analysis::filters::FilterSpec;
 
 
 #[derive(Debug)]
 pub struct AnalyzerRegistry {
     analyzers: HashMap<String, Analyzer>,
+    tokenizers: HashMap<String, TokenizerSpec>,
+    filters: HashMap<String, FilterSpec>,
 }
 
 
@@ -14,6 +18,8 @@ impl AnalyzerRegistry {
     pub fn new() -> AnalyzerRegistry {
         AnalyzerRegistry {
             analyzers: HashMap::new(),
+            tokenizers: HashMap::new(),
+            filters: HashMap::new(),
         }
     }
 }
