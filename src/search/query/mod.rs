@@ -1,15 +1,10 @@
+pub mod term_matcher;
 pub mod parser;
 pub mod matching;
 pub mod ranking;
 
 use search::term::Term;
-
-
-#[derive(Debug, PartialEq)]
-pub enum TermMatcher {
-    Exact,
-    Prefix,
-}
+use search::query::term_matcher::TermMatcher;
 
 
 #[derive(Debug, PartialEq)]

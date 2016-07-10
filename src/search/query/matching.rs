@@ -1,24 +1,6 @@
 use search::term::Term;
 use search::document::Document;
-use search::query::{TermMatcher, Query};
-
-
-impl TermMatcher {
-    pub fn matches(&self, value: &Term, query: &Term) -> bool {
-        match *self {
-            TermMatcher::Exact => value == query,
-            TermMatcher::Prefix => {
-                if let Term::String(ref value) = *value {
-                    if let Term::String(ref query) = *query {
-                        return value.starts_with(query);
-                    }
-                }
-
-                false
-            }
-        }
-    }
-}
+use search::query::Query;
 
 
 impl Query {

@@ -2,7 +2,9 @@ use std::collections::VecDeque;
 
 use search::term::Term;
 use search::index::reader::IndexReader;
-use search::query::{Query, TermMatcher};
+use search::query::Query;
+use search::query::term_matcher::TermMatcher;
+
 
 
 pub enum QuerySetIterator<'a, T: IndexReader<'a>> {

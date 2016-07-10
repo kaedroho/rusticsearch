@@ -5,7 +5,8 @@ use rustc_serialize::json::Json;
 use search::term::Term;
 use search::analysis::Analyzer;
 
-use search::query::{Query, TermMatcher};
+use search::query::Query;
+use search::query::term_matcher::TermMatcher;
 use search::query::parser::{QueryParseContext, QueryParseError};
 use search::query::parser::utils::{parse_string, parse_float, Operator, parse_operator, parse_field_and_boost};
 
@@ -99,7 +100,8 @@ mod tests {
     use rustc_serialize::json::Json;
 
     use search::term::Term;
-    use search::query::{Query, TermMatcher};
+    use search::query::Query;
+    use search::query::term_matcher::TermMatcher;
     use search::query::parser::{QueryParseContext, QueryParseError};
 
     use super::parse;
