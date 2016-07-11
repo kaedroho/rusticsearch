@@ -1,10 +1,12 @@
 pub mod lowercase;
 pub mod ngram;
+pub mod asciifolding;
 
 use search::token::Token;
 use search::analysis::ngram_generator::Edge;
 use search::analysis::filters::lowercase::LowercaseFilter;
 use search::analysis::filters::ngram::NGramFilter;
+use search::analysis::filters::asciifolding::ASCIIFoldingFilter;
 
 
 #[derive(Debug)]
@@ -15,6 +17,7 @@ pub enum FilterSpec {
         max_size: usize,
         edge: Edge,
     },
+    ASCIIFolding,
 }
 
 
@@ -26,6 +29,9 @@ impl FilterSpec {
             }
             FilterSpec::NGram{min_size, max_size, edge} => {
                 Box::new(NGramFilter::new(input, min_size, max_size, edge))
+            }
+            FilterSpec::ASCIIFolding => {
+                Box::new(ASCIIFoldingFilter::new(input))
             }
         }
     }
