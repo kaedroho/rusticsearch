@@ -1,12 +1,20 @@
 pub mod standard;
+pub mod ngram;
 
 use search::token::Token;
+use search::analysis::ngram_generator::Edge;
 use search::analysis::tokenizers::standard::StandardTokenizer;
+use search::analysis::tokenizers::ngram::NGramTokenizer;
 
 
 #[derive(Debug)]
 pub enum TokenizerSpec {
     Standard,
+    NGram {
+        min_size: usize,
+        max_size: usize,
+        edge: Edge,
+    }
 }
 
 
@@ -15,6 +23,9 @@ impl TokenizerSpec {
         match *self {
             TokenizerSpec::Standard => {
                 Box::new(StandardTokenizer::new(input))
+            }
+            TokenizerSpec::NGram{min_size, max_size, edge} => {
+                Box::new(NGramTokenizer::new(input, min_size, max_size, edge))
             }
         }
     }
