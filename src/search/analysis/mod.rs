@@ -1,3 +1,4 @@
+pub mod ngram_generator;
 pub mod registry;
 pub mod tokenizers;
 pub mod filters;
