@@ -6,6 +6,7 @@ pub mod multi_match_query;
 pub mod match_all_query;
 pub mod match_none_query;
 pub mod filtered_query;
+pub mod terms_query;
 pub mod term_query;
 pub mod prefix_query;
 pub mod and_query;
@@ -70,6 +71,8 @@ fn get_query_parser(query_name: &str) -> Option<fn(&QueryParseContext, &Json) ->
         "match_all" => Some(match_all_query::parse),
         "match_none" => Some(match_none_query::parse),
         "filtered" => Some(filtered_query::parse),
+        "terms" => Some(terms_query::parse),
+        "in" => Some(terms_query::parse),
         "term" => Some(term_query::parse),
         "prefix" => Some(prefix_query::parse),
         "and" => Some(and_query::parse),
