@@ -420,7 +420,7 @@ mod benches {
 
         b.iter(|| {
             let mut fizz_iterator: QuerySetIterator<MemoryIndexStore> = QuerySetIterator::Term {
-                iter: store.iter_docids_with_term(Term::String("buzz".to_string()), "body".to_string()),
+                iter: store.iter_docids_with_term(Term::String("fizz".to_string()), "body".to_string()),
             };
             let mut buzz_iterator: QuerySetIterator<MemoryIndexStore> = QuerySetIterator::Term {
                 iter: store.iter_docids_with_term(Term::String("buzz".to_string()), "body".to_string()),
@@ -444,7 +444,7 @@ mod benches {
 
         b.iter(|| {
             let mut fizz_iterator: QuerySetIterator<MemoryIndexStore> = QuerySetIterator::Term {
-                iter: store.iter_docids_with_term(Term::String("buzz".to_string()), "body".to_string()),
+                iter: store.iter_docids_with_term(Term::String("fizz".to_string()), "body".to_string()),
             };
             let mut buzz_iterator: QuerySetIterator<MemoryIndexStore> = QuerySetIterator::Term {
                 iter: store.iter_docids_with_term(Term::String("buzz".to_string()), "body".to_string()),
@@ -468,7 +468,7 @@ mod benches {
 
         b.iter(|| {
             let mut fizz_iterator: QuerySetIterator<MemoryIndexStore> = QuerySetIterator::Term {
-                iter: store.iter_docids_with_term(Term::String("buzz".to_string()), "body".to_string()),
+                iter: store.iter_docids_with_term(Term::String("fizz".to_string()), "body".to_string()),
             };
             let mut buzz_iterator: QuerySetIterator<MemoryIndexStore> = QuerySetIterator::Term {
                 iter: store.iter_docids_with_term(Term::String("buzz".to_string()), "body".to_string()),
