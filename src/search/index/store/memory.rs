@@ -1,4 +1,6 @@
-use std::collections::{BTreeMap, BTreeSet, HashMap};
+use roaring::RoaringBitmap;
+
+use std::collections::{BTreeMap, HashMap};
 use std::collections::Bound::{Excluded, Unbounded};
 
 use search::term::Term;
@@ -9,7 +11,7 @@ use search::index::reader::{IndexReader, DocRefIterator};
 #[derive(Debug)]
 pub struct MemoryIndexStore {
     docs: BTreeMap<u64, Document>,
-    index: BTreeMap<Term, BTreeMap<String, BTreeSet<u64>>>,
+    index: BTreeMap<Term, BTreeMap<String, RoaringBitmap<u64>>>,
     next_doc_id: u64,
     doc_key2id_map: HashMap<String, u64>,
 }
@@ -66,7 +68,7 @@ impl MemoryIndexStore {
 
                 let mut index_fields = self.index.get_mut(&token.term).unwrap();
                 if !index_fields.contains_key(field_name) {
-                    index_fields.insert(field_name.clone(), BTreeSet::new());
+                    index_fields.insert(field_name.clone(), RoaringBitmap::new());
                 }
 
                 let mut index_docs = index_fields.get_mut(field_name).unwrap();
@@ -94,8 +96,8 @@ impl MemoryIndexStore {
                 // Find first doc after specified doc
                 // TODO: Speed this up (see section 2.1.2 of the IR book)
                 for doc_id in docs.iter() {
-                    if *doc_id > previous_doc {
-                        return Some(*doc_id);
+                    if doc_id > previous_doc {
+                        return Some(doc_id);
                     }
                 }
 
@@ -105,7 +107,7 @@ impl MemoryIndexStore {
             None => {
                 // Previous doc not specified, return first doc
                 match docs.iter().next() {
-                    Some(doc_id) => Some(*doc_id),
+                    Some(doc_id) => Some(doc_id),
                     None => None,
                 }
             }

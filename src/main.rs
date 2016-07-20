@@ -11,6 +11,7 @@ extern crate log;
 #[macro_use]
 extern crate maplit;
 extern crate chrono;
+extern crate roaring;
 
 pub mod system;
 mod api;
