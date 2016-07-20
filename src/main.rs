@@ -1,4 +1,5 @@
 #![feature(btree_range, collections_bound)]
+#![feature(test)]
 
 #[macro_use]
 extern crate router;
@@ -12,6 +13,7 @@ extern crate log;
 extern crate maplit;
 extern crate chrono;
 extern crate roaring;
+extern crate test;
 
 pub mod system;
 mod api;
