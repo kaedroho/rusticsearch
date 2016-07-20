@@ -1,4 +1,4 @@
-use std::collections::{BTreeMap, HashMap};
+use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::collections::Bound::{Excluded, Unbounded};
 
 use search::term::Term;
@@ -9,7 +9,7 @@ use search::index::reader::{IndexReader, DocRefIterator};
 #[derive(Debug)]
 pub struct MemoryIndexStore {
     docs: BTreeMap<u64, Document>,
-    index: BTreeMap<Term, BTreeMap<String, BTreeMap<u64, Vec<u32>>>>,
+    index: BTreeMap<Term, BTreeMap<String, BTreeSet<u64>>>,
     next_doc_id: u64,
     doc_key2id_map: HashMap<String, u64>,
 }
@@ -66,16 +66,11 @@ impl MemoryIndexStore {
 
                 let mut index_fields = self.index.get_mut(&token.term).unwrap();
                 if !index_fields.contains_key(field_name) {
-                    index_fields.insert(field_name.clone(), BTreeMap::new());
+                    index_fields.insert(field_name.clone(), BTreeSet::new());
                 }
 
                 let mut index_docs = index_fields.get_mut(field_name).unwrap();
-                if !index_docs.contains_key(&doc_id) {
-                    index_docs.insert(doc_id, Vec::new());
-                }
-
-                let mut postings_list = index_docs.get_mut(&doc_id).unwrap();
-                postings_list.push(token.position);
+                index_docs.insert(doc_id);
             }
         }
 
@@ -83,7 +78,7 @@ impl MemoryIndexStore {
         self.docs.insert(doc_id, doc);
     }
 
-    pub fn next_doc(&self, term: &Term, field_name: &str, previous_doc: Option<u64>) -> Option<(u64, usize)> {
+    pub fn next_doc(&self, term: &Term, field_name: &str, previous_doc: Option<u64>) -> Option<u64> {
         let fields = match self.index.get(term) {
             Some(fields) => fields,
             None => return None,
@@ -98,9 +93,9 @@ impl MemoryIndexStore {
             Some(previous_doc) => {
                 // Find first doc after specified doc
                 // TODO: Speed this up (see section 2.1.2 of the IR book)
-                for (doc_id, postings) in docs.iter() {
+                for doc_id in docs.iter() {
                     if *doc_id > previous_doc {
-                        return Some((*doc_id, postings.len()));
+                        return Some(*doc_id);
                     }
                 }
 
@@ -110,7 +105,7 @@ impl MemoryIndexStore {
             None => {
                 // Previous doc not specified, return first doc
                 match docs.iter().next() {
-                    Some((doc_id, postings)) => Some((*doc_id, postings.len())),
+                    Some(doc_id) => Some(*doc_id),
                     None => None,
                 }
             }
@@ -192,7 +187,7 @@ impl<'a> Iterator for MemoryIndexStoreTermDocRefIterator<'a> {
 
     fn next(&mut self) -> Option<u64> {
         self.last_doc = match self.store.next_doc(&self.term, &self.field_name, self.last_doc) {
-            Some((doc_id, term_freq)) => Some(doc_id),
+            Some(doc_id) => Some(doc_id),
             None => None,
         };
 
