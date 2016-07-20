@@ -2,6 +2,7 @@ use roaring::RoaringBitmap;
 
 use std::collections::{BTreeMap, HashMap};
 use std::collections::Bound::{Excluded, Unbounded};
+use std::collections::btree_map::Keys;
 
 use search::term::Term;
 use search::document::Document;
@@ -113,17 +114,6 @@ impl MemoryIndexStore {
             }
         }
     }
-
-    pub fn next_doc_all(&self, position: Option<u64>) -> Option<u64> {
-        match position {
-            Some(doc_id) => {
-                self.docs.range(Excluded(&doc_id), Unbounded).map(|(doc_id, doc)| *doc_id).nth(0)
-            }
-            None => {
-                self.docs.keys().nth(0).cloned()
-            }
-        }
-    }
 }
 
 
@@ -137,8 +127,7 @@ impl<'a> IndexReader<'a> for MemoryIndexStore {
 
     fn iter_docids_all(&'a self) -> MemoryIndexStoreAllDocRefIterator<'a> {
         MemoryIndexStoreAllDocRefIterator {
-            store: self,
-            last_doc: None,
+            keys: self.docs.keys(),
         }
     }
 
@@ -158,17 +147,14 @@ impl<'a> IndexReader<'a> for MemoryIndexStore {
 
 
 pub struct MemoryIndexStoreAllDocRefIterator<'a> {
-    store: &'a MemoryIndexStore,
-    last_doc: Option<u64>,
+    keys: Keys<'a, u64, Document>,
 }
 
 impl<'a> Iterator for MemoryIndexStoreAllDocRefIterator<'a> {
     type Item = u64;
 
     fn next(&mut self) -> Option<u64> {
-        self.last_doc = self.store.next_doc_all(self.last_doc);
-
-        self.last_doc
+        self.keys.next().cloned()
     }
 }
 
