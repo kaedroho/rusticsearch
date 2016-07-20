@@ -1,4 +1,4 @@
-use roaring::RoaringBitmap;
+use roaring::{RoaringBitmap, Iter};
 
 use std::collections::{BTreeMap, HashMap};
 use std::collections::btree_map::Keys;
@@ -130,12 +130,19 @@ impl<'a> IndexReader<'a> for MemoryIndexStore {
         }
     }
 
-    fn iter_docids_with_term(&'a self, term: Term, field_name: String) -> MemoryIndexStoreTermDocRefIterator<'a> {
+    fn iter_docids_with_term(&'a self, term: &Term, field_name: &str) -> MemoryIndexStoreTermDocRefIterator<'a> {
+        let fields = match self.index.get(term) {
+            Some(fields) => fields,
+            None => panic!("FOO"),
+        };
+
+        let docs = match fields.get(field_name) {
+            Some(docs) => docs,
+            None => panic!("FOO"),
+        };
+
         MemoryIndexStoreTermDocRefIterator {
-            store: self,
-            term: term,
-            field_name: field_name,
-            last_doc: None,
+            iterator: docs.iter(),
         }
     }
 
@@ -163,22 +170,14 @@ impl<'a> DocRefIterator<'a> for MemoryIndexStoreAllDocRefIterator<'a> {
 
 
 pub struct MemoryIndexStoreTermDocRefIterator<'a> {
-    store: &'a MemoryIndexStore,
-    term: Term,
-    field_name: String,
-    last_doc: Option<u64>,
+    iterator: Iter<'a, u64>,
 }
 
 impl<'a> Iterator for MemoryIndexStoreTermDocRefIterator<'a> {
     type Item = u64;
 
     fn next(&mut self) -> Option<u64> {
-        self.last_doc = match self.store.next_doc(&self.term, &self.field_name, self.last_doc) {
-            Some(doc_id) => Some(doc_id),
-            None => None,
-        };
-
-        self.last_doc
+        self.iterator.next()
     }
 }
 
@@ -236,6 +235,6 @@ mod tests {
     fn test_term_docs_iterator() {
         let store = make_test_store();
 
-        assert_eq!(store.iter_docids_with_term(Term::String("hello".to_string()), "title".to_string()).count(), 1);
+        assert_eq!(store.iter_docids_with_term(&Term::String("hello".to_string()), "title").count(), 1);
     }
 }
