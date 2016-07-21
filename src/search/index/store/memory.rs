@@ -1,7 +1,6 @@
 use roaring::RoaringBitmap;
 
 use std::collections::{BTreeMap, HashMap};
-use std::collections::Bound::{Excluded, Unbounded};
 use std::collections::btree_map::Keys;
 
 use search::term::Term;

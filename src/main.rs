@@ -1,4 +1,3 @@
-#![feature(btree_range, collections_bound)]
 #![feature(test)]
 
 #[macro_use]
