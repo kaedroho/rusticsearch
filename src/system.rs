@@ -5,7 +5,7 @@ use std::fs;
 
 use search::index::Index;
 use search::index::store::IndexStore;
-use search::index::store::memory::MemoryIndexStore;
+use search::index::store::rocksdb::RocksDBIndexStore;
 
 
 pub struct System {
@@ -29,7 +29,7 @@ impl System {
     }
 
     fn load_index(&self, path: &Path) -> Index {
-        Index::new(MemoryIndexStore::new())
+        Index::new(RocksDBIndexStore::new())
     }
 
     pub fn load_indices(&self) -> HashMap<String, Index> {

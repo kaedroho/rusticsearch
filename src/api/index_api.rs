@@ -5,7 +5,7 @@ use rustc_serialize::json::Json;
 
 use system::System;
 use search::index::Index;
-use search::index::store::memory::MemoryIndexStore;
+use search::index::store::rocksdb::RocksDBIndexStore;
 
 use api::persistent;
 use api::iron::prelude::*;
@@ -42,7 +42,7 @@ pub fn view_put_index(req: &mut Request) -> IronResult<Response> {
     let mut indices_dir = system.get_indices_dir();
     indices_dir.push(index_name);
     indices_dir.set_extension("rsi");
-    let mut index = Index::new(MemoryIndexStore::new());
+    let mut index = Index::new(RocksDBIndexStore::new());
     index.initialise();
     indices.insert(index_name.clone().to_owned(), index);
 
