@@ -12,6 +12,8 @@ extern crate maplit;
 extern crate chrono;
 extern crate roaring;
 extern crate test;
+extern crate rocksdb;
+extern crate byteorder;
 
 pub mod system;
 mod api;

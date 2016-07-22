@@ -1,4 +1,5 @@
 pub mod memory;
+pub mod rocksdb;
 
 use search::document::Document;
 use search::index::reader::IndexReader;

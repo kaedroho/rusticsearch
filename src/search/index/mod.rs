@@ -7,20 +7,19 @@ use search::term::Term;
 use search::analysis::registry::AnalyzerRegistry;
 use search::mapping::{Mapping, FieldMapping, MappingRegistry};
 use search::document::Document;
-use search::index::store::memory::MemoryIndexStore;
+use search::index::store::rocksdb::RocksDBIndexStore;
 
 
-#[derive(Debug)]
 pub struct Index {
     pub analyzers: AnalyzerRegistry,
     pub mappings: MappingRegistry,
     pub aliases: HashSet<String>,
-    pub store: MemoryIndexStore,
+    pub store: RocksDBIndexStore,
 }
 
 
 impl Index {
-    pub fn new(store: MemoryIndexStore) -> Index {
+    pub fn new(store: RocksDBIndexStore) -> Index {
         Index {
             analyzers: AnalyzerRegistry::new(),
             mappings: MappingRegistry::new(),
