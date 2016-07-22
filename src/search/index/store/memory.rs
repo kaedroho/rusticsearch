@@ -31,21 +31,6 @@ impl MemoryIndexStore {
 
 
 impl<'a> IndexStore<'a> for MemoryIndexStore {
-    fn get_document_by_key(&self, doc_key: &str) -> Option<&Document> {
-        match self.doc_key2id_map.get(doc_key) {
-            Some(doc_id) => self.docs.get(doc_id),
-            None => None,
-        }
-    }
-
-    fn get_document_by_id(&self, doc_id: &u64) -> Option<&Document> {
-        self.docs.get(doc_id)
-    }
-
-    fn contains_document_key(&self, doc_key: &str) -> bool {
-        self.doc_key2id_map.contains_key(doc_key)
-    }
-
     fn remove_document_by_key(&mut self, doc_key: &str) -> bool {
         match self.doc_key2id_map.remove(doc_key) {
             Some(doc_id) => {
@@ -83,6 +68,27 @@ impl<'a> IndexStore<'a> for MemoryIndexStore {
         self.doc_key2id_map.insert(doc.key.clone(), doc_id);
         self.docs.insert(doc_id, doc);
     }
+}
+
+
+impl<'a> IndexReader<'a> for MemoryIndexStore {
+    type AllDocRefIterator = MemoryIndexStoreAllDocRefIterator<'a>;
+    type TermDocRefIterator = MemoryIndexStoreTermDocRefIterator<'a>;
+
+    fn get_document_by_key(&self, doc_key: &str) -> Option<&Document> {
+        match self.doc_key2id_map.get(doc_key) {
+            Some(doc_id) => self.docs.get(doc_id),
+            None => None,
+        }
+    }
+
+    fn get_document_by_id(&self, doc_id: &u64) -> Option<&Document> {
+        self.docs.get(doc_id)
+    }
+
+    fn contains_document_key(&self, doc_key: &str) -> bool {
+        self.doc_key2id_map.contains_key(doc_key)
+    }
 
     fn next_doc(&self, term: &Term, field_name: &str, previous_doc: Option<u64>) -> Option<u64> {
         let fields = match self.index.get(term) {
@@ -117,12 +123,6 @@ impl<'a> IndexStore<'a> for MemoryIndexStore {
             }
         }
     }
-}
-
-
-impl<'a> IndexReader<'a> for MemoryIndexStore {
-    type AllDocRefIterator = MemoryIndexStoreAllDocRefIterator<'a>;
-    type TermDocRefIterator = MemoryIndexStoreTermDocRefIterator<'a>;
 
     fn num_docs(&self) -> usize {
         self.docs.len()
