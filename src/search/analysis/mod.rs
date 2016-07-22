@@ -6,7 +6,6 @@ pub mod filters;
 
 use std::cmp;
 
-use unidecode::unidecode;
 use unicode_segmentation::UnicodeSegmentation;
 
 use search::term::Term;
@@ -30,7 +29,7 @@ impl Analyzer {
                 let input = input.to_lowercase();
 
                 // Convert string to ascii (not standard in Elasticsearch, but Wagtail needs it)
-                let input = unidecode(&input);
+                let input = lucene_asciifold::fold_to_ascii(&input);
 
                 // Tokenise
                 let mut position = 0;

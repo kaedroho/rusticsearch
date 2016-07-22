@@ -4,7 +4,6 @@
 extern crate router;
 extern crate url;
 extern crate rustc_serialize;
-extern crate unidecode;
 extern crate unicode_segmentation;
 #[macro_use]
 extern crate log;
