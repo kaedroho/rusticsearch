@@ -33,14 +33,9 @@ impl MemoryIndexStore {
 impl<'a> IndexStore<'a> for MemoryIndexStore {
     type Reader = MemoryIndexStoreReader<'a>;
 
-    fn remove_document_by_key(&mut self, doc_key: &str) -> bool {
-        match self.doc_key2id_map.remove(doc_key) {
-            Some(doc_id) => {
-                self.docs.remove(&doc_id);
-
-                true
-            }
-            None => false
+    fn reader(&'a self) -> MemoryIndexStoreReader<'a> {
+        MemoryIndexStoreReader {
+            store: self,
         }
     }
 
@@ -71,9 +66,14 @@ impl<'a> IndexStore<'a> for MemoryIndexStore {
         self.docs.insert(doc_id, doc);
     }
 
-    fn reader(&'a self) -> MemoryIndexStoreReader<'a> {
-        MemoryIndexStoreReader {
-            store: self,
+    fn remove_document_by_key(&mut self, doc_key: &str) -> bool {
+        match self.doc_key2id_map.remove(doc_key) {
+            Some(doc_id) => {
+                self.docs.remove(&doc_id);
+
+                true
+            }
+            None => false
         }
     }
 }
