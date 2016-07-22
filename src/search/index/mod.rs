@@ -20,12 +20,12 @@ pub struct Index {
 
 
 impl Index {
-    pub fn new() -> Index {
+    pub fn new(store: MemoryIndexStore) -> Index {
         Index {
             analyzers: AnalyzerRegistry::new(),
             mappings: MappingRegistry::new(),
             aliases: HashSet::new(),
-            store: MemoryIndexStore::new(),
+            store: store,
         }
     }
 

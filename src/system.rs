@@ -4,6 +4,8 @@ use std::path::{Path, PathBuf};
 use std::fs;
 
 use search::index::Index;
+use search::index::store::IndexStore;
+use search::index::store::memory::MemoryIndexStore;
 
 
 pub struct System {
@@ -27,7 +29,7 @@ impl System {
     }
 
     fn load_index(&self, path: &Path) -> Index {
-        Index::new()
+        Index::new(MemoryIndexStore::new())
     }
 
     pub fn load_indices(&self) -> HashMap<String, Index> {
