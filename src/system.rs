@@ -3,6 +3,8 @@ use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::fs;
 
+use rocksdb;
+
 use search::index::Index;
 use search::index::store::IndexStore;
 use search::index::store::rocksdb::RocksDBIndexStore;
@@ -29,7 +31,10 @@ impl System {
     }
 
     fn load_index(&self, path: &Path) -> Index {
-        Index::new(RocksDBIndexStore::new())
+        // TODO: THIS IS REALLY AWFUL. DO NOT MERGE THIS CODE
+        let mut opts = rocksdb::Options::new();
+        let db = rocksdb::DB::open(&opts, path.to_str().unwrap()).unwrap();
+        Index::new(RocksDBIndexStore::new(db))
     }
 
     pub fn load_indices(&self) -> HashMap<String, Index> {

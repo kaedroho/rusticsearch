@@ -10,7 +10,6 @@ use search::document::Document;
 use search::index::store::rocksdb::RocksDBIndexStore;
 
 
-#[derive(Debug)]
 pub struct Index {
     pub analyzers: AnalyzerRegistry,
     pub mappings: MappingRegistry,

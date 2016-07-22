@@ -1,5 +1,8 @@
 use roaring::{RoaringBitmap, Iter};
+use rocksdb;
+use byteorder::{ReadBytesExt, BigEndian};
 
+use std::io::Cursor;
 use std::collections::{BTreeMap, HashMap};
 use std::collections::btree_map::Keys;
 
@@ -9,9 +12,15 @@ use search::index::store::IndexStore;
 use search::index::reader::{IndexReader, DocRefIterator};
 
 
-#[derive(Debug)]
+fn merge_keys(new_key: &[u8], existing_val: Option<&[u8]>, operands: &mut rocksdb::MergeOperands) -> Vec<u8> {
+
+}
+
+
 pub struct RocksDBIndexStore {
+    db: rocksdb::DB,
     docs: BTreeMap<u64, Document>,
+    terms: BTreeMap<Term, u32>,
     index: BTreeMap<Term, BTreeMap<String, RoaringBitmap<u64>>>,
     next_doc_id: u64,
     doc_key2id_map: HashMap<String, u64>,
@@ -19,13 +28,32 @@ pub struct RocksDBIndexStore {
 
 
 impl RocksDBIndexStore {
-    pub fn new() -> RocksDBIndexStore {
-        RocksDBIndexStore {
+    pub fn new(db: rocksdb::DB) -> RocksDBIndexStore {
+        let mut store = RocksDBIndexStore {
+            db: db,
+            terms: BTreeMap::new(),
             docs: BTreeMap::new(),
             index: BTreeMap::new(),
             next_doc_id: 1,
             doc_key2id_map: HashMap::new(),
+        };
+
+        // Load
+        for (key, value) in store.db.iterator(rocksdb::IteratorMode::Start) {
+            match key[0] {
+                b't' => {
+                    let reader = Cursor::new(value);
+
+                    if let Ok(term_id) = reader.read_u32::<BigEndian>() {
+                        store.terms.insert(Term::from_bytes(&key[1..]), term_id);
+                    }
+                }
+                _ => continue
+            }
         }
+
+
+        store
     }
 }
 
@@ -200,62 +228,4 @@ impl<'a> Iterator for RocksDBIndexStoreTermDocRefIterator<'a> {
 
 impl<'a> DocRefIterator<'a> for RocksDBIndexStoreTermDocRefIterator<'a> {
 
-}
-
-
-#[cfg(test)]
-mod tests {
-    use super::{RocksDBIndexStore, RocksDBIndexStoreReader};
-
-    use search::term::Term;
-    use search::analysis::Analyzer;
-    use search::document::Document;
-    use search::index::store::IndexStore;
-    use search::index::reader::IndexReader;
-
-    fn make_test_store() -> RocksDBIndexStore {
-        let mut store = RocksDBIndexStore::new();
-
-        store.insert_or_update_document(Document {
-            key: "test_doc".to_string(),
-            fields: btreemap! {
-                "title".to_string() => Analyzer::Standard.run("hello world".to_string()),
-                "body".to_string() => Analyzer::Standard.run("lorem ipsum dolar".to_string()),
-            }
-        });
-
-        store.insert_or_update_document(Document {
-            key: "test_doc".to_string(),
-            fields: btreemap! {
-                "title".to_string() => Analyzer::Standard.run("howdy partner".to_string()),
-                "body".to_string() => Analyzer::Standard.run("lorem ipsum dolar".to_string()),
-            }
-        });
-
-        store
-    }
-
-    #[test]
-    fn test_num_docs() {
-        let store = make_test_store();
-        let reader = store.reader();
-
-        assert_eq!(reader.num_docs(), 2);
-    }
-
-    #[test]
-    fn test_all_docs_iterator() {
-        let store = make_test_store();
-        let reader = store.reader();
-
-        assert_eq!(reader.iter_docids_all().count(), 2);
-    }
-
-    #[test]
-    fn test_term_docs_iterator() {
-        let store = make_test_store();
-        let reader = store.reader();
-
-        assert_eq!(reader.iter_docids_with_term(&Term::String("hello".to_string()), "title").unwrap().count(), 1);
-    }
 }

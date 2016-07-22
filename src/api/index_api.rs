@@ -2,6 +2,7 @@ use std::io::Read;
 use std::fs;
 
 use rustc_serialize::json::Json;
+use rocksdb;
 
 use system::System;
 use search::index::Index;
@@ -39,10 +40,14 @@ pub fn view_put_index(req: &mut Request) -> IronResult<Response> {
     let data = json_from_request_body!(req);
 
     // Create index
-    let mut indices_dir = system.get_indices_dir();
-    indices_dir.push(index_name);
-    indices_dir.set_extension("rsi");
-    let mut index = Index::new(RocksDBIndexStore::new());
+    let mut path = system.get_indices_dir();
+    path.push(index_name);
+    path.set_extension("rsi");
+    let mut opts = rocksdb::Options::new();
+    opts.create_if_missing(true);
+    // TODO: error_if_exists
+    let db = rocksdb::DB::open(&opts, path.to_str().unwrap()).unwrap();
+    let mut index = Index::new(RocksDBIndexStore::new(db));
     index.initialise();
     indices.insert(index_name.clone().to_owned(), index);
 
