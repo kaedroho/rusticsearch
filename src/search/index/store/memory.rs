@@ -5,6 +5,7 @@ use std::collections::btree_map::Keys;
 
 use search::term::Term;
 use search::document::Document;
+use search::index::store::IndexStore;
 use search::index::reader::{IndexReader, DocRefIterator};
 
 
@@ -26,23 +27,26 @@ impl MemoryIndexStore {
             doc_key2id_map: HashMap::new(),
         }
     }
+}
 
-    pub fn get_document_by_key(&self, doc_key: &str) -> Option<&Document> {
+
+impl<'a> IndexStore<'a> for MemoryIndexStore {
+    fn get_document_by_key(&self, doc_key: &str) -> Option<&Document> {
         match self.doc_key2id_map.get(doc_key) {
             Some(doc_id) => self.docs.get(doc_id),
             None => None,
         }
     }
 
-    pub fn get_document_by_id(&self, doc_id: &u64) -> Option<&Document> {
+    fn get_document_by_id(&self, doc_id: &u64) -> Option<&Document> {
         self.docs.get(doc_id)
     }
 
-    pub fn contains_document_key(&self, doc_key: &str) -> bool {
+    fn contains_document_key(&self, doc_key: &str) -> bool {
         self.doc_key2id_map.contains_key(doc_key)
     }
 
-    pub fn remove_document_by_key(&mut self, doc_key: &str) -> bool {
+    fn remove_document_by_key(&mut self, doc_key: &str) -> bool {
         match self.doc_key2id_map.remove(doc_key) {
             Some(doc_id) => {
                 self.docs.remove(&doc_id);
@@ -53,7 +57,7 @@ impl MemoryIndexStore {
         }
     }
 
-    pub fn insert_or_update_document(&mut self, doc: Document) {
+    fn insert_or_update_document(&mut self, doc: Document) {
         let doc_id = self.next_doc_id;
         self.next_doc_id += 1;
 
@@ -80,7 +84,7 @@ impl MemoryIndexStore {
         self.docs.insert(doc_id, doc);
     }
 
-    pub fn next_doc(&self, term: &Term, field_name: &str, previous_doc: Option<u64>) -> Option<u64> {
+    fn next_doc(&self, term: &Term, field_name: &str, previous_doc: Option<u64>) -> Option<u64> {
         let fields = match self.index.get(term) {
             Some(fields) => fields,
             None => return None,
@@ -193,6 +197,7 @@ mod tests {
     use search::term::Term;
     use search::analysis::Analyzer;
     use search::document::Document;
+    use search::index::store::IndexStore;
     use search::index::reader::IndexReader;
 
     fn make_test_store() -> MemoryIndexStore {

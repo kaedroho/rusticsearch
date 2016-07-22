@@ -357,6 +357,7 @@ mod benches {
     use search::term::Term;
     use search::token::Token;
     use search::document::Document;
+    use search::index::store::IndexStore;
     use search::index::reader::IndexReader;
     use search::index::store::memory::MemoryIndexStore;
     use search::query_set::QuerySetIterator;
