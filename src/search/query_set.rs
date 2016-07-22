@@ -227,8 +227,16 @@ pub fn build_iterator_from_query<'a, T: IndexReader<'a>>(reader: &'a T, query: &
         Query::MatchTerm{ref field, ref term, ref matcher} => {
             match *matcher {
                 TermMatcher::Exact => {
-                    QuerySetIterator::Term {
-                        iter: reader.iter_docids_with_term(term, field),
+                    match reader.iter_docids_with_term(term, field) {
+                        Some(iter) => {
+                            QuerySetIterator::Term {
+                                iter: iter,
+                            }
+                        }
+                        None => {
+                            // Term/field doesn't exist
+                            QuerySetIterator::None
+                        }
                     }
                 }
                 TermMatcher::Prefix => {
@@ -251,17 +259,33 @@ pub fn build_iterator_from_query<'a, T: IndexReader<'a>>(reader: &'a T, query: &
                     match terms.len() {
                         0 => QuerySetIterator::None,
                         1 => {
-                            QuerySetIterator::Term {
-                                iter: reader.iter_docids_with_term(&terms[0], field),
+                            match reader.iter_docids_with_term(term, field) {
+                                Some(iter) => {
+                                    QuerySetIterator::Term {
+                                        iter: iter,
+                                    }
+                                }
+                                None => {
+                                    // Term/field doesn't exist
+                                    QuerySetIterator::None
+                                }
                             }
                         }
                         _ => {
                             // Produce a disjunction iterator for all the terms
                             let mut iters = VecDeque::new();
                             for term in terms.iter() {
-                                iters.push_back(QuerySetIterator::Term {
-                                    iter: reader.iter_docids_with_term(term, field),
-                                });
+                                match reader.iter_docids_with_term(term, field) {
+                                    Some(iter) => {
+                                        iters.push_back(QuerySetIterator::Term {
+                                            iter: iter,
+                                        });
+                                    }
+                                    None => {
+                                        // Term/field doesn't exist
+                                        continue;
+                                    }
+                                }
                             }
 
                             build_disjunction_iterator(iters)
@@ -393,7 +417,7 @@ mod benches {
 
         b.iter(|| {
             let mut iterator: QuerySetIterator<MemoryIndexStore> = QuerySetIterator::Term {
-                iter: store.iter_docids_with_term(&fizz_term, "body"),
+                iter: store.iter_docids_with_term(&fizz_term, "body").unwrap(),
             };
 
             for doc_id in iterator {}
@@ -408,7 +432,7 @@ mod benches {
 
         b.iter(|| {
             let mut iterator: QuerySetIterator<MemoryIndexStore> = QuerySetIterator::Term {
-                iter: store.iter_docids_with_term(&buzz_term, "body"),
+                iter: store.iter_docids_with_term(&buzz_term, "body").unwrap(),
             };
 
             for doc_id in iterator {}
@@ -424,10 +448,10 @@ mod benches {
 
         b.iter(|| {
             let mut fizz_iterator: QuerySetIterator<MemoryIndexStore> = QuerySetIterator::Term {
-                iter: store.iter_docids_with_term(&fizz_term, "body"),
+                iter: store.iter_docids_with_term(&fizz_term, "body").unwrap(),
             };
             let mut buzz_iterator: QuerySetIterator<MemoryIndexStore> = QuerySetIterator::Term {
-                iter: store.iter_docids_with_term(&buzz_term, "body"),
+                iter: store.iter_docids_with_term(&buzz_term, "body").unwrap(),
             };
             let mut iterator: QuerySetIterator<MemoryIndexStore> = QuerySetIterator::Conjunction {
                 iter_a: Box::new(fizz_iterator),
@@ -450,10 +474,10 @@ mod benches {
 
         b.iter(|| {
             let mut fizz_iterator: QuerySetIterator<MemoryIndexStore> = QuerySetIterator::Term {
-                iter: store.iter_docids_with_term(&fizz_term, "body"),
+                iter: store.iter_docids_with_term(&fizz_term, "body").unwrap(),
             };
             let mut buzz_iterator: QuerySetIterator<MemoryIndexStore> = QuerySetIterator::Term {
-                iter: store.iter_docids_with_term(&buzz_term, "body"),
+                iter: store.iter_docids_with_term(&buzz_term, "body").unwrap(),
             };
             let mut iterator: QuerySetIterator<MemoryIndexStore> = QuerySetIterator::Disjunction {
                 iter_a: Box::new(fizz_iterator),
@@ -476,10 +500,10 @@ mod benches {
 
         b.iter(|| {
             let mut fizz_iterator: QuerySetIterator<MemoryIndexStore> = QuerySetIterator::Term {
-                iter: store.iter_docids_with_term(&fizz_term, "body"),
+                iter: store.iter_docids_with_term(&fizz_term, "body").unwrap(),
             };
             let mut buzz_iterator: QuerySetIterator<MemoryIndexStore> = QuerySetIterator::Term {
-                iter: store.iter_docids_with_term(&buzz_term, "body"),
+                iter: store.iter_docids_with_term(&buzz_term, "body").unwrap(),
             };
             let mut iterator: QuerySetIterator<MemoryIndexStore> = QuerySetIterator::Exclusion {
                 iter_a: Box::new(fizz_iterator),

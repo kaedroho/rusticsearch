@@ -130,20 +130,20 @@ impl<'a> IndexReader<'a> for MemoryIndexStore {
         }
     }
 
-    fn iter_docids_with_term(&'a self, term: &Term, field_name: &str) -> MemoryIndexStoreTermDocRefIterator<'a> {
+    fn iter_docids_with_term(&'a self, term: &Term, field_name: &str) -> Option<MemoryIndexStoreTermDocRefIterator<'a>> {
         let fields = match self.index.get(term) {
             Some(fields) => fields,
-            None => panic!("FOO"),
+            None => return None,
         };
 
         let docs = match fields.get(field_name) {
             Some(docs) => docs,
-            None => panic!("FOO"),
+            None => return None,
         };
 
-        MemoryIndexStoreTermDocRefIterator {
+        Some(MemoryIndexStoreTermDocRefIterator {
             iterator: docs.iter(),
-        }
+        })
     }
 
     fn iter_terms(&'a self) -> Box<Iterator<Item=&'a Term> + 'a> {
@@ -235,6 +235,6 @@ mod tests {
     fn test_term_docs_iterator() {
         let store = make_test_store();
 
-        assert_eq!(store.iter_docids_with_term(&Term::String("hello".to_string()), "title").count(), 1);
+        assert_eq!(store.iter_docids_with_term(&Term::String("hello".to_string()), "title").unwrap().count(), 1);
     }
 }
