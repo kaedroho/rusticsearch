@@ -1,5 +1,6 @@
 use rustc_serialize::json::Json;
 use chrono::{DateTime, UTC};
+use byteorder::{WriteBytesExt, BigEndian};
 
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Hash)]
@@ -40,6 +41,64 @@ impl Term {
             Term::U64(value) => Json::U64(value),
             Term::DateTime(value) => Json::String(value.to_rfc3339()),
             Term::Null => Json::Null,
+        }
+    }
+
+    pub fn to_bytes(&self) -> Vec<u8> {
+        match *self {
+            Term::String(ref string) => {
+                let bytes = Vec::with_capacity(1 + string.len());
+
+                bytes.push(b's');
+                for b in string.as_bytes() {
+                    bytes.push(b)
+                }
+
+                bytes
+            },
+            Term::Boolean(value) => {
+                let bytes = Vec::with_capacity(1);
+
+                if value {
+                    bytes.push(b't');
+                } else {
+                    bytes.push(b'f');
+                }
+
+                bytes
+            }
+            Term::I64(value) => {
+                let bytes = Vec::with_capacity(9);
+
+                bytes.push(b'i');
+                let mut writer = Cursor::new(bytes);
+                writer.write_i64::<BigEndian>(value);
+
+                bytes
+            }
+            Term::U64(value) => {
+                let bytes = Vec::with_capacity(9);
+
+                bytes.push(b'u');
+                let mut writer = Cursor::new(bytes);
+                writer.write_u64::<BigEndian>(value);
+
+                bytes
+            }
+            Term::DateTime(value) => {
+                let bytes = Vec::with_capacity(1);
+
+                bytes.push(b'd');
+
+                bytes
+            }
+            Term::Null => {
+                let bytes = Vec::with_capacity(1);
+
+                bytes.push(b'n');
+
+                bytes
+            },
         }
     }
 }
