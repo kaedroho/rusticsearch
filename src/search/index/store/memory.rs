@@ -31,6 +31,8 @@ impl MemoryIndexStore {
 
 
 impl<'a> IndexStore<'a> for MemoryIndexStore {
+    type Reader = MemoryIndexStoreReader<'a>;
+
     fn remove_document_by_key(&mut self, doc_key: &str) -> bool {
         match self.doc_key2id_map.remove(doc_key) {
             Some(doc_id) => {
@@ -68,30 +70,41 @@ impl<'a> IndexStore<'a> for MemoryIndexStore {
         self.doc_key2id_map.insert(doc.key.clone(), doc_id);
         self.docs.insert(doc_id, doc);
     }
+
+    fn reader(&'a self) -> MemoryIndexStoreReader<'a> {
+        MemoryIndexStoreReader {
+            store: self,
+        }
+    }
 }
 
 
-impl<'a> IndexReader<'a> for MemoryIndexStore {
+pub struct MemoryIndexStoreReader<'a> {
+    store: &'a MemoryIndexStore,
+}
+
+
+impl<'a> IndexReader<'a> for MemoryIndexStoreReader<'a> {
     type AllDocRefIterator = MemoryIndexStoreAllDocRefIterator<'a>;
     type TermDocRefIterator = MemoryIndexStoreTermDocRefIterator<'a>;
 
     fn get_document_by_key(&self, doc_key: &str) -> Option<&Document> {
-        match self.doc_key2id_map.get(doc_key) {
-            Some(doc_id) => self.docs.get(doc_id),
+        match self.store.doc_key2id_map.get(doc_key) {
+            Some(doc_id) => self.store.docs.get(doc_id),
             None => None,
         }
     }
 
     fn get_document_by_id(&self, doc_id: &u64) -> Option<&Document> {
-        self.docs.get(doc_id)
+        self.store.docs.get(doc_id)
     }
 
     fn contains_document_key(&self, doc_key: &str) -> bool {
-        self.doc_key2id_map.contains_key(doc_key)
+        self.store.doc_key2id_map.contains_key(doc_key)
     }
 
     fn next_doc(&self, term: &Term, field_name: &str, previous_doc: Option<u64>) -> Option<u64> {
-        let fields = match self.index.get(term) {
+        let fields = match self.store.index.get(term) {
             Some(fields) => fields,
             None => return None,
         };
@@ -125,17 +138,17 @@ impl<'a> IndexReader<'a> for MemoryIndexStore {
     }
 
     fn num_docs(&self) -> usize {
-        self.docs.len()
+        self.store.docs.len()
     }
 
     fn iter_docids_all(&'a self) -> MemoryIndexStoreAllDocRefIterator<'a> {
         MemoryIndexStoreAllDocRefIterator {
-            keys: self.docs.keys(),
+            keys: self.store.docs.keys(),
         }
     }
 
     fn iter_docids_with_term(&'a self, term: &Term, field_name: &str) -> Option<MemoryIndexStoreTermDocRefIterator<'a>> {
-        let fields = match self.index.get(term) {
+        let fields = match self.store.index.get(term) {
             Some(fields) => fields,
             None => return None,
         };
@@ -151,7 +164,7 @@ impl<'a> IndexReader<'a> for MemoryIndexStore {
     }
 
     fn iter_terms(&'a self) -> Box<Iterator<Item=&'a Term> + 'a> {
-        Box::new(self.index.keys())
+        Box::new(self.store.index.keys())
     }
 }
 
@@ -192,7 +205,7 @@ impl<'a> DocRefIterator<'a> for MemoryIndexStoreTermDocRefIterator<'a> {
 
 #[cfg(test)]
 mod tests {
-    use super::MemoryIndexStore;
+    use super::{MemoryIndexStore, MemoryIndexStoreReader};
 
     use search::term::Term;
     use search::analysis::Analyzer;
@@ -225,21 +238,24 @@ mod tests {
     #[test]
     fn test_num_docs() {
         let store = make_test_store();
+        let reader = store.reader();
 
-        assert_eq!(store.num_docs(), 2);
+        assert_eq!(reader.num_docs(), 2);
     }
 
     #[test]
     fn test_all_docs_iterator() {
         let store = make_test_store();
+        let reader = store.reader();
 
-        assert_eq!(store.iter_docids_all().count(), 2);
+        assert_eq!(reader.iter_docids_all().count(), 2);
     }
 
     #[test]
     fn test_term_docs_iterator() {
         let store = make_test_store();
+        let reader = store.reader();
 
-        assert_eq!(store.iter_docids_with_term(&Term::String("hello".to_string()), "title").unwrap().count(), 1);
+        assert_eq!(reader.iter_docids_with_term(&Term::String("hello".to_string()), "title").unwrap().count(), 1);
     }
 }

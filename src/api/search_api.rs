@@ -6,6 +6,7 @@ use url::form_urlencoded;
 use system::System;
 use search::query::parser::{QueryParseContext, parse as parse_query};
 use search::index::reader::IndexReader;
+use search::index::store::IndexStore;
 use search::request::SearchRequest;
 
 use api::persistent;
@@ -24,6 +25,7 @@ pub fn view_count(req: &mut Request) -> IronResult<Response> {
 
     // Get index
     let index = get_index_or_404!(indices, *index_name);
+    let index_reader = index.store.reader();
 
     let count = match json_from_request_body!(req) {
         Some(query_json) => {
@@ -40,7 +42,7 @@ pub fn view_count(req: &mut Request) -> IronResult<Response> {
                         terminate_after: None,
                     };
 
-                    request.run(&index).total_hits
+                    request.run(&index_reader).total_hits
                 }
                 Err(error) => {
                     // TODO: What specifically is bad about the Query?
@@ -51,7 +53,7 @@ pub fn view_count(req: &mut Request) -> IronResult<Response> {
                 }
             }
         }
-        None => index.store.num_docs(),
+        None => index_reader.num_docs(),
     };
 
     return Ok(json_response(status::Ok, format!("{{\"count\": {}}}", count)));
@@ -67,6 +69,7 @@ pub fn view_search(req: &mut Request) -> IronResult<Response> {
 
     // Get index
     let index = get_index_or_404!(indices, *index_name);
+    let index_reader = index.store.reader();
 
     match json_from_request_body!(req) {
         Some(query_json) => {
@@ -111,7 +114,7 @@ pub fn view_search(req: &mut Request) -> IronResult<Response> {
                         }
                     }
 
-                    let response = request.run(&index);
+                    let response = request.run(&index_reader);
 
                     // TODO: {"took":5,"timed_out":false,"_shards":{"total":5,"successful":5,"failed":0},"hits":{"total":4,"max_score":1.0,"hits":[{"_index":"wagtail","_type":"searchtests_searchtest_searchtests_searchtestchild","_id":"searchtests_searchtest:5380","_score":1.0,"fields":{"pk":["5380"]}},{"_index":"wagtail","_type":"searchtests_searchtest","_id":"searchtests_searchtest:5379","_score":1.0,"fields":{"pk":["5379"]}}]}}
                     Ok(json_response(status::Ok,

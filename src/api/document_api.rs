@@ -36,7 +36,8 @@ pub fn view_get_doc(req: &mut Request) -> IronResult<Response> {
     };
 
     // Find document
-    let doc = match index.store.get_document_by_key(doc_key) {
+    let index_reader = index.store.reader();
+    let doc = match index_reader.get_document_by_key(doc_key) {
         Some(doc) => doc,
         None => {
             return Ok(json_response(status::NotFound, "{\"message\": \"Document not found\"}"));
@@ -109,7 +110,7 @@ pub fn view_delete_doc(req: &mut Request) -> IronResult<Response> {
     let mut index = get_index_or_404_mut!(indices, *index_name);
 
     // Make sure the document exists
-    if !index.store.contains_document_key(doc_key) {
+    if !index.store.reader().contains_document_key(doc_key) {
         return Ok(json_response(status::NotFound, "{\"message\": \"Document not found\"}"));
     }
 
