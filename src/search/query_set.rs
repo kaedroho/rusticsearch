@@ -243,15 +243,20 @@ pub fn build_iterator_from_query<'a, T: IndexReader<'a>>(reader: &'a T, query: &
                     // Find all terms in the index that match the prefix
                     let terms = match *term {
                          Term::String(ref term) => {
-                             reader.iter_terms().filter_map(|k| {
-                                 if let Term::String(ref k) = *k {
-                                     if k.starts_with(term) {
-                                         return Some(Term::String(k.clone()));
-                                     }
-                                 }
+                             match  reader.iter_terms(field) {
+                                 Some(terms) => {
+                                     terms.filter_map(|k| {
+                                         if let Term::String(ref k) = *k {
+                                             if k.starts_with(term) {
+                                                 return Some(Term::String(k.clone()));
+                                             }
+                                         }
 
-                                 None
-                             }).collect::<Vec<Term>>()
+                                         None
+                                     }).collect::<Vec<Term>>()
+                                 }
+                                 None => return QuerySetIterator::None,
+                             }
                          }
                          _ => return QuerySetIterator::None,
                     };

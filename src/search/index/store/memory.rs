@@ -12,7 +12,7 @@ use search::index::reader::{IndexReader, DocRefIterator};
 #[derive(Debug)]
 pub struct MemoryIndexStore {
     docs: BTreeMap<u64, Document>,
-    index: BTreeMap<Term, BTreeMap<String, RoaringBitmap<u64>>>,
+    index: BTreeMap<String, BTreeMap<Term, RoaringBitmap<u64>>>,
     next_doc_id: u64,
     doc_key2id_map: HashMap<String, u64>,
 }
@@ -48,16 +48,16 @@ impl<'a> IndexStore<'a> for MemoryIndexStore {
             let mut position: u32 = 1;
 
             for token in tokens.iter() {
-                if !self.index.contains_key(&token.term) {
-                    self.index.insert(token.term.clone(), BTreeMap::new());
+                if !self.index.contains_key(field_name) {
+                    self.index.insert(field_name.clone(), BTreeMap::new());
                 }
 
-                let mut index_fields = self.index.get_mut(&token.term).unwrap();
-                if !index_fields.contains_key(field_name) {
-                    index_fields.insert(field_name.clone(), RoaringBitmap::new());
+                let mut index_terms = self.index.get_mut(field_name).unwrap();
+                if !index_terms.contains_key(&token.term) {
+                    index_terms.insert(token.term.clone(), RoaringBitmap::new());
                 }
 
-                let mut index_docs = index_fields.get_mut(field_name).unwrap();
+                let mut index_docs = index_terms.get_mut(&token.term).unwrap();
                 index_docs.insert(doc_id);
             }
         }
@@ -104,12 +104,12 @@ impl<'a> IndexReader<'a> for MemoryIndexStoreReader<'a> {
     }
 
     fn next_doc(&self, term: &Term, field_name: &str, previous_doc: Option<u64>) -> Option<u64> {
-        let fields = match self.store.index.get(term) {
-            Some(fields) => fields,
+        let terms = match self.store.index.get(field_name) {
+            Some(terms) => terms,
             None => return None,
         };
 
-        let docs = match fields.get(field_name) {
+        let docs = match terms.get(term) {
             Some(docs) => docs,
             None => return None,
         };
@@ -148,12 +148,12 @@ impl<'a> IndexReader<'a> for MemoryIndexStoreReader<'a> {
     }
 
     fn iter_docids_with_term(&'a self, term: &Term, field_name: &str) -> Option<MemoryIndexStoreTermDocRefIterator<'a>> {
-        let fields = match self.store.index.get(term) {
-            Some(fields) => fields,
+        let terms = match self.store.index.get(field_name) {
+            Some(terms) => terms,
             None => return None,
         };
 
-        let docs = match fields.get(field_name) {
+        let docs = match terms.get(term) {
             Some(docs) => docs,
             None => return None,
         };
@@ -163,8 +163,13 @@ impl<'a> IndexReader<'a> for MemoryIndexStoreReader<'a> {
         })
     }
 
-    fn iter_terms(&'a self) -> Box<Iterator<Item=&'a Term> + 'a> {
-        Box::new(self.store.index.keys())
+    fn iter_terms(&'a self, field_name: &str) -> Option<Box<Iterator<Item=&'a Term> + 'a>> {
+        let terms = match self.store.index.get(field_name) {
+            Some(terms) => terms,
+            None => return None,
+        };
+
+        Some(Box::new(terms.keys()))
     }
 }
 
