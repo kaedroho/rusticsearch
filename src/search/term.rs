@@ -47,8 +47,7 @@ impl Term {
     pub fn to_bytes(&self) -> Vec<u8> {
         match *self {
             Term::String(ref string) => {
-                let mut bytes = Vec::with_capacity(1 + string.len());
-                bytes.push(b's');
+                let mut bytes = Vec::with_capacity(string.len());
 
                 for byte in string.as_bytes() {
                     bytes.push(*byte);
@@ -100,21 +99,21 @@ mod tests {
     fn test_string_to_bytes() {
         let term = Term::String("foo".to_string());
 
-        assert_eq!(term.to_bytes(), vec![115, 102, 111, 111])
+        assert_eq!(term.to_bytes(), vec![102, 111, 111])
     }
 
     #[test]
     fn test_hiragana_string_to_bytes() {
         let term = Term::String("こんにちは".to_string());
 
-        assert_eq!(term.to_bytes(), vec![115, 227, 129, 147, 227, 130, 147, 227, 129, 171, 227, 129, 161, 227, 129, 175])
+        assert_eq!(term.to_bytes(), vec![227, 129, 147, 227, 130, 147, 227, 129, 171, 227, 129, 161, 227, 129, 175])
     }
 
     #[test]
     fn test_blank_string_to_bytes() {
         let term = Term::String("".to_string());
 
-        assert_eq!(term.to_bytes(), vec![115])
+        assert_eq!(term.to_bytes(), vec![])
     }
 
     #[test]
