@@ -10,9 +10,41 @@ use search::index::reader::{IndexReader, DocRefIterator};
 
 
 #[derive(Debug)]
+pub struct MemoryIndexStoreFieldTerm {
+    pub docs: RoaringBitmap<u64>,
+}
+
+
+impl MemoryIndexStoreFieldTerm {
+    pub fn new() -> MemoryIndexStoreFieldTerm {
+        MemoryIndexStoreFieldTerm {
+            docs: RoaringBitmap::new(),
+        }
+    }
+}
+
+
+#[derive(Debug)]
+pub struct MemoryIndexStoreField {
+    pub docs: RoaringBitmap<u64>,
+    pub terms: BTreeMap<Term, MemoryIndexStoreFieldTerm>,
+}
+
+
+impl MemoryIndexStoreField {
+    pub fn new() -> MemoryIndexStoreField {
+        MemoryIndexStoreField {
+            docs: RoaringBitmap::new(),
+            terms: BTreeMap::new(),
+        }
+    }
+}
+
+
+#[derive(Debug)]
 pub struct MemoryIndexStore {
     docs: BTreeMap<u64, Document>,
-    index: BTreeMap<String, BTreeMap<Term, RoaringBitmap<u64>>>,
+    fields: BTreeMap<String, MemoryIndexStoreField>,
     next_doc_id: u64,
     doc_key2id_map: HashMap<String, u64>,
 }
@@ -22,7 +54,7 @@ impl MemoryIndexStore {
     pub fn new() -> MemoryIndexStore {
         MemoryIndexStore {
             docs: BTreeMap::new(),
-            index: BTreeMap::new(),
+            fields: BTreeMap::new(),
             next_doc_id: 1,
             doc_key2id_map: HashMap::new(),
         }
@@ -48,17 +80,19 @@ impl<'a> IndexStore<'a> for MemoryIndexStore {
             let mut position: u32 = 1;
 
             for token in tokens.iter() {
-                if !self.index.contains_key(field_name) {
-                    self.index.insert(field_name.clone(), BTreeMap::new());
+                if !self.fields.contains_key(field_name) {
+                    self.fields.insert(field_name.clone(), MemoryIndexStoreField::new());
                 }
 
-                let mut index_terms = self.index.get_mut(field_name).unwrap();
-                if !index_terms.contains_key(&token.term) {
-                    index_terms.insert(token.term.clone(), RoaringBitmap::new());
+                let mut field = self.fields.get_mut(field_name).unwrap();
+                field.docs.insert(doc_id);
+
+                if !field.terms.contains_key(&token.term) {
+                    field.terms.insert(token.term.clone(), MemoryIndexStoreFieldTerm::new());
                 }
 
-                let mut index_docs = index_terms.get_mut(&token.term).unwrap();
-                index_docs.insert(doc_id);
+                let mut term = field.terms.get_mut(&token.term).unwrap();
+                term.docs.insert(doc_id);
             }
         }
 
@@ -104,13 +138,13 @@ impl<'a> IndexReader<'a> for MemoryIndexStoreReader<'a> {
     }
 
     fn next_doc(&self, term: &Term, field_name: &str, previous_doc: Option<u64>) -> Option<u64> {
-        let terms = match self.store.index.get(field_name) {
-            Some(terms) => terms,
+        let field = match self.store.fields.get(field_name) {
+            Some(field) => field,
             None => return None,
         };
 
-        let docs = match terms.get(term) {
-            Some(docs) => docs,
+        let term = match field.terms.get(term) {
+            Some(term) => term,
             None => return None,
         };
 
@@ -118,7 +152,7 @@ impl<'a> IndexReader<'a> for MemoryIndexStoreReader<'a> {
             Some(previous_doc) => {
                 // Find first doc after specified doc
                 // TODO: Speed this up (see section 2.1.2 of the IR book)
-                for doc_id in docs.iter() {
+                for doc_id in term.docs.iter() {
                     if doc_id > previous_doc {
                         return Some(doc_id);
                     }
@@ -129,7 +163,7 @@ impl<'a> IndexReader<'a> for MemoryIndexStoreReader<'a> {
             }
             None => {
                 // Previous doc not specified, return first doc
-                match docs.iter().next() {
+                match term.docs.iter().next() {
                     Some(doc_id) => Some(doc_id),
                     None => None,
                 }
@@ -148,28 +182,28 @@ impl<'a> IndexReader<'a> for MemoryIndexStoreReader<'a> {
     }
 
     fn iter_docids_with_term(&'a self, term: &Term, field_name: &str) -> Option<MemoryIndexStoreTermDocRefIterator<'a>> {
-        let terms = match self.store.index.get(field_name) {
-            Some(terms) => terms,
+        let field = match self.store.fields.get(field_name) {
+            Some(field) => field,
             None => return None,
         };
 
-        let docs = match terms.get(term) {
-            Some(docs) => docs,
+        let term = match field.terms.get(term) {
+            Some(term) => term,
             None => return None,
         };
 
         Some(MemoryIndexStoreTermDocRefIterator {
-            iterator: docs.iter(),
+            iterator: term.docs.iter(),
         })
     }
 
     fn iter_terms(&'a self, field_name: &str) -> Option<Box<Iterator<Item=&'a Term> + 'a>> {
-        let terms = match self.store.index.get(field_name) {
-            Some(terms) => terms,
+        let field = match self.store.fields.get(field_name) {
+            Some(field) => field,
             None => return None,
         };
 
-        Some(Box::new(terms.keys()))
+        Some(Box::new(field.terms.keys()))
     }
 }
 
