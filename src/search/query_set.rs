@@ -227,7 +227,7 @@ pub fn build_iterator_from_query<'a, T: IndexReader<'a>>(reader: &'a T, query: &
         Query::MatchTerm{ref field, ref term, ref matcher} => {
             match *matcher {
                 TermMatcher::Exact => {
-                    match reader.iter_docids_with_term(term, field) {
+                    match reader.iter_docids_with_term(&term.to_bytes(), field) {
                         Some(iter) => {
                             QuerySetIterator::Term {
                                 iter: iter,
@@ -240,20 +240,20 @@ pub fn build_iterator_from_query<'a, T: IndexReader<'a>>(reader: &'a T, query: &
                     }
                 }
                 TermMatcher::Prefix => {
+                    let term_bytes = term.to_bytes();
+
                     // Find all terms in the index that match the prefix
                     let terms = match *term {
-                         Term::String(ref term) => {
-                             match  reader.iter_terms(field) {
+                         Term::String(_) => {
+                             match reader.iter_terms(field) {
                                  Some(terms) => {
                                      terms.filter_map(|k| {
-                                         if let Term::String(ref k) = *k {
-                                             if k.starts_with(term) {
-                                                 return Some(Term::String(k.clone()));
-                                             }
+                                         if k.starts_with(&term_bytes) {
+                                             return Some(k.clone());
                                          }
 
                                          None
-                                     }).collect::<Vec<Term>>()
+                                     }).collect::<Vec<&[u8]>>()
                                  }
                                  None => return QuerySetIterator::None,
                              }
@@ -264,7 +264,7 @@ pub fn build_iterator_from_query<'a, T: IndexReader<'a>>(reader: &'a T, query: &
                     match terms.len() {
                         0 => QuerySetIterator::None,
                         1 => {
-                            match reader.iter_docids_with_term(term, field) {
+                            match reader.iter_docids_with_term(&term_bytes, field) {
                                 Some(iter) => {
                                     QuerySetIterator::Term {
                                         iter: iter,
@@ -422,7 +422,7 @@ mod benches {
         let store = make_test_store();
         let reader = store.reader();
 
-        let fizz_term = Term::String("fizz".to_string());
+        let fizz_term = Term::String("fizz".to_string()).to_bytes();
 
         b.iter(|| {
             let mut iterator: QuerySetIterator<MemoryIndexStoreReader> = QuerySetIterator::Term {
@@ -439,7 +439,7 @@ mod benches {
         let store = make_test_store();
         let reader = store.reader();
 
-        let buzz_term = Term::String("buzz".to_string());
+        let buzz_term = Term::String("buzz".to_string()).to_bytes();
 
         b.iter(|| {
             let mut iterator: QuerySetIterator<MemoryIndexStoreReader> = QuerySetIterator::Term {
@@ -456,8 +456,8 @@ mod benches {
         let store = make_test_store();
         let reader = store.reader();
 
-        let fizz_term = Term::String("fizz".to_string());
-        let buzz_term = Term::String("buzz".to_string());
+        let fizz_term = Term::String("fizz".to_string()).to_bytes();
+        let buzz_term = Term::String("buzz".to_string()).to_bytes();
 
         b.iter(|| {
             let mut fizz_iterator: QuerySetIterator<MemoryIndexStoreReader> = QuerySetIterator::Term {
@@ -484,8 +484,8 @@ mod benches {
         let store = make_test_store();
         let reader = store.reader();
 
-        let fizz_term = Term::String("fizz".to_string());
-        let buzz_term = Term::String("buzz".to_string());
+        let fizz_term = Term::String("fizz".to_string()).to_bytes();
+        let buzz_term = Term::String("buzz".to_string()).to_bytes();
 
         b.iter(|| {
             let mut fizz_iterator: QuerySetIterator<MemoryIndexStoreReader> = QuerySetIterator::Term {
@@ -512,8 +512,8 @@ mod benches {
         let store = make_test_store();
         let reader = store.reader();
 
-        let fizz_term = Term::String("fizz".to_string());
-        let buzz_term = Term::String("buzz".to_string());
+        let fizz_term = Term::String("fizz".to_string()).to_bytes();
+        let buzz_term = Term::String("buzz".to_string()).to_bytes();
 
         b.iter(|| {
             let mut fizz_iterator: QuerySetIterator<MemoryIndexStoreReader> = QuerySetIterator::Term {
