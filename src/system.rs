@@ -3,20 +3,24 @@ use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::fs;
 
+use slog::Logger;
+
 use search::index::Index;
 use search::index::store::IndexStore;
 use search::index::store::memory::MemoryIndexStore;
 
 
 pub struct System {
+    pub log: Logger,
     data_dir: PathBuf,
     pub indices: RwLock<HashMap<String, Index>>,
 }
 
 
 impl System {
-    pub fn new(data_dir: PathBuf) -> System {
+    pub fn new(log: Logger, data_dir: PathBuf) -> System {
         System {
+            log: log,
             data_dir: data_dir,
             indices: RwLock::new(HashMap::new()),
         }
@@ -41,7 +45,7 @@ impl System {
 
             if let Some(ext) = path.extension() {
                 if ext.to_str() == Some("rsi") {
-                    info!("Loaded index: {}", index_name);
+                    self.log.info("[sys] loaded index", b!("index" => index_name));
                     self.indices.write().unwrap().insert(index_name, self.load_index(path.as_path()));
                 }
             }

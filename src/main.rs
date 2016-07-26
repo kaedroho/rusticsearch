@@ -13,6 +13,9 @@ extern crate chrono;
 extern crate roaring;
 extern crate test;
 extern crate byteorder;
+#[macro_use(o, b)]
+extern crate slog;
+extern crate slog_term;
 
 pub mod system;
 mod api;
@@ -22,6 +25,8 @@ mod logger;
 use std::path::Path;
 use std::sync::Arc;
 
+use slog::Logger;
+
 use system::System;
 
 
@@ -29,16 +34,18 @@ const VERSION: &'static str = "0.1a0";
 
 
 fn main() {
-    println!("rusticsearch ({})", VERSION);
-    println!("");
+    let log = Logger::new_root(o!());
+    log.set_drain(slog_term::async_stderr());
+
+    log.info("[sys] starting rusticsearch", b!("version" => VERSION));
 
     logger::init().unwrap();
 
-    let system = Arc::new(System::new(Path::new("data/").to_path_buf()));
+    let system = Arc::new(System::new(log, Path::new("data/").to_path_buf()));
 
-    println!("Loading indices");
+    system.log.info("[sys] loading indices", b!());
     system.load_indices();
 
-    println!("Starting API");
+    system.log.info("[sys] starting api server", b!());
     api::api_main(system);
 }

@@ -46,7 +46,7 @@ pub fn view_put_index(req: &mut Request) -> IronResult<Response> {
     index.initialise();
     indices.insert(index_name.clone().to_owned(), index);
 
-    info!("Created index {}", index_name);
+    system.log.info("[api] created index", b!("index" => *index_name));
 
     return Ok(json_response(status::Ok, "{\"acknowledged\": true}"));
 }
@@ -71,7 +71,7 @@ pub fn view_delete_index(req: &mut Request) -> IronResult<Response> {
     indices_dir.set_extension("rsi");
     // fs::remove_file(&index_path).unwrap();
 
-    info!("Deleted index {}", index_name);
+    system.log.info("[api] deleted index", b!("index" => *index_name));
 
     return Ok(json_response(status::Ok, "{\"acknowledged\": true}"));
 }

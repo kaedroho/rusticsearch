@@ -73,6 +73,7 @@ impl Key for Context {
 pub fn api_main(system: Arc<System>) {
     let router = get_router();
     let mut chain = Chain::new(router);
-    chain.link(persistent::Read::<Context>::both(Context::new(system)));
+    chain.link(persistent::Read::<Context>::both(Context::new(system.clone())));
+    system.log.info("[api] listening", b!("scheme" => "http", "address" => "localhost", "port" => 9200));
     Iron::new(chain).http("localhost:9200").unwrap();
 }
