@@ -30,7 +30,11 @@ pub fn parse(context: &QueryParseContext, json: &Json) -> Result<Query, QueryPar
             for (key, val) in inner_object.iter() {
                 match key.as_ref() {
                     "value" => {
-                        term = Some(Term::from_json(val));
+                        term = Term::from_json(val);
+
+                        if term == None {
+                            return Err(QueryParseError::InvalidValue);
+                        }
                     }
                     "boost" => {
                         boost = try!(parse_float(val));
@@ -39,7 +43,7 @@ pub fn parse(context: &QueryParseContext, json: &Json) -> Result<Query, QueryPar
                 }
             }
         }
-        _ => term = Some(Term::from_json(object)),
+        _ => term = Term::from_json(object),
     }
 
     match term {

@@ -15,20 +15,17 @@ pub enum Term {
 }
 
 impl Term {
-    pub fn from_json(json: &Json) -> Term {
+    pub fn from_json(json: &Json) -> Option<Term> {
         // TODO: Should be aware of mappings
         match *json {
-            Json::String(ref string) => Term::String(string.clone()),
-            Json::Boolean(value) => Term::Boolean(value),
-            Json::F64(value) => Term::Null, //Term::F64(value),
-            Json::I64(value) => Term::I64(value),
-            Json::U64(value) => Term::U64(value),
-            Json::Null => Term::Null,
-
-            // These two are unsupported
-            // TODO: Raise error
-            Json::Array(_) => Term::Null,
-            Json::Object(_) => Term::Null,
+            Json::String(ref string) => Some(Term::String(string.clone())),
+            Json::Boolean(value) => Some(Term::Boolean(value)),
+            Json::F64(value) => Some(Term::Null), //Term::F64(value),
+            Json::I64(value) => Some(Term::I64(value)),
+            Json::U64(value) => Some(Term::U64(value)),
+            Json::Null => Some(Term::Null),
+            Json::Array(_) => None,
+            Json::Object(_) => None,
         }
     }
 

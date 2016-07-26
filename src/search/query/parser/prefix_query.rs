@@ -48,16 +48,20 @@ pub fn parse(context: &QueryParseContext, json: &Json) -> Result<Query, QueryPar
 
     match value {
         Some(value) => {
-            let mut query = Query::MatchTerm {
-                field: field_name.clone(),
-                term: Term::from_json(value),
-                matcher: TermMatcher::Prefix,
-            };
+            if let Json::String(ref string) = *value {
+                let mut query = Query::MatchTerm {
+                    field: field_name.clone(),
+                    term: Term::String(string.clone()),
+                    matcher: TermMatcher::Prefix,
+                };
 
-            // Add boost
-            query = Query::new_score(query, boost, 0.0f64);
+                // Add boost
+                query = Query::new_score(query, boost, 0.0f64);
 
-            Ok(query)
+                Ok(query)
+            } else {
+                Err(QueryParseError::ExpectedString)
+            }
         }
         None => Err(QueryParseError::ExpectedKey("value"))
     }

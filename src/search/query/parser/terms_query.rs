@@ -37,11 +37,16 @@ pub fn parse(context: &QueryParseContext, json: &Json) -> Result<Query, QueryPar
     // Create a term query for each token
     let mut sub_queries = Vec::new();
     for term in terms {
-        sub_queries.push(Query::MatchTerm {
-            field: field_name.clone(),
-            term: Term::from_json(&term),
-            matcher: TermMatcher::Exact,
-        });
+        match Term::from_json(&term) {
+            Some(term) => {
+                sub_queries.push(Query::MatchTerm {
+                    field: field_name.clone(),
+                    term: term,
+                    matcher: TermMatcher::Exact,
+                });
+            }
+            None => return Err(QueryParseError::InvalidValue)
+        }
     }
 
     Ok(Query::new_disjunction(sub_queries))
