@@ -75,5 +75,8 @@ pub fn api_main(system: Arc<System>) {
     let mut chain = Chain::new(router);
     chain.link(persistent::Read::<Context>::both(Context::new(system.clone())));
     system.log.info("[api] listening", b!("scheme" => "http", "address" => "localhost", "port" => 9200));
-    Iron::new(chain).http("localhost:9200").unwrap();
+
+    if let Err(error) = Iron::new(chain).http("localhost:9200") {
+        system.log.critical("[api] unable to start api server", b!("error" => format!("{}", error)));
+    }
 }
