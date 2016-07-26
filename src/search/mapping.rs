@@ -12,7 +12,6 @@ use search::analysis::Analyzer;
 #[derive(Debug, PartialEq)]
 pub enum FieldType {
     String,
-    Binary,
     Number {
         size: u8,
         is_float: bool,
@@ -128,7 +127,6 @@ impl FieldMapping {
                     _ => None
                 }
             }
-            _ => None,
         }
     }
 
