@@ -55,7 +55,7 @@ impl Default for FieldMapping {
 impl FieldMapping {
     pub fn process_value_for_index(&self, value: Json) -> Option<Vec<Token>> {
         if value == Json::Null {
-            return Some(vec![Token{term: Term::Null, position: 1}]);
+            return None;
         }
 
         match self.data_type {

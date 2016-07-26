@@ -11,7 +11,6 @@ pub enum Term {
     U64(u64),
     DateTime(DateTime<UTC>),
     //F64(f64),
-    Null,
 }
 
 impl Term {
@@ -20,10 +19,10 @@ impl Term {
         match *json {
             Json::String(ref string) => Some(Term::String(string.clone())),
             Json::Boolean(value) => Some(Term::Boolean(value)),
-            Json::F64(value) => Some(Term::Null), //Term::F64(value),
+            Json::F64(value) => None, //Term::F64(value),
             Json::I64(value) => Some(Term::I64(value)),
             Json::U64(value) => Some(Term::U64(value)),
-            Json::Null => Some(Term::Null),
+            Json::Null => None,
             Json::Array(_) => None,
             Json::Object(_) => None,
         }
@@ -37,7 +36,6 @@ impl Term {
             Term::I64(value) => Json::I64(value),
             Term::U64(value) => Json::U64(value),
             Term::DateTime(value) => Json::String(value.to_rfc3339()),
-            Term::Null => Json::Null,
         }
     }
 
@@ -77,11 +75,6 @@ impl Term {
                 bytes.write_i64::<BigEndian>(timestamp_with_micros);
                 bytes
             }
-            Term::Null => {
-                let mut bytes = Vec::with_capacity(1);
-                bytes.push(b'\0');
-                bytes
-            },
         }
     }
 }
@@ -175,12 +168,5 @@ mod tests {
 
         // This is exactly 3_600_000_000 lower than the result of "test_datetime_to_bytes"
         assert_eq!(term.to_bytes(), vec![0, 5, 56, 78, 45, 43, 193, 0])
-    }
-
-    #[test]
-    fn test_null_to_bytes() {
-        let term = Term::Null;
-
-        assert_eq!(term.to_bytes(), vec![0])
     }
 }
