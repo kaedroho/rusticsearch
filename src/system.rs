@@ -39,15 +39,26 @@ impl System {
     pub fn load_indices(&self) -> HashMap<String, Index> {
         let mut indices = HashMap::new();
 
-        for file in fs::read_dir(self.get_indices_dir()).unwrap() {
-            let path = file.unwrap().path();
-            let index_name: String = path.file_stem().unwrap().to_str().unwrap().to_owned();
+        let indices_dir = self.get_indices_dir();
+        match fs::read_dir(indices_dir.clone()) {
+            Ok(files) => {
+                for file in files {
+                    let path = file.unwrap().path();
+                    let index_name: String = path.file_stem().unwrap().to_str().unwrap().to_owned();
 
-            if let Some(ext) = path.extension() {
-                if ext.to_str() == Some("rsi") {
-                    self.log.info("[sys] loaded index", b!("index" => index_name));
-                    self.indices.write().unwrap().insert(index_name, self.load_index(path.as_path()));
+                    if let Some(ext) = path.extension() {
+                        if ext.to_str() == Some("rsi") {
+                            self.log.info("[sys] loaded index", b!("index" => index_name));
+                            self.indices.write().unwrap().insert(index_name, self.load_index(path.as_path()));
+                        }
+                    }
                 }
+            }
+            Err(error) => {
+                self.log.warn("[sys] cannot open indices directory", b!(
+                    "dir" => indices_dir.to_str().unwrap(),
+                    "error" => format!("{}", error)
+                ));
             }
         }
 
