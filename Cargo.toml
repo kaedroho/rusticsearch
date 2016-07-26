@@ -4,9 +4,9 @@ version = "0.1.0"
 authors = ["Karl Hobley <karlhobley10@gmail.com>"]
 
 [dependencies]
-iron = "*"
-router = "*"
-persistent = "*"
+iron = "0.2.6"
+router = "0.1.0"
+persistent = "0.0.9"
 url = "*"
 rustc-serialize = "0.3"
 log = "*"
