@@ -15,6 +15,7 @@ pub trait IndexReader<'a> {
     fn iter_docids_all(&'a self) -> Self::AllDocRefIterator;
     fn iter_docids_with_term(&'a self, term: &[u8], field_name: &str) -> Option<Self::TermDocRefIterator>;
     fn iter_terms(&'a self, field_name: &str) -> Option<Box<Iterator<Item=&'a [u8]> + 'a>>;
+    fn term_doc_freq(&'a self, term: &[u8], field_name: &str) -> u64;
     //pub fn retrieve_document(&self, &Self::DocRef) -> Document;
 }
 

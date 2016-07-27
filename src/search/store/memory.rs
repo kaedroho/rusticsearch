@@ -205,6 +205,20 @@ impl<'a> IndexReader<'a> for MemoryIndexStoreReader<'a> {
 
         Some(Box::new(field.terms.keys().map(|t| &t[..])))
     }
+
+    fn term_doc_freq(&'a self, term: &[u8], field_name: &str) -> u64 {
+        let field = match self.store.fields.get(field_name) {
+            Some(field) => field,
+            None => return 0,
+        };
+
+        let term = match field.terms.get(term) {
+            Some(term) => term,
+            None => return 0,
+        };
+
+        term.docs.len()
+    }
 }
 
 
