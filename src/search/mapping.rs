@@ -66,6 +66,7 @@ impl FieldMapping {
                         }
                     }
                     Json::I64(num) => self.process_value_for_index(Json::String(num.to_string())),
+                    Json::U64(num) => self.process_value_for_index(Json::String(num.to_string())),
                     Json::F64(num) => self.process_value_for_index(Json::String(num.to_string())),
                     Json::Array(array) => {
                         // Pack any strings into a vec, ignore nulls. Quit if we see anything else
