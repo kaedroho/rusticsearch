@@ -12,10 +12,7 @@ use search::analysis::Analyzer;
 #[derive(Debug, PartialEq)]
 pub enum FieldType {
     String,
-    Number {
-        size: u8,
-        is_float: bool,
-    },
+    Integer,
     Boolean,
     Date,
 }
@@ -69,7 +66,6 @@ impl FieldMapping {
                         }
                     }
                     Json::I64(num) => self.process_value_for_index(Json::String(num.to_string())),
-                    Json::U64(num) => self.process_value_for_index(Json::String(num.to_string())),
                     Json::F64(num) => self.process_value_for_index(Json::String(num.to_string())),
                     Json::Array(array) => {
                         // Pack any strings into a vec, ignore nulls. Quit if we see anything else
@@ -90,18 +86,10 @@ impl FieldMapping {
                     _ => None,
                 }
             }
-            FieldType::Number{size, is_float} => {
+            FieldType::Integer => {
                 match value {
-                    // TODO check the numbers fit in "size"
-                    Json::U64(num) => Some(vec![Token{term: Term::U64(num), position: 1}]),
+                    Json::U64(num) => Some(vec![Token{term: Term::I64(num as i64), position: 1}]),
                     Json::I64(num) => Some(vec![Token{term: Term::I64(num), position: 1}]),
-                    /*Json::F64(num) => {
-                        if !is_float {
-                            return None;
-                        }
-
-                        Some(vec![Token{term: Term::F64(num), position: 1}])
-                    }*/
                     _ => None,
                 }
             }
@@ -193,12 +181,7 @@ impl FieldMapping {
 
                     field_mapping.data_type = match type_name.as_ref() {
                         "string" => FieldType::String,
-                        "integer" => {
-                            FieldType::Number {
-                                size: 64,
-                                is_float: false,
-                            }
-                        }
+                        "integer" => FieldType::Integer,
                         "boolean" => FieldType::Boolean,
                         "date" => FieldType::Date,
                         _ => {
