@@ -39,7 +39,14 @@ pub fn view_put_mapping(req: &mut Request) -> IronResult<Response> {
     // Insert mapping
     let mapping = mapping::Mapping::from_json(&data);
     debug!("{:#?}", mapping);
+    let is_updating = index.mappings.contains_key(*mapping_name);
     index.mappings.insert(mapping_name.clone().to_owned(), mapping);
+
+    if is_updating {
+        system.log.info("[api] updated mapping", b!("index" => *index_name, "mapping" => *mapping_name));
+    } else {
+        system.log.info("[api] created mapping", b!("index" => *index_name, "mapping" => *mapping_name));
+    }
 
     return Ok(json_response(status::Ok, "{\"acknowledged\": true}"));
 }
