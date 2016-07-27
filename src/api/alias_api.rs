@@ -80,7 +80,14 @@ pub fn view_put_alias(req: &mut Request) -> IronResult<Response> {
     let mut index = get_index_or_404_mut!(indices, *index_name);
 
     // Insert alias
+    let is_updating = index.aliases.contains(*alias_name);
     index.aliases.insert(alias_name.clone().to_owned());
+
+    if is_updating {
+        system.log.info("[api] updated alias", b!("index" => *index_name, "alias" => *alias_name));
+    } else {
+        system.log.info("[api] created alias", b!("index" => *index_name, "alias" => *alias_name));
+    }
 
     return Ok(json_response(status::Ok, "{\"acknowledged\": true}"));
 }
