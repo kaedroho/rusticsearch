@@ -27,6 +27,11 @@ impl DocumentSource {
         let mut all_field_tokens: Vec<Token> = Vec::new();
 
         for (field_name, field_value) in self.data.as_object().unwrap() {
+            if *field_value == Json::Null {
+                // Treat null like a missing field
+                continue;
+            }
+
             match mapping.fields.get(field_name) {
                 Some(field_mapping) => {
                     let value = field_mapping.process_value_for_index(field_value.clone());
