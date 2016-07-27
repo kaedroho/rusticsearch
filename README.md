@@ -20,7 +20,7 @@ A search server with an Elasticsearch-compatible REST API, written in [Rust](htt
 ## Status
 
 Rusticsearch is in initial research/development phase. It currently supports the basic indexing/retrieval APIs
-but currently lacks persistence, ranking and a few other things.
+but currently lacks persistence, ranking amoung other things.
 
 See the [roadmap](https://github.com/kaedroho/rusticsearch/wiki/Initial-development-roadmap) for a list of things
 being worked on at the moment.
