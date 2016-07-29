@@ -7,6 +7,14 @@ use search::store::IndexReader;
 use search::query::term_matcher::TermMatcher;
 
 
+/// idf(term_docs, total_docs) = log((total_docs + 1.0) / (term_docs + 1.0)) + 1.0
+fn idf(term_docs: u64, total_docs: u64) -> f64 {
+    let term_docs = term_docs as f64;
+    let total_docs = total_docs as f64;
+    ((total_docs + 1.0) / (term_docs + 1.0)).log(10.0) + 1.0
+}
+
+
 #[derive(Debug, PartialEq)]
 pub enum Query {
     MatchAll,
@@ -191,10 +199,21 @@ impl Query {
             Query::MatchNone => None,
             Query::MatchTerm{ref field, ref term, ref matcher} => {
                 if let Some(field_value) = doc.fields.get(field) {
+                    let mut term_freq: u32 = 0;
                     for field_token in field_value.iter() {
                         if matcher.matches(&field_token.term, term) {
-                            return Some(1.0f64);
+                            term_freq += 1;
                         }
+                    }
+
+                    if term_freq > 0 {
+                        let total_docs = index_reader.num_docs();
+                        let term_bytes = term.to_bytes();
+                        let term_docs = index_reader.term_doc_freq(&term_bytes, field);
+                        let inv_doc_freq = idf(term_docs, total_docs as u64);
+                        let term_freq = (term_freq as f64).sqrt();
+
+                        return Some(term_freq * inv_doc_freq);
                     }
                 }
 
