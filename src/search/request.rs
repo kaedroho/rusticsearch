@@ -22,7 +22,7 @@ impl SearchRequest {
 
         for doc_id in iterator {
             if let Some(doc) = index_reader.get_document_by_id(&doc_id) {
-                if let Some(score) = self.query.rank(&doc) {
+                if let Some(score) = self.query.rank(index_reader, &doc) {
                     hits.push(SearchHit {
                         doc: &doc,
                         score: score,

@@ -3,6 +3,7 @@ pub mod parser;
 
 use search::term::Term;
 use search::document::Document;
+use search::store::IndexReader;
 use search::query::term_matcher::TermMatcher;
 
 
@@ -184,7 +185,7 @@ impl Query {
         }
     }
 
-    pub fn rank(&self, doc: &Document) -> Option<f64> {
+    pub fn rank<'a, R: IndexReader<'a>>(&self, index_reader: &'a R, doc: &Document) -> Option<f64> {
         match *self {
             Query::MatchAll => Some(1.0f64),
             Query::MatchNone => None,
@@ -203,7 +204,7 @@ impl Query {
                 let mut total_score = 0.0f64;
 
                 for query in queries {
-                    match query.rank(doc) {
+                    match query.rank(index_reader, doc) {
                         Some(score) => {
                             total_score += score;
                         }
@@ -218,7 +219,7 @@ impl Query {
                 let mut total_score = 0.0f64;
 
                 for query in queries {
-                    if let Some(score) = query.rank(doc) {
+                    if let Some(score) = query.rank(index_reader, doc) {
                         something_matched = true;
                         total_score += score;
                     }
@@ -235,7 +236,7 @@ impl Query {
                 let mut total_score = 0.0f64;
 
                 for query in queries {
-                    if let Some(score) = query.rank(doc) {
+                    if let Some(score) = query.rank(index_reader, doc) {
                         should_matched += 1;
                         total_score += score;
                     }
@@ -252,7 +253,7 @@ impl Query {
                 let mut max_score = 0.0f64;
 
                 for query in queries {
-                    match query.rank(doc) {
+                    match query.rank(index_reader, doc) {
                         Some(score) => {
                             something_matched = true;
                             if score > max_score {
@@ -271,14 +272,14 @@ impl Query {
             }
             Query::Filter{ref query, ref filter} => {
                 if filter.matches(doc) {
-                    query.rank(doc)
+                    query.rank(index_reader, doc)
                 } else {
                     None
                 }
             }
             Query::Exclude{ref query, ref exclude} => {
                 if !exclude.matches(doc) {
-                    query.rank(doc)
+                    query.rank(index_reader, doc)
                 } else {
                     None
                 }
@@ -292,7 +293,7 @@ impl Query {
                         None
                     }
                 } else {
-                    match query.rank(doc) {
+                    match query.rank(index_reader, doc) {
                         Some(score) => Some(score.mul_add(mul, add)),
                         None => None
                     }
