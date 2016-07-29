@@ -10,7 +10,7 @@ pub struct TermScorer {
 
 
 impl TermScorer {
-    pub fn score<'a, R: IndexReader<'a>>(&self, index_reader: &'a R, field_name: &str, term: &Term, term_freq: u32) -> f64 {
+    pub fn score<'a, R: IndexReader<'a>>(&self, index_reader: &'a R, field_name: &str, term: &Term, term_freq: u32, doc_length: u32) -> f64 {
         let term_bytes = term.to_bytes();
 
         let index_stats = IndexStats {
@@ -18,14 +18,14 @@ impl TermScorer {
         };
 
         let field_stats = FieldStats {
-            average_length: 1.0f64, // TODO
+            sum_total_term_freq: index_reader.sum_total_term_freq(field_name),
         };
 
         let field_term_stats = FieldTermStats {
             total_docs: index_reader.term_doc_freq(&term_bytes, field_name),
         };
 
-        self.similarity_model.score(term_freq, &index_stats, &field_stats, &field_term_stats)
+        self.similarity_model.score(term_freq, doc_length, &index_stats, &field_stats, &field_term_stats)
     }
 }
 
@@ -33,7 +33,10 @@ impl TermScorer {
 impl Default for TermScorer {
     fn default() -> TermScorer {
         TermScorer {
-            similarity_model: SimilarityModel::TF_IDF,
+            similarity_model: SimilarityModel::BM25 {
+                k1: 1.2,
+                b: 0.75,
+            },
         }
     }
 }

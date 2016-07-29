@@ -202,7 +202,7 @@ impl Query {
                     }
 
                     if term_freq > 0 {
-                        return Some(scorer.score(index_reader, field, term, term_freq));
+                        return Some(scorer.score(index_reader, field, term, term_freq, field_value.len() as u32));
                     }
                 }
 
