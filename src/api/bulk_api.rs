@@ -5,7 +5,7 @@ use rustc_serialize::json::{self, Json};
 
 use system::System;
 use search::document::DocumentSource;
-use search::index::store::IndexStore;
+use search::store::IndexStore;
 
 use api::persistent;
 use api::iron::prelude::*;

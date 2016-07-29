@@ -7,8 +7,8 @@ use std::fs;
 
 use slog::Logger;
 
-use search::index::store::IndexStore;
-use search::index::store::memory::MemoryIndexStore;
+use search::store::IndexStore;
+use search::store::memory::MemoryIndexStore;
 
 use system::index::Index;
 

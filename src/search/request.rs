@@ -1,6 +1,6 @@
 use std::cmp::Ordering;
 
-use search::index::reader::IndexReader;
+use search::store::IndexReader;
 use search::query::Query;
 use search::response::{SearchResponse, SearchHit};
 use search::query_set::build_iterator_from_query;

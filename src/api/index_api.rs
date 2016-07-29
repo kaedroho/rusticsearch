@@ -5,7 +5,7 @@ use rustc_serialize::json::Json;
 
 use system::System;
 use system::index::Index;
-use search::index::store::memory::MemoryIndexStore;
+use search::store::memory::MemoryIndexStore;
 
 use api::persistent;
 use api::iron::prelude::*;

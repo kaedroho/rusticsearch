@@ -1,7 +1,7 @@
 use std::collections::VecDeque;
 
 use search::term::Term;
-use search::index::reader::IndexReader;
+use search::store::IndexReader;
 use search::query::Query;
 use search::query::term_matcher::TermMatcher;
 
@@ -362,9 +362,8 @@ mod benches {
     use search::term::Term;
     use search::token::Token;
     use search::document::Document;
-    use search::index::store::IndexStore;
-    use search::index::reader::IndexReader;
-    use search::index::store::memory::{MemoryIndexStore, MemoryIndexStoreReader};
+    use search::store::{IndexStore, IndexReader};
+    use search::store::memory::{MemoryIndexStore, MemoryIndexStoreReader};
     use search::query_set::QuerySetIterator;
 
 

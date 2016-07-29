@@ -1,3 +1,5 @@
+pub mod memory;
+
 use search::document::Document;
 
 
@@ -19,4 +21,13 @@ pub trait IndexReader<'a> {
 
 pub trait DocRefIterator<'a>: Iterator<Item=u64> {
     //fn advance(&self, ref: u64);
+}
+
+
+pub trait IndexStore<'a> {
+    type Reader: IndexReader<'a>;
+
+    fn reader(&'a self) -> Self::Reader;
+    fn insert_or_update_document(&mut self, doc: Document);
+    fn remove_document_by_key(&mut self, doc_key: &str) -> bool;
 }

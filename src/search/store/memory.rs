@@ -4,8 +4,7 @@ use std::collections::{BTreeMap, HashMap};
 use std::collections::btree_map::Keys;
 
 use search::document::Document;
-use search::index::store::IndexStore;
-use search::index::reader::{IndexReader, DocRefIterator};
+use search::store::{IndexStore, IndexReader, DocRefIterator};
 
 
 #[derive(Debug)]
@@ -250,8 +249,7 @@ mod tests {
     use search::term::Term;
     use search::analysis::Analyzer;
     use search::document::Document;
-    use search::index::store::IndexStore;
-    use search::index::reader::IndexReader;
+    use search::store::{IndexStore, IndexReader};
 
     fn make_test_store() -> MemoryIndexStore {
         let mut store = MemoryIndexStore::new();

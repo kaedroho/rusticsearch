@@ -5,8 +5,7 @@ use url::form_urlencoded;
 
 use system::System;
 use search::query::parser::{QueryParseContext, parse as parse_query};
-use search::index::reader::IndexReader;
-use search::index::store::IndexStore;
+use search::store::{IndexStore, IndexReader};
 use search::request::SearchRequest;
 
 use api::persistent;

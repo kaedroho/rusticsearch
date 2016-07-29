@@ -3,7 +3,7 @@ pub mod token;
 pub mod analysis;
 pub mod mapping;
 pub mod document;
-pub mod index;
+pub mod store;
 pub mod query;
 pub mod query_set;
 pub mod request;
