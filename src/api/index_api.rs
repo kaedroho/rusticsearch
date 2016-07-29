@@ -4,7 +4,7 @@ use std::fs;
 use rustc_serialize::json::Json;
 
 use system::System;
-use search::index::Index;
+use system::index::Index;
 use search::index::store::memory::MemoryIndexStore;
 
 use api::persistent;

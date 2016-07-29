@@ -1,3 +1,5 @@
+pub mod index;
+
 use std::sync::RwLock;
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
@@ -5,9 +7,10 @@ use std::fs;
 
 use slog::Logger;
 
-use search::index::Index;
 use search::index::store::IndexStore;
 use search::index::store::memory::MemoryIndexStore;
+
+use system::index::Index;
 
 
 pub struct System {
