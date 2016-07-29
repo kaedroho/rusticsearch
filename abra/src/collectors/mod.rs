@@ -1,4 +1,5 @@
 pub mod total_count;
+pub mod top_score;
 
 
 #[derive(Debug)]
