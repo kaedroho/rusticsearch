@@ -21,6 +21,7 @@ mod tests {
     use search::term::Term;
     use search::query::Query;
     use search::query::term_matcher::TermMatcher;
+    use search::query::term_scorer::TermScorer;
     use search::query::parser::{QueryParseContext, QueryParseError};
 
     use super::parse;
@@ -40,7 +41,8 @@ mod tests {
             exclude: Box::new(Query::MatchTerm {
                 field: "test".to_string(),
                 term: Term::String("foo".to_string()),
-                matcher: TermMatcher::Exact
+                matcher: TermMatcher::Exact,
+                scorer: TermScorer::default(),
             }),
         }))
     }

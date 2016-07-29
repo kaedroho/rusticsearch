@@ -46,6 +46,7 @@ mod tests {
     use search::term::Term;
     use search::query::Query;
     use search::query::term_matcher::TermMatcher;
+    use search::query::term_scorer::TermScorer;
     use search::query::parser::{QueryParseContext, QueryParseError};
 
     use super::parse;
@@ -71,12 +72,14 @@ mod tests {
             query: Box::new(Query::MatchTerm {
                 field: "the".to_string(),
                 term: Term::String("query".to_string()),
-                matcher: TermMatcher::Exact
+                matcher: TermMatcher::Exact,
+                scorer: TermScorer::default(),
             }),
             filter: Box::new(Query::MatchTerm {
                 field: "the".to_string(),
                 term: Term::String("filter".to_string()),
-                matcher: TermMatcher::Exact
+                matcher: TermMatcher::Exact,
+                scorer: TermScorer::default(),
             }),
         }))
     }
@@ -98,7 +101,8 @@ mod tests {
             filter: Box::new(Query::MatchTerm {
                 field: "the".to_string(),
                 term: Term::String("filter".to_string()),
-                matcher: TermMatcher::Exact
+                matcher: TermMatcher::Exact,
+                scorer: TermScorer::default(),
             }),
         }))
     }

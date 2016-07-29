@@ -4,6 +4,7 @@ pub mod analysis;
 pub mod mapping;
 pub mod document;
 pub mod store;
+pub mod similarity;
 pub mod query;
 pub mod query_set;
 pub mod request;

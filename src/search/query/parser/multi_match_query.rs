@@ -7,6 +7,7 @@ use search::analysis::Analyzer;
 
 use search::query::Query;
 use search::query::term_matcher::TermMatcher;
+use search::query::term_scorer::TermScorer;
 use search::query::parser::{QueryParseContext, QueryParseError};
 use search::query::parser::utils::{parse_string, parse_float, Operator, parse_operator, parse_field_and_boost};
 
@@ -68,6 +69,7 @@ pub fn parse(context: &QueryParseContext, json: &Json) -> Result<Query, QueryPar
                 field: field_name.clone(),
                 term: token.term,
                 matcher: TermMatcher::Exact,
+                scorer: TermScorer::default(),
             });
         }
 
@@ -102,6 +104,7 @@ mod tests {
     use search::term::Term;
     use search::query::Query;
     use search::query::term_matcher::TermMatcher;
+    use search::query::term_scorer::TermScorer;
     use search::query::parser::{QueryParseContext, QueryParseError};
 
     use super::parse;
@@ -121,11 +124,13 @@ mod tests {
                     field: "bar".to_string(),
                     term: Term::String("foo".to_string()),
                     matcher: TermMatcher::Exact,
+                    scorer: TermScorer::default(),
                 },
                 Query::MatchTerm {
                     field: "baz".to_string(),
                     term: Term::String("foo".to_string()),
                     matcher: TermMatcher::Exact,
+                    scorer: TermScorer::default(),
                 }
             ],
         }));
@@ -148,11 +153,13 @@ mod tests {
                             field: "bar".to_string(),
                             term: Term::String("hello".to_string()),
                             matcher: TermMatcher::Exact,
+                            scorer: TermScorer::default(),
                         },
                         Query::MatchTerm {
                             field: "bar".to_string(),
                             term: Term::String("world".to_string()),
                             matcher: TermMatcher::Exact,
+                            scorer: TermScorer::default(),
                         }
                     ],
                 },
@@ -162,11 +169,13 @@ mod tests {
                             field: "baz".to_string(),
                             term: Term::String("hello".to_string()),
                             matcher: TermMatcher::Exact,
+                            scorer: TermScorer::default(),
                         },
                         Query::MatchTerm {
                             field: "baz".to_string(),
                             term: Term::String("world".to_string()),
                             matcher: TermMatcher::Exact,
+                            scorer: TermScorer::default(),
                         }
                     ],
                 }
@@ -191,11 +200,13 @@ mod tests {
                         field: "bar".to_string(),
                         term: Term::String("foo".to_string()),
                         matcher: TermMatcher::Exact,
+                        scorer: TermScorer::default(),
                     },
                     Query::MatchTerm {
                         field: "baz".to_string(),
                         term: Term::String("foo".to_string()),
                         matcher: TermMatcher::Exact,
+                        scorer: TermScorer::default(),
                     }
                 ],
             }),
@@ -221,11 +232,13 @@ mod tests {
                         field: "bar".to_string(),
                         term: Term::String("foo".to_string()),
                         matcher: TermMatcher::Exact,
+                        scorer: TermScorer::default(),
                     },
                     Query::MatchTerm {
                         field: "baz".to_string(),
                         term: Term::String("foo".to_string()),
                         matcher: TermMatcher::Exact,
+                        scorer: TermScorer::default(),
                     }
                 ],
             }),
@@ -250,6 +263,7 @@ mod tests {
                         field: "bar".to_string(),
                         term: Term::String("foo".to_string()),
                         matcher: TermMatcher::Exact,
+                        scorer: TermScorer::default(),
                     }),
                     mul: 2.0f64,
                     add: 0.0f64,
@@ -258,6 +272,7 @@ mod tests {
                     field: "baz".to_string(),
                     term: Term::String("foo".to_string()),
                     matcher: TermMatcher::Exact,
+                    scorer: TermScorer::default(),
                 }
             ],
         }));
@@ -281,11 +296,13 @@ mod tests {
                             field: "baz".to_string(),
                             term: Term::String("foo".to_string()),
                             matcher: TermMatcher::Exact,
+                            scorer: TermScorer::default(),
                         },
                         Query::MatchTerm {
                             field: "baz".to_string(),
                             term: Term::String("bar".to_string()),
                             matcher: TermMatcher::Exact,
+                            scorer: TermScorer::default(),
                         }
                     ],
                 },
@@ -295,11 +312,13 @@ mod tests {
                             field: "quux".to_string(),
                             term: Term::String("foo".to_string()),
                             matcher: TermMatcher::Exact,
+                            scorer: TermScorer::default(),
                         },
                         Query::MatchTerm {
                             field: "quux".to_string(),
                             term: Term::String("bar".to_string()),
                             matcher: TermMatcher::Exact,
+                            scorer: TermScorer::default(),
                         }
                     ],
                 }

@@ -8,6 +8,7 @@ use search::mapping::FieldMapping;
 
 use search::query::Query;
 use search::query::term_matcher::TermMatcher;
+use search::query::term_scorer::TermScorer;
 use search::query::parser::{QueryParseContext, QueryParseError};
 use search::query::parser::utils::{parse_string, parse_float, Operator, parse_operator};
 
@@ -43,6 +44,7 @@ pub fn parse(context: &QueryParseContext, json: &Json) -> Result<Query, QueryPar
                     field: field_name.clone(),
                     term: term,
                     matcher: TermMatcher::Exact,
+                    scorer: TermScorer::default(),
                 });
             }
             None => return Err(QueryParseError::InvalidValue)
@@ -60,6 +62,7 @@ mod tests {
     use search::term::Term;
     use search::query::Query;
     use search::query::term_matcher::TermMatcher;
+    use search::query::term_scorer::TermScorer;
     use search::query::parser::{QueryParseContext, QueryParseError};
 
     use super::parse;
@@ -77,12 +80,14 @@ mod tests {
                 Query::MatchTerm {
                     field: "foo".to_string(),
                     term: Term::String("bar".to_string()),
-                    matcher: TermMatcher::Exact
+                    matcher: TermMatcher::Exact,
+                    scorer: TermScorer::default(),
                 },
                 Query::MatchTerm {
                     field: "foo".to_string(),
                     term: Term::String("baz".to_string()),
-                    matcher: TermMatcher::Exact
+                    matcher: TermMatcher::Exact,
+                    scorer: TermScorer::default(),
                 }
             ],
         }))

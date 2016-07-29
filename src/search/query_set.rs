@@ -224,7 +224,7 @@ pub fn build_iterator_from_query<'a, T: IndexReader<'a>>(reader: &'a T, query: &
         Query::MatchNone => {
             QuerySetIterator::None
         }
-        Query::MatchTerm{ref field, ref term, ref matcher} => {
+        Query::MatchTerm{ref field, ref term, ref matcher, ref scorer} => {
             match *matcher {
                 TermMatcher::Exact => {
                     match reader.iter_docids_with_term(&term.to_bytes(), field) {

@@ -6,6 +6,7 @@ use search::term::Term;
 
 use search::query::Query;
 use search::query::term_matcher::TermMatcher;
+use search::query::term_scorer::TermScorer;
 use search::query::parser::{QueryParseContext, QueryParseError};
 use search::query::parser::utils::parse_float;
 
@@ -52,6 +53,7 @@ pub fn parse(context: &QueryParseContext, json: &Json) -> Result<Query, QueryPar
                 field: field_name.clone(),
                 term: term,
                 matcher: TermMatcher::Exact,
+                scorer: TermScorer::default(),
             };
 
             // Add boost
@@ -71,6 +73,7 @@ mod tests {
     use search::term::Term;
     use search::query::Query;
     use search::query::term_matcher::TermMatcher;
+    use search::query::term_scorer::TermScorer;
     use search::query::parser::{QueryParseContext, QueryParseError};
 
     use super::parse;
@@ -88,7 +91,8 @@ mod tests {
         assert_eq!(query, Ok(Query::MatchTerm {
             field: "foo".to_string(),
             term: Term::String("bar".to_string()),
-            matcher: TermMatcher::Exact
+            matcher: TermMatcher::Exact,
+            scorer: TermScorer::default(),
         }));
     }
 
@@ -105,7 +109,8 @@ mod tests {
         assert_eq!(query, Ok(Query::MatchTerm {
             field: "foo".to_string(),
             term: Term::U64(123),
-            matcher: TermMatcher::Exact
+            matcher: TermMatcher::Exact,
+            scorer: TermScorer::default(),
         }));
     }
 
@@ -120,7 +125,8 @@ mod tests {
         assert_eq!(query, Ok(Query::MatchTerm {
             field: "foo".to_string(),
             term: Term::String("bar".to_string()),
-            matcher: TermMatcher::Exact
+            matcher: TermMatcher::Exact,
+            scorer: TermScorer::default(),
         }));
     }
 
@@ -139,7 +145,8 @@ mod tests {
             query: Box::new(Query::MatchTerm {
                 field: "foo".to_string(),
                 term: Term::String("bar".to_string()),
-                matcher: TermMatcher::Exact
+                matcher: TermMatcher::Exact,
+                scorer: TermScorer::default(),
             }),
             mul: 2.0f64,
             add: 0.0f64,
@@ -161,7 +168,8 @@ mod tests {
             query: Box::new(Query::MatchTerm {
                 field: "foo".to_string(),
                 term: Term::String("bar".to_string()),
-                matcher: TermMatcher::Exact
+                matcher: TermMatcher::Exact,
+                scorer: TermScorer::default(),
             }),
             mul: 2.0f64,
             add: 0.0f64,
