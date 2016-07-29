@@ -16,6 +16,7 @@ pub mod store;
 pub mod similarity;
 pub mod query;
 pub mod query_set;
+pub mod collectors;
 pub mod request;
 pub mod response;
 
