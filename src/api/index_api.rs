@@ -43,7 +43,6 @@ pub fn view_put_index(req: &mut Request) -> IronResult<Response> {
     indices_dir.push(index_name);
     indices_dir.set_extension("rsi");
     let mut index = Index::new(MemoryIndexStore::new());
-    index.initialise();
     indices.insert(index_name.clone().to_owned(), index);
 
     system.log.info("[api] created index", b!("index" => *index_name));

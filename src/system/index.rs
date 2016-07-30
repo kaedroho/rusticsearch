@@ -33,6 +33,4 @@ impl Index {
     pub fn get_field_mapping_by_name(&self, name: &str) -> Option<&FieldMapping> {
         self.mappings.get_field(name)
     }
-
-    pub fn initialise(&mut self) {}
 }
