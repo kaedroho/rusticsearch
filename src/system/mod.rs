@@ -1,4 +1,5 @@
 pub mod index;
+pub mod index_registry;
 
 use std::sync::RwLock;
 use std::collections::HashMap;
@@ -11,12 +12,13 @@ use search::store::IndexStore;
 use search::store::memory::MemoryIndexStore;
 
 use system::index::Index;
+use system::index_registry::IndexRegistry;
 
 
 pub struct System {
     pub log: Logger,
     data_dir: PathBuf,
-    pub indices: RwLock<HashMap<String, Index>>,
+    pub indices: RwLock<IndexRegistry>,
 }
 
 
@@ -25,7 +27,7 @@ impl System {
         System {
             log: log,
             data_dir: data_dir,
-            indices: RwLock::new(HashMap::new()),
+            indices: RwLock::new(IndexRegistry::new()),
         }
     }
 
