@@ -59,7 +59,7 @@ pub fn view_post_bulk(req: &mut Request) -> IronResult<Response> {
                 let doc_json = parse_json!(&doc_line.unwrap());;
 
                 // Find index
-                let mut index = get_index_or_404!(indices, doc_index);
+                let mut index = get_index_or_404_mut!(indices, doc_index);
 
                 let doc = {
                     // Find mapping
