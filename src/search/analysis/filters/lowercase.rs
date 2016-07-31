@@ -10,7 +10,7 @@ pub struct LowercaseFilter<'a> {
 
 
 impl<'a> LowercaseFilter<'a> {
-    pub fn new(tokens: Box<Iterator<Item=Token> +'a >) -> LowercaseFilter<'a> {
+    pub fn new(tokens: Box<Iterator<Item=Token> +'a>) -> LowercaseFilter<'a> {
         LowercaseFilter {
             tokens: tokens,
         }
