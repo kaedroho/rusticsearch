@@ -42,11 +42,9 @@ impl SimilarityModel {
             SimilarityModel::BM25{k1, b} => {
                 let tf = (term_frequency as f64).sqrt();
                 let idf = idf(field_term_stats.total_docs, index_stats.total_docs);
-
-                let norm_value = 1.0f64 /* field boost */ / tf;
                 let average_length = field_stats.sum_total_term_freq as f64 / index_stats.total_docs as f64;
 
-                idf * (k1 + 1.0) * (tf / (tf + (k1 * ((1.0 - b) + b * norm_value / average_length))))
+                idf * (k1 + 1.0) * (tf / (tf + (k1 * ((1.0 - b) + b * (doc_length as f64) / average_length))))
             }
         }
     }
