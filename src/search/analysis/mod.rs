@@ -11,6 +11,12 @@ use unicode_segmentation::UnicodeSegmentation;
 use search::term::Term;
 use search::token::Token;
 
+use search::analysis::ngram_generator::Edge;
+use search::analysis::tokenizers::standard::StandardTokenizer;
+use search::analysis::filters::lowercase::LowercaseFilter;
+use search::analysis::filters::asciifolding::ASCIIFoldingFilter;
+use search::analysis::filters::ngram::NGramFilter;
+
 
 #[derive(Debug, PartialEq)]
 pub enum Analyzer {
@@ -25,53 +31,29 @@ impl Analyzer {
         match *self {
             Analyzer::None => vec![Token{term: Term::String(input), position: 1}],
             Analyzer::Standard => {
+                let tokens = Box::new(StandardTokenizer::new(&input));
+
                 // Lowercase
-                let input = input.to_lowercase();
+                let tokens = Box::new(LowercaseFilter::new(tokens));
 
-                // Convert string to ascii (not standard in Elasticsearch, but Wagtail needs it)
-                let input = lucene_asciifold::fold_to_ascii(&input);
+                // ASCII Folding (not standard in Elasticsearch, but Wagtail needs it)
+                let tokens = Box::new(ASCIIFoldingFilter::new(tokens));
 
-                // Tokenise
-                let mut position = 0;
-                let tokens = input.unicode_words()
-                                  .map(|s| {
-                                      position += 1;
-
-                                      Token {
-                                          term: Term::String(s.to_string()),
-                                          position: position,
-                                      }
-                                  })
-                                  .collect();
-
-                tokens
+                tokens.collect::<Vec<Token>>()
             }
             Analyzer::EdgeNGram => {
-                // Analyze with standard analyzer
-                let tokens = Analyzer::Standard.run(input);
+                let tokens = Box::new(StandardTokenizer::new(&input));
 
-                // Generate ngrams
-                let mut ngrams = Vec::new();
-                let min_gram = 2;
-                let max_gram = Some(15);
+                // Lowercase
+                let tokens = Box::new(LowercaseFilter::new(tokens));
 
-                for token in tokens {
-                    if let Term::String(s) = token.term {
-                        let max_gram = match max_gram {
-                            Some(max_gram) => cmp::min(max_gram, s.len()),
-                            None => s.len(),
-                        };
-                        for last_char in (0 + min_gram)..(0 + max_gram + 1) {
-                            // TODO: Currently breaks on non-ascii code points
-                            ngrams.push(Token {
-                                term: Term::String(s[0..last_char].to_string()),
-                                position: token.position,
-                            });
-                        }
-                    }
-                }
+                // ASCII Folding (not standard in Elasticsearch, but Wagtail needs it)
+                let tokens = Box::new(ASCIIFoldingFilter::new(tokens));
 
-                ngrams
+                // Ngrams
+                let tokens = Box::new(NGramFilter::new(tokens, 2, 15, Edge::Left));
+
+                tokens.collect::<Vec<Token>>()
             }
         }
     }
