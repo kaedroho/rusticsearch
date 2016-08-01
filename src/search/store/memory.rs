@@ -140,40 +140,6 @@ impl<'a> IndexReader<'a> for MemoryIndexStoreReader<'a> {
         self.store.doc_key2id_map.contains_key(doc_key)
     }
 
-    fn next_doc(&self, term: &[u8], field_name: &str, previous_doc: Option<u64>) -> Option<u64> {
-        let field = match self.store.fields.get(field_name) {
-            Some(field) => field,
-            None => return None,
-        };
-
-        let term = match field.terms.get(term) {
-            Some(term) => term,
-            None => return None,
-        };
-
-        match previous_doc {
-            Some(previous_doc) => {
-                // Find first doc after specified doc
-                // TODO: Speed this up (see section 2.1.2 of the IR book)
-                for doc_id in term.docs.iter() {
-                    if doc_id > previous_doc {
-                        return Some(doc_id);
-                    }
-                }
-
-                // Ran out of docs
-                return None;
-            }
-            None => {
-                // Previous doc not specified, return first doc
-                match term.docs.iter().next() {
-                    Some(doc_id) => Some(doc_id),
-                    None => None,
-                }
-            }
-        }
-    }
-
     fn num_docs(&self) -> usize {
         self.store.docs.len()
     }
