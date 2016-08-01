@@ -86,7 +86,7 @@ pub fn view_search(req: &mut Request) -> IronResult<Response> {
                     };
 
                     // TODO: Rewrite this
-                    if let Some(ref url_query) = req.url.query {
+                    if let Some(ref url_query) = req.url.query() {
                         for (key, value) in form_urlencoded::parse(url_query.as_bytes()) {
                             match key.as_ref() {
                                 "from" => {
