@@ -4,7 +4,7 @@ use rustc_serialize::json::Json;
 
 use search::term::Term;
 use search::token::Token;
-use search::mapping::Mapping;
+use search::mapping::{Mapping, FieldMapping, FieldType};
 
 
 #[derive(Debug)]
@@ -24,7 +24,7 @@ pub struct DocumentSource {
 impl DocumentSource {
     pub fn prepare(&self, mapping: &Mapping) -> Document {
         let mut fields = BTreeMap::new();
-        let mut all_field_tokens: Vec<Token> = Vec::new();
+        let mut all_field_strings: Vec<String> = Vec::new();
 
         for (field_name, field_value) in self.data.as_object().unwrap() {
             if *field_value == Json::Null {
@@ -40,8 +40,9 @@ impl DocumentSource {
                         Some(value) => {
                             // Copy the field's value into the _all field
                             if field_mapping.is_in_all {
-                                // TODO: Should the positions be updated?
-                                all_field_tokens.extend(value.iter().cloned());
+                                if let Json::String(ref string) = *field_value {
+                                    all_field_strings.push(string.clone());
+                                }
                             }
 
                             // Insert the field
@@ -64,7 +65,19 @@ impl DocumentSource {
         }
 
         // Insert _all field
-        fields.insert("_all".to_owned(), all_field_tokens);
+        let all_field_mapping = FieldMapping::default();
+        let all_field_strings_json = Json::String(all_field_strings.join(" "));
+        let all_field_value = all_field_mapping.process_value_for_index(all_field_strings_json.clone());
+
+        match all_field_value {
+            Some(all_field_value) => {
+                fields.insert("_all".to_owned(), all_field_value);
+            }
+            None => {
+                // TODO: Should probably be an error
+                warn!("Unprocessable value: {}", all_field_strings_json);
+            }
+        }
 
         Document {
             key: self.key.clone(),
