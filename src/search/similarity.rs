@@ -38,3 +38,77 @@ impl SimilarityModel {
         }
     }
 }
+
+
+#[cfg(test)]
+mod tests {
+    use super::SimilarityModel;
+
+    #[test]
+    fn test_tf_idf_higher_term_freq_increases_score() {
+        let similarity = SimilarityModel::TF_IDF;
+
+        assert!(similarity.score(2, 40, 100, 10, 5) > similarity.score(1, 40, 100, 10, 5));
+    }
+
+    #[test]
+    fn test_tf_idf_lower_term_docs_increases_score() {
+        let similarity = SimilarityModel::TF_IDF;
+
+        assert!(similarity.score(1, 40, 100, 10, 5) > similarity.score(1, 40, 100, 10, 10));
+    }
+
+    #[test]
+    fn test_tf_idf_field_length_doesnt_affect_score() {
+        let similarity = SimilarityModel::TF_IDF;
+
+        assert!(similarity.score(1, 100, 100, 20, 5) == similarity.score(1, 40, 100, 20, 5));
+    }
+
+    #[test]
+    fn test_tf_idf_total_tokens_doesnt_affect_score() {
+        let similarity = SimilarityModel::TF_IDF;
+
+        assert!(similarity.score(1, 40, 1000, 20, 5) == similarity.score(1, 40, 100, 20, 5));
+    }
+
+    #[test]
+    fn test_bm25_higher_term_freq_increases_score() {
+        let similarity = SimilarityModel::BM25 {
+            k1: 1.2,
+            b: 0.75,
+        };
+
+        assert!(similarity.score(2, 40, 100, 10, 5) > similarity.score(1, 40, 100, 10, 5));
+    }
+
+    #[test]
+    fn test_bm25_lower_term_docs_increases_score() {
+        let similarity = SimilarityModel::BM25 {
+            k1: 1.2,
+            b: 0.75,
+        };
+
+        assert!(similarity.score(1, 40, 100, 10, 5) > similarity.score(1, 40, 100, 10, 10));
+    }
+
+    #[test]
+    fn test_bm25_lower_field_length_increases_score() {
+        let similarity = SimilarityModel::BM25 {
+            k1: 1.2,
+            b: 0.75,
+        };
+
+        assert!(similarity.score(1, 40, 100, 20, 5) > similarity.score(1, 100, 100, 20, 5));
+    }
+
+    #[test]
+    fn test_bm25_higher_total_tokens_increases_score() {
+        let similarity = SimilarityModel::BM25 {
+            k1: 1.2,
+            b: 0.75,
+        };
+
+        assert!(similarity.score(1, 40, 1000, 20, 5) > similarity.score(1, 40, 100, 20, 5));
+    }
+}
