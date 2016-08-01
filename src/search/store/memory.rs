@@ -26,6 +26,7 @@ impl MemoryIndexStoreFieldTerm {
 pub struct MemoryIndexStoreField {
     pub docs: RoaringBitmap<u64>,
     pub terms: BTreeMap<Vec<u8>, MemoryIndexStoreFieldTerm>,
+    pub num_tokens: u64,
 }
 
 
@@ -34,6 +35,7 @@ impl MemoryIndexStoreField {
         MemoryIndexStoreField {
             docs: RoaringBitmap::new(),
             terms: BTreeMap::new(),
+            num_tokens: 0,
         }
     }
 }
@@ -84,6 +86,7 @@ impl<'a> IndexStore<'a> for MemoryIndexStore {
 
                 let mut field = self.fields.get_mut(field_name).unwrap();
                 field.docs.insert(doc_id);
+                field.num_tokens += 1;
 
                 let term_bytes = token.term.to_bytes();
                 if !field.terms.contains_key(&term_bytes) {
@@ -226,12 +229,7 @@ impl<'a> IndexReader<'a> for MemoryIndexStoreReader<'a> {
             None => return 0,
         };
 
-        let mut total_tokens: u64 = 0;
-        for (term, postings) in field.terms.iter() {
-            total_tokens += postings.docs.len() as u64;
-        }
-
-        total_tokens
+        field.num_tokens
     }
 }
 
