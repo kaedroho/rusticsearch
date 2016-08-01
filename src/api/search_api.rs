@@ -3,7 +3,6 @@ use std::io::Read;
 use rustc_serialize::json::{self, Json};
 use url::form_urlencoded;
 
-use system::System;
 use search::query::parser::{QueryParseContext, parse as parse_query};
 use search::store::{IndexStore, IndexReader};
 use search::request::SearchRequest;
@@ -43,7 +42,7 @@ pub fn view_count(req: &mut Request) -> IronResult<Response> {
 
                     request.run(&index_reader).total_hits
                 }
-                Err(error) => {
+                Err(_) => {
                     // TODO: What specifically is bad about the Query?
                     let mut response = Response::with((status::BadRequest,
                                                        "{\"message\": \"Query error\"}"));
@@ -127,7 +126,7 @@ pub fn view_search(req: &mut Request) -> IronResult<Response> {
                                                                                .collect()))
                                                  .unwrap())))
                 }
-                Err(error) => {
+                Err(_) => {
                     // TODO: What specifically is bad about the Query?
                     let mut response = Response::with((status::BadRequest,
                                                        "{\"message\": \"Query error\"}"));

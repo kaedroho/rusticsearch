@@ -1,9 +1,7 @@
 use std::io::Read;
-use std::fs;
 
 use rustc_serialize::json::Json;
 
-use system::System;
 use system::index::Index;
 use search::store::memory::MemoryIndexStore;
 
@@ -15,14 +13,16 @@ use api::utils::json_response;
 
 
 pub fn view_get_index(req: &mut Request) -> IronResult<Response> {
-    let ref system = get_system!(req);
-    let ref index_name = read_path_parameter!(req, "index").unwrap_or("");
+    // let ref system = get_system!(req);
+    // let ref index_name = read_path_parameter!(req, "index").unwrap_or("");
 
     // Lock index array
-    let indices = system.indices.read().unwrap();
+    // let indices = system.indices.read().unwrap();
 
     // Get index
-    let index = get_index_or_404!(indices, *index_name);
+    // let index = get_index_or_404!(indices, *index_name);
+
+    // TODO
 
     return Ok(json_response(status::Ok, "{}"));
 }
@@ -36,7 +36,7 @@ pub fn view_put_index(req: &mut Request) -> IronResult<Response> {
     let mut indices = system.indices.write().unwrap();
 
     // Load data from body
-    let data = json_from_request_body!(req);
+    // let data = json_from_request_body!(req);
 
     // Create index
     let mut indices_dir = system.get_indices_dir();
@@ -44,6 +44,8 @@ pub fn view_put_index(req: &mut Request) -> IronResult<Response> {
     indices_dir.set_extension("rsi");
     let mut index = Index::new(MemoryIndexStore::new());
     indices.insert(index_name.clone().to_owned(), index);
+
+    // TODO: load settings
 
     system.log.info("[api] created index", b!("index" => *index_name));
 

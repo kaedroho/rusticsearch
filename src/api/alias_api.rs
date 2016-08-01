@@ -1,9 +1,6 @@
-use std::io::Read;
 use std::collections::HashMap;
 
 use rustc_serialize::json;
-
-use system::System;
 
 use api::persistent;
 use api::iron::prelude::*;
@@ -40,8 +37,8 @@ pub fn view_get_global_alias(req: &mut Request) -> IronResult<Response> {
 
 
 pub fn view_get_alias_list(req: &mut Request) -> IronResult<Response> {
-    let ref system = get_system!(req);
-    let ref index_name = read_path_parameter!(req, "index").unwrap_or("");
+    // let ref system = get_system!(req);
+    // let ref index_name = read_path_parameter!(req, "index").unwrap_or("");
 
     // TODO
 

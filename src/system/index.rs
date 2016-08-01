@@ -1,9 +1,7 @@
-use std::collections::{BTreeMap, HashMap, HashSet};
+use std::collections::HashSet;
 
-use search::term::Term;
 use search::analysis::registry::AnalyzerRegistry;
 use search::mapping::{Mapping, FieldMapping, MappingRegistry};
-use search::document::Document;
 use search::store::memory::MemoryIndexStore;
 
 

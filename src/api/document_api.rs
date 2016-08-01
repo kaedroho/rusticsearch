@@ -3,7 +3,6 @@ use std::collections::BTreeMap;
 
 use rustc_serialize::json::{self, Json};
 
-use system::System;
 use search::document::DocumentSource;
 use search::store::{IndexStore, IndexReader};
 
@@ -26,13 +25,10 @@ pub fn view_get_doc(req: &mut Request) -> IronResult<Response> {
     // Get index
     let index = get_index_or_404!(indices, *index_name);
 
-    // Find mapping
-    let mapping = match index.get_mapping_by_name(mapping_name) {
-        Some(mapping) => mapping,
-        None => {
-            return Ok(json_response(status::NotFound, "{\"message\": \"Mapping not found\"}"));
-        }
-    };
+    // Check that the mapping exists
+    if index.get_mapping_by_name(mapping_name).is_none() {
+        return Ok(json_response(status::NotFound, "{\"message\": \"Mapping not found\"}"));
+    }
 
     // Find document
     let index_reader = index.store.reader();
@@ -107,6 +103,11 @@ pub fn view_delete_doc(req: &mut Request) -> IronResult<Response> {
 
     // Get index
     let mut index = get_index_or_404_mut!(indices, *index_name);
+
+    // Check that the mapping exists
+    if index.get_mapping_by_name(mapping_name).is_none() {
+        return Ok(json_response(status::NotFound, "{\"message\": \"Mapping not found\"}"));
+    }
 
     // Make sure the document exists
     if !index.store.reader().contains_document_key(doc_key) {

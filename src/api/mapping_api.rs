@@ -3,7 +3,6 @@ use std::io::Read;
 use rustc_serialize::json::Json;
 
 use search::mapping;
-use system::System;
 
 use api::persistent;
 use api::iron::prelude::*;

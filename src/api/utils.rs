@@ -65,7 +65,7 @@ macro_rules! parse_json {
 
         match Json::from_str($string) {
             Ok(data) => data,
-            Err(error) => {
+            Err(_) => {
                 return Ok(json_response(status::BadRequest, "{\"message\": \"Couldn't parse JSON\"}"));
             }
         }

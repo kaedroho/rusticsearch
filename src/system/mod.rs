@@ -2,13 +2,11 @@ pub mod index;
 pub mod index_registry;
 
 use std::sync::RwLock;
-use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::fs;
 
 use slog::Logger;
 
-use search::store::IndexStore;
 use search::store::memory::MemoryIndexStore;
 
 use system::index::Index;
@@ -41,9 +39,7 @@ impl System {
         Index::new(MemoryIndexStore::new())
     }
 
-    pub fn load_indices(&self) -> HashMap<String, Index> {
-        let mut indices = HashMap::new();
-
+    pub fn load_indices(&self) {
         let indices_dir = self.get_indices_dir();
         match fs::read_dir(indices_dir.clone()) {
             Ok(files) => {
@@ -66,7 +62,5 @@ impl System {
                 ));
             }
         }
-
-        indices
     }
 }
