@@ -220,18 +220,18 @@ impl<'a> IndexReader<'a> for MemoryIndexStoreReader<'a> {
         term.docs.len()
     }
 
-    fn sum_total_term_freq(&'a self, field_name: &str) -> u64 {
+    fn total_tokens(&'a self, field_name: &str) -> u64 {
         let field = match self.store.fields.get(field_name) {
             Some(field) => field,
             None => return 0,
         };
 
-        let mut sum_total_term_freq: u64 = 0;
+        let mut total_tokens: u64 = 0;
         for (term, postings) in field.terms.iter() {
-            sum_total_term_freq += postings.docs.len() as u64;
+            total_tokens += postings.docs.len() as u64;
         }
 
-        sum_total_term_freq
+        total_tokens
     }
 }
 

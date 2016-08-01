@@ -1,5 +1,5 @@
 use search::term::Term;
-use search::similarity::{IndexStats, FieldStats, FieldTermStats, SimilarityModel};
+use search::similarity::SimilarityModel;
 use search::store::IndexReader;
 
 
@@ -10,22 +10,13 @@ pub struct TermScorer {
 
 
 impl TermScorer {
-    pub fn score<'a, R: IndexReader<'a>>(&self, index_reader: &'a R, field_name: &str, term: &Term, term_freq: u32, doc_length: u32) -> f64 {
+    pub fn score<'a, R: IndexReader<'a>>(&self, index_reader: &'a R, field_name: &str, term: &Term, term_frequency: u32, length: u32) -> f64 {
         let term_bytes = term.to_bytes();
+        let total_tokens = index_reader.total_tokens(field_name);
+        let total_docs = index_reader.num_docs() as u64;
+        let total_docs_with_term = index_reader.term_doc_freq(&term_bytes, field_name);
 
-        let index_stats = IndexStats {
-            total_docs: index_reader.num_docs() as u64,
-        };
-
-        let field_stats = FieldStats {
-            sum_total_term_freq: index_reader.sum_total_term_freq(field_name),
-        };
-
-        let field_term_stats = FieldTermStats {
-            total_docs: index_reader.term_doc_freq(&term_bytes, field_name),
-        };
-
-        self.similarity_model.score(term_freq, doc_length, &index_stats, &field_stats, &field_term_stats)
+        self.similarity_model.score(term_frequency, length, total_tokens, total_docs, total_docs_with_term)
     }
 }
 
