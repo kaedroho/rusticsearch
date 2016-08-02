@@ -33,7 +33,7 @@ impl SimilarityModel {
                 let idf = idf(total_docs_with_term, total_docs);
                 let average_length = (total_tokens as f64) / (total_docs as f64);
 
-                idf * (k1 + 1.0) * (tf / (tf + (k1 * ((1.0 - b) + b * (length as f64) / average_length))))
+                idf * (k1 + 1.0) * (tf / (tf + (k1 * ((1.0 - b) + b * (length as f64).sqrt() / average_length.sqrt()))))
             }
         }
     }
