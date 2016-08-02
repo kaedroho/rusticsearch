@@ -4,6 +4,7 @@ use rustc_serialize::json::Json;
 
 use search::term::Term;
 use search::analysis::Analyzer;
+use search::mapping::FieldMapping;
 
 use search::query::Query;
 use search::query::term_matcher::TermMatcher;
@@ -63,8 +64,38 @@ pub fn parse(context: &QueryParseContext, json: &Json) -> Result<Query, QueryPar
     // Convert query string into term query objects
     let mut field_queries = Vec::new();
     for (field_name, field_boost) in fields_with_boosts {
+        // Get mapping for field
+        let field_mapping = match context.mappings {
+            Some(mappings) => mappings.get_field(&field_name),
+            None => None,
+        };
+
+        // Tokenise query string
+        let tokens = match field_mapping {
+            Some(ref field_mapping) => {
+                field_mapping.process_value_for_query(Json::String(query.clone()))
+            }
+            None => {
+                // TODO: Raise error?
+                warn!("Unknown field: {}", field_name);
+
+                FieldMapping::default().process_value_for_query(Json::String(query.clone()))
+            }
+        };
+
+        let tokens = match tokens {
+            Some(tokens) => tokens,
+            None => {
+                // Couldn't convert the passed in value into tokens
+                // TODO: Raise error
+                warn!("Unprocessable query: {}", query);
+
+                vec![]
+            }
+        };
+
         let mut term_queries = Vec::new();
-        for token in Analyzer::Standard.run(query.clone()) {
+        for token in tokens {
             term_queries.push(Query::MatchTerm {
                 field: field_name.clone(),
                 term: token.term,
