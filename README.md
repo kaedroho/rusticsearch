@@ -7,8 +7,9 @@ A search server with an Elasticsearch-compatible REST API, written in [Rust](htt
 ## Project Goals
 
  - Decent performance with predictible resource usage
+ - Secure out of the box
  - Rock solid reliability
- - Elasticsearch compatibility
+ - Elasticsearch compatibility (where it makes sense)
  - Simple to install and operate
 
 ## Personal Goals
@@ -19,17 +20,17 @@ A search server with an Elasticsearch-compatible REST API, written in [Rust](htt
 
 ## Status
 
-Rusticsearch is in initial research/development phase. It currently supports the basic indexing/retrieval APIs
-but currently lacks persistence and lots of other things.
+Rusticsearch is in its initial research/development phase. It currently supports basic indexing and retrieval
+but lacks persistence and many other things.
 
 See the [roadmap](https://github.com/kaedroho/rusticsearch/wiki/Initial-development-roadmap) for a list of things
 being worked on at the moment.
 
 ## Running it
 
-It currently only compiles on Rust nightly. This can either be [downloaded from the Rust website](https://www.rust-lang.org/en-US/downloads.html) or you could use [rustup](https://github.com/rust-lang-nursery/rustup.rs) (beta).
+Rusticsearch currently only compiles on Rust nightly. This can either be [downloaded from the Rust website](https://www.rust-lang.org/en-US/downloads.html) or you could use [rustup](https://github.com/rust-lang-nursery/rustup.rs) (beta).
 
-Once rust is installed, check out the repo and run ``cargo run``:
+Once Rust is installed, clone the repo and run ``cargo run``:
 
 ```
 git clone git@github.com:kaedroho/rusticsearch.git
