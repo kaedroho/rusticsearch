@@ -107,7 +107,7 @@ pub fn parse(context: &QueryParseContext, json: &Json) -> Result<Query, QueryPar
     };
 
     // Add boost
-    query = Query::new_score(query, boost);
+    query = Query::new_boost(query, boost);
 
     return Ok(query);
 }
@@ -208,14 +208,14 @@ mod tests {
         }
         ").unwrap());
 
-        assert_eq!(query, Ok(Query::Score {
+        assert_eq!(query, Ok(Query::Boost {
             query: Box::new(Query::MatchTerm {
                 field: "foo".to_string(),
                 term: Term::String("bar".to_string()),
                 matcher: TermMatcher::Exact,
                 scorer: TermScorer::default(),
             }),
-            mul: 2.0f64,
+            boost: 2.0f64,
         }))
     }
 
@@ -230,14 +230,14 @@ mod tests {
         }
         ").unwrap());
 
-        assert_eq!(query, Ok(Query::Score {
+        assert_eq!(query, Ok(Query::Boost {
             query: Box::new(Query::MatchTerm {
                 field: "foo".to_string(),
                 term: Term::String("bar".to_string()),
                 matcher: TermMatcher::Exact,
                 scorer: TermScorer::default(),
             }),
-            mul: 2.0f64,
+            boost: 2.0f64,
         }))
     }
 

@@ -114,7 +114,7 @@ pub fn parse(context: &QueryParseContext, json: &Json) -> Result<Query, QueryPar
         };
 
         // Add boost
-        field_query = Query::new_score(field_query, field_boost);
+        field_query = Query::new_boost(field_query, field_boost);
 
         field_queries.push(field_query);
     }
@@ -122,7 +122,7 @@ pub fn parse(context: &QueryParseContext, json: &Json) -> Result<Query, QueryPar
     let mut query = Query::new_disjunction_max(field_queries);
 
     // Add boost
-    query = Query::new_score(query, boost);
+    query = Query::new_boost(query, boost);
 
     return Ok(query);
 }
@@ -224,7 +224,7 @@ mod tests {
         }
         ").unwrap());
 
-        assert_eq!(query, Ok(Query::Score {
+        assert_eq!(query, Ok(Query::Boost {
             query: Box::new(Query::DisjunctionMax {
                 queries: vec![
                     Query::MatchTerm {
@@ -241,7 +241,7 @@ mod tests {
                     }
                 ],
             }),
-            mul: 2.0f64,
+            boost: 2.0f64,
         }));
     }
 
@@ -255,7 +255,7 @@ mod tests {
         }
         ").unwrap());
 
-        assert_eq!(query, Ok(Query::Score {
+        assert_eq!(query, Ok(Query::Boost {
             query: Box::new(Query::DisjunctionMax {
                 queries: vec![
                     Query::MatchTerm {
@@ -272,7 +272,7 @@ mod tests {
                     }
                 ],
             }),
-            mul: 2.0f64,
+            boost: 2.0f64,
         }));
     }
 
@@ -287,14 +287,14 @@ mod tests {
 
         assert_eq!(query, Ok(Query::DisjunctionMax {
             queries: vec![
-                Query::Score {
+                Query::Boost {
                     query: Box::new(Query::MatchTerm {
                         field: "bar".to_string(),
                         term: Term::String("foo".to_string()),
                         matcher: TermMatcher::Exact,
                         scorer: TermScorer::default(),
                     }),
-                    mul: 2.0f64,
+                    boost: 2.0f64,
                 },
                 Query::MatchTerm {
                     field: "baz".to_string(),
