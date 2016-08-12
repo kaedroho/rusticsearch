@@ -26,7 +26,7 @@ pub fn parse(context: &QueryParseContext, json: &Json) -> Result<Query, QueryPar
     let mut query = Query::MatchAll;
 
     // Add boost
-    query = Query::new_score(query, boost, 0.0f64);
+    query = Query::new_score(query, boost);
 
     return Ok(query);
 }
@@ -65,7 +65,6 @@ mod tests {
         assert_eq!(query, Ok(Query::Score {
             query: Box::new(Query::MatchAll),
             mul: 2.0f64,
-            add: 0.0f64,
         }))
     }
 
@@ -80,7 +79,6 @@ mod tests {
         assert_eq!(query, Ok(Query::Score {
             query: Box::new(Query::MatchAll),
             mul: 2.0f64,
-            add: 0.0f64,
         }))
     }
 

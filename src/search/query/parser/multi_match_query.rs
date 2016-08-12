@@ -114,7 +114,7 @@ pub fn parse(context: &QueryParseContext, json: &Json) -> Result<Query, QueryPar
         };
 
         // Add boost
-        field_query = Query::new_score(field_query, field_boost, 0.0f64);
+        field_query = Query::new_score(field_query, field_boost);
 
         field_queries.push(field_query);
     }
@@ -122,7 +122,7 @@ pub fn parse(context: &QueryParseContext, json: &Json) -> Result<Query, QueryPar
     let mut query = Query::new_disjunction_max(field_queries);
 
     // Add boost
-    query = Query::new_score(query, boost, 0.0f64);
+    query = Query::new_score(query, boost);
 
     return Ok(query);
 }
@@ -242,7 +242,6 @@ mod tests {
                 ],
             }),
             mul: 2.0f64,
-            add: 0.0f64,
         }));
     }
 
@@ -274,7 +273,6 @@ mod tests {
                 ],
             }),
             mul: 2.0f64,
-            add: 0.0f64,
         }));
     }
 
@@ -297,7 +295,6 @@ mod tests {
                         scorer: TermScorer::default(),
                     }),
                     mul: 2.0f64,
-                    add: 0.0f64,
                 },
                 Query::MatchTerm {
                     field: "baz".to_string(),

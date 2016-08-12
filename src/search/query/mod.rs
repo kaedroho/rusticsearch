@@ -43,7 +43,6 @@ pub enum Query {
     Score {
         query: Box<Query>,
         mul: f64,
-        add: f64,
     },
 }
 
@@ -106,8 +105,8 @@ impl Query {
         }
     }
 
-    pub fn new_score(query: Query, mul: f64, add: f64) -> Query {
-        if mul == 1.0f64 && add == 0.0f64 {
+    pub fn new_score(query: Query, mul: f64) -> Query {
+        if mul == 1.0f64 {
             // This score query won't have any effect
             return query;
         }
@@ -115,7 +114,6 @@ impl Query {
         Query::Score {
             query: Box::new(query),
             mul: mul,
-            add: add,
         }
     }
 
@@ -182,7 +180,7 @@ impl Query {
             Query::Exclude{ref query, ref exclude} => {
                 query.matches(doc) && !exclude.matches(doc)
             }
-            Query::Score{ref query, mul, add} => {
+            Query::Score{ref query, mul} => {
                 query.matches(doc)
             }
         }
@@ -292,17 +290,17 @@ impl Query {
                     None
                 }
             }
-            Query::Score{ref query, mul, add} => {
+            Query::Score{ref query, mul} => {
                 if mul == 0.0f64 {
                     // Score of inner query isn't needed
                     if query.matches(doc) {
-                        Some(add)
+                        Some(0.0f64)
                     } else {
                         None
                     }
                 } else {
                     match query.rank(index_reader, doc) {
-                        Some(score) => Some(score.mul_add(mul, add)),
+                        Some(score) => Some(score * mul),
                         None => None
                     }
                 }

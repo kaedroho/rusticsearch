@@ -58,7 +58,7 @@ pub fn parse(context: &QueryParseContext, json: &Json) -> Result<Query, QueryPar
                 };
 
                 // Add boost
-                query = Query::new_score(query, boost, 0.0f64);
+                query = Query::new_score(query, boost);
 
                 Ok(query)
             } else {
@@ -153,7 +153,6 @@ mod tests {
                 scorer: TermScorer::default(),
             }),
             mul: 2.0f64,
-            add: 0.0f64,
         }));
     }
 
@@ -176,7 +175,6 @@ mod tests {
                 scorer: TermScorer::default(),
             }),
             mul: 2.0f64,
-            add: 0.0f64,
         }));
     }
 

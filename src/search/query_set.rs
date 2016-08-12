@@ -348,7 +348,7 @@ pub fn build_iterator_from_query<'a, T: IndexReader<'a>>(reader: &'a T, query: &
                 current_doc_b: None,
             }
         }
-        Query::Score{ref query, mul, add} => {
+        Query::Score{ref query, mul} => {
             build_iterator_from_query(reader, query)
         }
     }
