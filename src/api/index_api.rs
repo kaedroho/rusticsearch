@@ -13,16 +13,14 @@ use api::utils::json_response;
 
 
 pub fn view_get_index(req: &mut Request) -> IronResult<Response> {
-    // let ref system = get_system!(req);
-    // let ref index_name = read_path_parameter!(req, "index").unwrap_or("");
+    let ref system = get_system!(req);
+    let ref index_name = read_path_parameter!(req, "index").unwrap_or("");
 
     // Lock index array
-    // let indices = system.indices.read().unwrap();
+    let indices = system.indices.read().unwrap();
 
     // Get index
-    // let index = get_index_or_404!(indices, *index_name);
-
-    // TODO
+    let index = get_index_or_404!(indices, *index_name);
 
     return Ok(json_response(status::Ok, "{}"));
 }
