@@ -1,5 +1,3 @@
-#![feature(test)]
-
 extern crate rustc_serialize;
 extern crate unicode_segmentation;
 #[macro_use]
@@ -8,7 +6,6 @@ extern crate log;
 extern crate maplit;
 extern crate chrono;
 extern crate roaring;
-extern crate test;
 extern crate byteorder;
 
 pub mod term;
