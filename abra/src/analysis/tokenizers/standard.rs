@@ -5,7 +5,6 @@ use token::Token;
 
 
 pub struct StandardTokenizer<'a> {
-    input: &'a str,
     unicode_words: UnicodeWords<'a>,
     position_counter: u32,
 }
@@ -14,7 +13,6 @@ pub struct StandardTokenizer<'a> {
 impl<'a> StandardTokenizer<'a> {
     pub fn new(input: &'a str) -> StandardTokenizer<'a> {
         StandardTokenizer {
-            input: input,
             unicode_words: input.unicode_words(),
             position_counter: 0,
         }

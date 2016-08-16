@@ -77,8 +77,6 @@ impl<'a> IndexStore<'a> for MemoryIndexStore {
 
         // Put field contents in inverted index
         for (field_name, tokens) in doc.fields.iter() {
-            let mut position: u32 = 1;
-
             for token in tokens.iter() {
                 if !self.fields.contains_key(field_name) {
                     self.fields.insert(field_name.clone(), MemoryIndexStoreField::new());

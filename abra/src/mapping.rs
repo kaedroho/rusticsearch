@@ -100,7 +100,7 @@ impl FieldMapping {
                     Json::String(string) => {
                         let date_parsed = match string.parse::<DateTime<UTC>>() {
                             Ok(date_parsed) => date_parsed,
-                            Err(error) => {
+                            Err(_) => {
                                 // TODO: Handle this properly
                                 return None;
                             }
@@ -108,7 +108,7 @@ impl FieldMapping {
 
                         Some(vec![Token{term: Term::DateTime(date_parsed), position: 1}])
                     }
-                    Json::U64(num) => {
+                    Json::U64(_) => {
                         // TODO needs to be interpreted as milliseconds since epoch
                         // This would really help: https://github.com/lifthrasiir/rust-chrono/issues/74
                         None

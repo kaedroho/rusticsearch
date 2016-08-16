@@ -16,15 +16,13 @@ pub struct NGramFilter<'a> {
 
 impl<'a> NGramFilter<'a> {
     pub fn new(tokens: Box<Iterator<Item=Token> +'a >, min_size: usize, max_size: usize, edge: Edge) -> NGramFilter<'a> {
-        let mut filter = NGramFilter {
+        NGramFilter {
             tokens: tokens,
             min_size: min_size,
             max_size: max_size,
             edge: edge,
             output_buffer: VecDeque::new(),
-        };
-
-        filter
+        }
     }
 }
 

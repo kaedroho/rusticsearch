@@ -6,7 +6,6 @@ use analysis::ngram_generator::{Edge, NGramGenerator};
 
 
 pub struct NGramTokenizer<'a> {
-    input: &'a str,
     unicode_words: UnicodeWords<'a>,
     min_size: usize,
     max_size: usize,
@@ -18,17 +17,14 @@ pub struct NGramTokenizer<'a> {
 
 impl<'a> NGramTokenizer<'a> {
     pub fn new(input: &'a str, min_size: usize, max_size: usize, edge: Edge) -> NGramTokenizer<'a> {
-        let mut tokenizer = NGramTokenizer {
-            input: input,
+        NGramTokenizer {
             unicode_words: input.unicode_words(),
             min_size: min_size,
             max_size: max_size,
             edge: edge,
             position_counter: 0,
             ngram_generator: None
-        };
-
-        tokenizer
+        }
     }
 }
 
@@ -38,39 +34,27 @@ impl<'a> Iterator for NGramTokenizer<'a> {
 
     fn next(&mut self) -> Option<Token> {
         loop {
-            let mut next_word = false;
-
-            match self.ngram_generator {
-                Some(ref mut ngram_generator) => {
-                    match ngram_generator.next() {
-                        Some(gram) => {
-                            return Some(Token {
-                                term: Term::String(gram.to_string()),
-                                position: self.position_counter,
-                            })
-                        }
-                        None => {
-                            next_word = true;
-                        }
-                    }
-                }
-                None => {
-                    next_word = true;
+            // Get next ngram
+            if let Some(ref mut ngram_generator) = self.ngram_generator {
+                if let Some(gram) = ngram_generator.next() {
+                    return Some(Token {
+                        term: Term::String(gram.to_string()),
+                        position: self.position_counter,
+                    });
                 }
             }
 
-            if next_word {
-                let word = self.unicode_words.next();
+            // No more ngrams for this word, get next word
+            let word = self.unicode_words.next();
 
-                match word {
-                    Some(word) => {
-                        self.position_counter += 1;
-                        self.ngram_generator = Some(
-                            NGramGenerator::new(word, self.min_size, self.max_size, self.edge)
-                        );
-                    }
-                    None => return None,
+            match word {
+                Some(word) => {
+                    self.position_counter += 1;
+                    self.ngram_generator = Some(
+                        NGramGenerator::new(word, self.min_size, self.max_size, self.edge)
+                    );
                 }
+                None => return None,
             }
         }
     }

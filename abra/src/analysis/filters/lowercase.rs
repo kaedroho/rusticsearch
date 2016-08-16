@@ -1,5 +1,3 @@
-use std::ascii::AsciiExt;
-
 use term::Term;
 use token::Token;
 
@@ -22,9 +20,7 @@ impl<'a> Iterator for LowercaseFilter<'a> {
     type Item = Token;
 
     fn next(&mut self) -> Option<Token> {
-        let mut token = self.tokens.next();
-
-        match token {
+        match self.tokens.next() {
             Some(token) => {
                 Some(Token {
                     term: match token.term {

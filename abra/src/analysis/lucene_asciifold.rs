@@ -17,8 +17,6 @@
  * limitations under the License.
  */
 
- use std::ascii::AsciiExt;
-
 
 /// Converts alphabetic, numeric and symbolic Unicode characters into their ASCII equivalents,
 /// if one exists.
