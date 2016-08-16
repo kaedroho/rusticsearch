@@ -8,14 +8,14 @@ pub enum SimilarityModel {
 /// tf(term_frequency) = log(term_frequency) + 1.0
 #[inline]
 fn tf(term_frequency: u32) -> f64 {
-    (term_frequency as f64).log(10.0) + 1.0
+    (term_frequency as f64).ln() + 1.0
 }
 
 
 /// idf(term_docs, total_docs) = log((total_docs + 1.0) / (term_docs + 1.0)) + 1.0
 #[inline]
 fn idf(term_docs: u64, total_docs: u64) -> f64 {
-    ((total_docs as f64 + 1.0) / (term_docs as f64 + 1.0)).log(10.0) + 1.0
+    ((total_docs as f64 + 1.0) / (term_docs as f64 + 1.0)).ln() + 1.0
 }
 
 
