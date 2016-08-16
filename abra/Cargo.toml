@@ -1,0 +1,13 @@
+[package]
+name = "abra"
+version = "0.1.0"
+authors = ["Karl Hobley <karlhobley10@gmail.com>"]
+
+[dependencies]
+rustc-serialize = "0.3"
+log = "*"
+unicode-segmentation = "*"
+maplit = "*"
+chrono = "0.2"
+roaring = "0.4.0"
+byteorder = "0.5"
