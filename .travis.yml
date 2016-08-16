@@ -1,9 +1,11 @@
 language: rust
 
 rust:
+  - stable
   - nightly
 
 sudo: false
 
 script:
   - cargo test
+  - cd abra && cargo test
