@@ -19,7 +19,7 @@ impl Term {
         match *json {
             Json::String(ref string) => Some(Term::String(string.clone())),
             Json::Boolean(value) => Some(Term::Boolean(value)),
-            Json::F64(value) => None, //Term::F64(value),
+            Json::F64(_) => None, //Term::F64(value),
             Json::I64(value) => Some(Term::I64(value)),
             Json::U64(value) => Some(Term::U64(value)),
             Json::Null => None,
@@ -59,12 +59,12 @@ impl Term {
             }
             Term::I64(value) => {
                 let mut bytes = Vec::with_capacity(8);
-                bytes.write_i64::<BigEndian>(value);
+                bytes.write_i64::<BigEndian>(value).unwrap();
                 bytes
             }
             Term::U64(value) => {
                 let mut bytes = Vec::with_capacity(8);
-                bytes.write_u64::<BigEndian>(value);
+                bytes.write_u64::<BigEndian>(value).unwrap();
                 bytes
             }
             Term::DateTime(value) => {
@@ -72,7 +72,7 @@ impl Term {
                 let timestamp = value.timestamp();
                 let micros = value.nanosecond() / 1000;
                 let timestamp_with_micros = timestamp * 1000000 + micros as i64;
-                bytes.write_i64::<BigEndian>(timestamp_with_micros);
+                bytes.write_i64::<BigEndian>(timestamp_with_micros).unwrap();
                 bytes
             }
         }

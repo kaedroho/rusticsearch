@@ -4,10 +4,6 @@ pub mod registry;
 pub mod tokenizers;
 pub mod filters;
 
-use std::cmp;
-
-use unicode_segmentation::UnicodeSegmentation;
-
 use term::Term;
 use token::Token;
 

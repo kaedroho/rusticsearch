@@ -4,7 +4,7 @@ use rustc_serialize::json::Json;
 
 use term::Term;
 use token::Token;
-use mapping::{Mapping, FieldMapping, FieldType};
+use mapping::{Mapping, FieldMapping};
 
 
 #[derive(Debug)]
