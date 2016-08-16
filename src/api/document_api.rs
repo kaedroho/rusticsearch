@@ -2,9 +2,8 @@ use std::io::Read;
 use std::collections::BTreeMap;
 
 use rustc_serialize::json::{self, Json};
-
-use search::document::DocumentSource;
-use search::store::{IndexStore, IndexReader};
+use abra::document::DocumentSource;
+use abra::store::{IndexStore, IndexReader};
 
 use api::persistent;
 use api::iron::prelude::*;

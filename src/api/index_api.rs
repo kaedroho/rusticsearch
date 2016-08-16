@@ -1,9 +1,9 @@
 use std::io::Read;
 
 use rustc_serialize::json::Json;
+use abra::store::memory::MemoryIndexStore;
 
 use system::index::Index;
-use search::store::memory::MemoryIndexStore;
 
 use api::persistent;
 use api::iron::prelude::*;

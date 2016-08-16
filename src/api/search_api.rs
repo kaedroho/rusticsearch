@@ -2,10 +2,9 @@ use std::io::Read;
 
 use rustc_serialize::json::{self, Json};
 use url::form_urlencoded;
-
-use search::query::parser::{QueryParseContext, parse as parse_query};
-use search::store::{IndexStore, IndexReader};
-use search::request::SearchRequest;
+use abra::query::parser::{QueryParseContext, parse as parse_query};
+use abra::store::{IndexStore, IndexReader};
+use abra::request::SearchRequest;
 
 use api::persistent;
 use api::iron::prelude::*;

@@ -6,8 +6,7 @@ use std::path::{Path, PathBuf};
 use std::fs;
 
 use slog::Logger;
-
-use search::store::memory::MemoryIndexStore;
+use abra::store::memory::MemoryIndexStore;
 
 use system::index::Index;
 use system::index_registry::IndexRegistry;

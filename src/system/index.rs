@@ -1,8 +1,8 @@
 use std::collections::HashSet;
 
-use search::analysis::registry::AnalyzerRegistry;
-use search::mapping::{Mapping, FieldMapping, MappingRegistry};
-use search::store::memory::MemoryIndexStore;
+use abra::analysis::registry::AnalyzerRegistry;
+use abra::mapping::{Mapping, FieldMapping, MappingRegistry};
+use abra::store::memory::MemoryIndexStore;
 
 
 #[derive(Debug)]

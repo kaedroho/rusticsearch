@@ -2,10 +2,10 @@ use std::io::Read;
 use std::collections::HashMap;
 
 use rustc_serialize::json::{self, Json};
+use abra::document::DocumentSource;
+use abra::store::IndexStore;
 
 use system::System;
-use search::document::DocumentSource;
-use search::store::IndexStore;
 
 use api::persistent;
 use api::iron::prelude::*;

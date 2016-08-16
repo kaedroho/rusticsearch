@@ -1,8 +1,7 @@
 use std::io::Read;
 
 use rustc_serialize::json::Json;
-
-use search::mapping;
+use abra::mapping;
 
 use api::persistent;
 use api::iron::prelude::*;

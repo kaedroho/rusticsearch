@@ -1,13 +1,9 @@
 [package]
-name = "rusticsearch"
+name = "abra"
 version = "0.1.0"
 authors = ["Karl Hobley <karlhobley10@gmail.com>"]
 
 [dependencies]
-iron = "0.4.0"
-router = "0.2.0"
-persistent = "0.2.0"
-url = "*"
 rustc-serialize = "0.3"
 log = "*"
 unicode-segmentation = "*"
@@ -15,9 +11,3 @@ maplit = "*"
 chrono = "0.2"
 roaring = "0.4.0"
 byteorder = "0.5"
-slog = "0.6"
-slog-term = "0.6"
-
-[dependencies.abra]
-path = "abra"
-version = "0.1.0"
