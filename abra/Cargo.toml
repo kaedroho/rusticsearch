@@ -1,6 +1,6 @@
 [package]
 name = "abra"
-version = "0.1.0"
+version = "0.0.1"
 authors = ["Karl Hobley <karlhobley10@gmail.com>"]
 
 [dependencies]
