@@ -18,3 +18,11 @@ pub mod query;
 pub mod query_set;
 pub mod request;
 pub mod response;
+
+pub use term::Term;
+pub use token::Token;
+pub use analysis::Analyzer;
+pub use document::Document;
+pub use query::term_matcher::TermMatcher;
+pub use query::term_scorer::TermScorer;
+pub use query::Query;

@@ -1,7 +1,7 @@
 //! Parses "and" queries
 
 use rustc_serialize::json::Json;
-use abra::query::Query;
+use abra::Query;
 
 use query_parser::{QueryParseContext, QueryParseError, parse as parse_query};
 
@@ -22,10 +22,7 @@ pub fn parse(context: &QueryParseContext, json: &Json) -> Result<Query, QueryPar
 mod tests {
     use rustc_serialize::json::Json;
 
-    use abra::term::Term;
-    use abra::query::Query;
-    use abra::query::term_matcher::TermMatcher;
-    use abra::query::term_scorer::TermScorer;
+    use abra::{Term, Query, TermMatcher, TermScorer};
 
     use query_parser::{QueryParseContext, QueryParseError};
 

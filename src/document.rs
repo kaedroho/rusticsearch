@@ -1,10 +1,7 @@
 use std::collections::BTreeMap;
 
 use rustc_serialize::json::Json;
-
-use abra::term::Term;
-use abra::token::Token;
-use abra::document::Document;
+use abra::{Term, Token, Document};
 
 use mapping::{Mapping, FieldMapping};
 
