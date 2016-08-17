@@ -1,9 +1,10 @@
-//! Parses "and" queries
+//! Parses "or" queries
 
 use rustc_serialize::json::Json;
 
-use query::Query;
-use query::parser::{QueryParseContext, QueryParseError, parse as parse_query};
+use abra::query::Query;
+
+use query_parser::{QueryParseContext, QueryParseError, parse as parse_query};
 
 
 pub fn parse(context: &QueryParseContext, json: &Json) -> Result<Query, QueryParseError> {
@@ -14,7 +15,7 @@ pub fn parse(context: &QueryParseContext, json: &Json) -> Result<Query, QueryPar
         sub_queries.push(try!(parse_query(context, filter)));
     }
 
-    Ok(Query::new_conjunction(sub_queries))
+    Ok(Query::new_disjunction(sub_queries))
 }
 
 
@@ -22,16 +23,17 @@ pub fn parse(context: &QueryParseContext, json: &Json) -> Result<Query, QueryPar
 mod tests {
     use rustc_serialize::json::Json;
 
-    use term::Term;
-    use query::Query;
-    use query::term_matcher::TermMatcher;
-    use query::term_scorer::TermScorer;
-    use query::parser::{QueryParseContext, QueryParseError};
+    use abra::term::Term;
+    use abra::query::Query;
+    use abra::query::term_matcher::TermMatcher;
+    use abra::query::term_scorer::TermScorer;
+
+    use query_parser::{QueryParseContext, QueryParseError};
 
     use super::parse;
 
     #[test]
-    fn test_and_query() {
+    fn test_or_query() {
         let query = parse(&QueryParseContext::new(), &Json::from_str("
         [
             {
@@ -47,7 +49,7 @@ mod tests {
         ]
         ").unwrap());
 
-        assert_eq!(query, Ok(Query::Conjunction {
+        assert_eq!(query, Ok(Query::Disjunction {
             queries: vec![
                 Query::MatchTerm {
                     field: "test".to_string(),

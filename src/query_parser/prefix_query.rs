@@ -1,14 +1,15 @@
-//! Parses "term" queries
+//! Parses "prefix" queries
 
 use rustc_serialize::json::Json;
 
-use term::Term;
+use abra::term::Term;
 
-use query::Query;
-use query::term_matcher::TermMatcher;
-use query::term_scorer::TermScorer;
-use query::parser::{QueryParseContext, QueryParseError};
-use query::parser::utils::parse_float;
+use abra::query::Query;
+use abra::query::term_matcher::TermMatcher;
+use abra::query::term_scorer::TermScorer;
+
+use query_parser::{QueryParseContext, QueryParseError};
+use query_parser::utils::parse_float;
 
 
 pub fn parse(context: &QueryParseContext, json: &Json) -> Result<Query, QueryParseError> {
@@ -23,19 +24,19 @@ pub fn parse(context: &QueryParseContext, json: &Json) -> Result<Query, QueryPar
     let object = object.get(field_name).unwrap();
 
     // Get configuration
-    let mut term: Option<Term> = None;
+    let mut value: Option<&Json> = None;
     let mut boost = 1.0f64;
 
     match *object {
+        Json::String(ref string) => value = Some(object),
         Json::Object(ref inner_object) => {
             for (key, val) in inner_object.iter() {
                 match key.as_ref() {
                     "value" => {
-                        term = Term::from_json(val);
-
-                        if term == None {
-                            return Err(QueryParseError::InvalidValue);
-                        }
+                        value = Some(val);
+                    }
+                    "prefix" => {
+                        value = Some(val);
                     }
                     "boost" => {
                         boost = try!(parse_float(val));
@@ -44,22 +45,26 @@ pub fn parse(context: &QueryParseContext, json: &Json) -> Result<Query, QueryPar
                 }
             }
         }
-        _ => term = Term::from_json(object),
+        _ => return Err(QueryParseError::ExpectedObjectOrString),
     }
 
-    match term {
-        Some(term) => {
-            let mut query = Query::MatchTerm {
-                field: field_name.clone(),
-                term: term,
-                matcher: TermMatcher::Exact,
-                scorer: TermScorer::default(),
-            };
+    match value {
+        Some(value) => {
+            if let Json::String(ref string) = *value {
+                let mut query = Query::MatchTerm {
+                    field: field_name.clone(),
+                    term: Term::String(string.clone()),
+                    matcher: TermMatcher::Prefix,
+                    scorer: TermScorer::default(),
+                };
 
-            // Add boost
-            query = Query::new_boost(query, boost);
+                // Add boost
+                query = Query::new_boost(query, boost);
 
-            Ok(query)
+                Ok(query)
+            } else {
+                Err(QueryParseError::ExpectedString)
+            }
         }
         None => Err(QueryParseError::ExpectedKey("value"))
     }
@@ -70,16 +75,17 @@ pub fn parse(context: &QueryParseContext, json: &Json) -> Result<Query, QueryPar
 mod tests {
     use rustc_serialize::json::Json;
 
-    use term::Term;
-    use query::Query;
-    use query::term_matcher::TermMatcher;
-    use query::term_scorer::TermScorer;
-    use query::parser::{QueryParseContext, QueryParseError};
+    use abra::term::Term;
+    use abra::query::Query;
+    use abra::query::term_matcher::TermMatcher;
+    use abra::query::term_scorer::TermScorer;
+
+    use query_parser::{QueryParseContext, QueryParseError};
 
     use super::parse;
 
     #[test]
-    fn test_term_query() {
+    fn test_prefix_query() {
         let query = parse(&QueryParseContext::new(), &Json::from_str("
         {
             \"foo\": {
@@ -91,31 +97,13 @@ mod tests {
         assert_eq!(query, Ok(Query::MatchTerm {
             field: "foo".to_string(),
             term: Term::String("bar".to_string()),
-            matcher: TermMatcher::Exact,
+            matcher: TermMatcher::Prefix,
             scorer: TermScorer::default(),
         }));
     }
 
     #[test]
-    fn test_with_number() {
-        let query = parse(&QueryParseContext::new(), &Json::from_str("
-        {
-            \"foo\": {
-                \"value\": 123
-            }
-        }
-        ").unwrap());
-
-        assert_eq!(query, Ok(Query::MatchTerm {
-            field: "foo".to_string(),
-            term: Term::U64(123),
-            matcher: TermMatcher::Exact,
-            scorer: TermScorer::default(),
-        }));
-    }
-
-    #[test]
-    fn test_simple_term_query() {
+    fn test_simple_prefix_query() {
         let query = parse(&QueryParseContext::new(), &Json::from_str("
         {
             \"foo\": \"bar\"
@@ -125,7 +113,25 @@ mod tests {
         assert_eq!(query, Ok(Query::MatchTerm {
             field: "foo".to_string(),
             term: Term::String("bar".to_string()),
-            matcher: TermMatcher::Exact,
+            matcher: TermMatcher::Prefix,
+            scorer: TermScorer::default(),
+        }));
+    }
+
+    #[test]
+    fn test_with_prefix_key() {
+        let query = parse(&QueryParseContext::new(), &Json::from_str("
+        {
+            \"foo\": {
+                \"prefix\": \"bar\"
+            }
+        }
+        ").unwrap());
+
+        assert_eq!(query, Ok(Query::MatchTerm {
+            field: "foo".to_string(),
+            term: Term::String("bar".to_string()),
+            matcher: TermMatcher::Prefix,
             scorer: TermScorer::default(),
         }));
     }
@@ -145,7 +151,7 @@ mod tests {
             query: Box::new(Query::MatchTerm {
                 field: "foo".to_string(),
                 term: Term::String("bar".to_string()),
-                matcher: TermMatcher::Exact,
+                matcher: TermMatcher::Prefix,
                 scorer: TermScorer::default(),
             }),
             boost: 2.0f64,
@@ -167,7 +173,7 @@ mod tests {
             query: Box::new(Query::MatchTerm {
                 field: "foo".to_string(),
                 term: Term::String("bar".to_string()),
-                matcher: TermMatcher::Exact,
+                matcher: TermMatcher::Prefix,
                 scorer: TermScorer::default(),
             }),
             boost: 2.0f64,

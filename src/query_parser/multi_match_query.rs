@@ -2,15 +2,16 @@
 
 use rustc_serialize::json::Json;
 
-use term::Term;
-use analysis::Analyzer;
-use mapping::FieldMapping;
+use abra::term::Term;
+use abra::analysis::Analyzer;
+use abra::mapping::FieldMapping;
 
-use query::Query;
-use query::term_matcher::TermMatcher;
-use query::term_scorer::TermScorer;
-use query::parser::{QueryParseContext, QueryParseError};
-use query::parser::utils::{parse_string, parse_float, Operator, parse_operator, parse_field_and_boost};
+use abra::query::Query;
+use abra::query::term_matcher::TermMatcher;
+use abra::query::term_scorer::TermScorer;
+
+use query_parser::{QueryParseContext, QueryParseError};
+use query_parser::utils::{parse_string, parse_float, Operator, parse_operator, parse_field_and_boost};
 
 
 pub fn parse(context: &QueryParseContext, json: &Json) -> Result<Query, QueryParseError> {
@@ -132,11 +133,12 @@ pub fn parse(context: &QueryParseContext, json: &Json) -> Result<Query, QueryPar
 mod tests {
     use rustc_serialize::json::Json;
 
-    use term::Term;
-    use query::Query;
-    use query::term_matcher::TermMatcher;
-    use query::term_scorer::TermScorer;
-    use query::parser::{QueryParseContext, QueryParseError};
+    use abra::term::Term;
+    use abra::query::Query;
+    use abra::query::term_matcher::TermMatcher;
+    use abra::query::term_scorer::TermScorer;
+
+    use query_parser::{QueryParseContext, QueryParseError};
 
     use super::parse;
 

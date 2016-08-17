@@ -1,6 +1,5 @@
 pub mod term_matcher;
 pub mod term_scorer;
-pub mod parser;
 
 use term::Term;
 use document::Document;

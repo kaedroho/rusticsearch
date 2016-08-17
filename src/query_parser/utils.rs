@@ -1,6 +1,6 @@
 use rustc_serialize::json::Json;
 
-use query::parser::QueryParseError;
+use query_parser::QueryParseError;
 
 
 pub fn parse_string(json: &Json) -> Result<String, QueryParseError> {

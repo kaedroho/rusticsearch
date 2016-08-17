@@ -9,6 +9,7 @@ extern crate log;
 extern crate slog;
 extern crate slog_term;
 
+pub mod query_parser;
 pub mod system;
 mod api;
 mod logger;
