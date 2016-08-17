@@ -14,8 +14,9 @@ pub mod or_query;
 pub mod not_query;
 
 use rustc_serialize::json::Json;
-use abra::mapping::MappingRegistry;
 use abra::query::Query;
+
+use mapping::MappingRegistry;
 
 
 #[derive(Debug, Clone)]

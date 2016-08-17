@@ -1,4 +1,5 @@
 extern crate abra;
+extern crate chrono;
 #[macro_use]
 extern crate router;
 extern crate url;
@@ -10,6 +11,8 @@ extern crate slog;
 extern crate slog_term;
 
 pub mod query_parser;
+pub mod mapping;
+pub mod document;
 pub mod system;
 mod api;
 mod logger;

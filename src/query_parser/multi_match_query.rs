@@ -4,11 +4,12 @@ use rustc_serialize::json::Json;
 
 use abra::term::Term;
 use abra::analysis::Analyzer;
-use abra::mapping::FieldMapping;
 
 use abra::query::Query;
 use abra::query::term_matcher::TermMatcher;
 use abra::query::term_scorer::TermScorer;
+
+use mapping::FieldMapping;
 
 use query_parser::{QueryParseContext, QueryParseError};
 use query_parser::utils::{parse_string, parse_float, Operator, parse_operator, parse_field_and_boost};

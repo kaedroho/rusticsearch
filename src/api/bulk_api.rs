@@ -2,9 +2,9 @@ use std::io::Read;
 use std::collections::HashMap;
 
 use rustc_serialize::json::{self, Json};
-use abra::document::DocumentSource;
 use abra::store::IndexStore;
 
+use document::DocumentSource;
 use system::System;
 
 use api::persistent;

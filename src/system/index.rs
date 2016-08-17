@@ -1,8 +1,9 @@
 use std::collections::HashSet;
 
 use abra::analysis::registry::AnalyzerRegistry;
-use abra::mapping::{Mapping, FieldMapping, MappingRegistry};
 use abra::store::memory::MemoryIndexStore;
+
+use mapping::{Mapping, FieldMapping, MappingRegistry};
 
 
 #[derive(Debug)]

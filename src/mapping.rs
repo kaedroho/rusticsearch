@@ -4,9 +4,9 @@ use std::ops::{Deref, DerefMut};
 use rustc_serialize::json::Json;
 use chrono::{DateTime, UTC};
 
-use term::Term;
-use token::Token;
-use analysis::Analyzer;
+use abra::term::Term;
+use abra::token::Token;
+use abra::analysis::Analyzer;
 
 
 #[derive(Debug, PartialEq)]
