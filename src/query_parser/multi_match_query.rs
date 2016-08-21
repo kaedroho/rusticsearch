@@ -110,7 +110,7 @@ pub fn parse(context: &QueryParseContext, json: &Json) -> Result<Query, QueryPar
         };
 
         // Add boost
-        field_query = Query::new_boost(field_query, field_boost);
+        field_query.boost(field_boost);
 
         field_queries.push(field_query);
     }
@@ -118,7 +118,7 @@ pub fn parse(context: &QueryParseContext, json: &Json) -> Result<Query, QueryPar
     let mut query = Query::new_disjunction_max(field_queries);
 
     // Add boost
-    query = Query::new_boost(query, boost);
+    query.boost(boost);
 
     return Ok(query);
 }
@@ -218,24 +218,21 @@ mod tests {
         }
         ").unwrap());
 
-        assert_eq!(query, Ok(Query::Boost {
-            query: Box::new(Query::DisjunctionMax {
-                queries: vec![
-                    Query::MatchTerm {
-                        field: "bar".to_string(),
-                        term: Term::String("foo".to_string()),
-                        matcher: TermMatcher::Exact,
-                        scorer: TermScorer::default(),
-                    },
-                    Query::MatchTerm {
-                        field: "baz".to_string(),
-                        term: Term::String("foo".to_string()),
-                        matcher: TermMatcher::Exact,
-                        scorer: TermScorer::default(),
-                    }
-                ],
-            }),
-            boost: 2.0f64,
+        assert_eq!(query, Ok(Query::DisjunctionMax {
+            queries: vec![
+                Query::MatchTerm {
+                    field: "bar".to_string(),
+                    term: Term::String("foo".to_string()),
+                    matcher: TermMatcher::Exact,
+                    scorer: TermScorer::default_with_boost(2.0f64),
+                },
+                Query::MatchTerm {
+                    field: "baz".to_string(),
+                    term: Term::String("foo".to_string()),
+                    matcher: TermMatcher::Exact,
+                    scorer: TermScorer::default_with_boost(2.0f64),
+                }
+            ],
         }));
     }
 
@@ -249,24 +246,21 @@ mod tests {
         }
         ").unwrap());
 
-        assert_eq!(query, Ok(Query::Boost {
-            query: Box::new(Query::DisjunctionMax {
-                queries: vec![
-                    Query::MatchTerm {
-                        field: "bar".to_string(),
-                        term: Term::String("foo".to_string()),
-                        matcher: TermMatcher::Exact,
-                        scorer: TermScorer::default(),
-                    },
-                    Query::MatchTerm {
-                        field: "baz".to_string(),
-                        term: Term::String("foo".to_string()),
-                        matcher: TermMatcher::Exact,
-                        scorer: TermScorer::default(),
-                    }
-                ],
-            }),
-            boost: 2.0f64,
+        assert_eq!(query, Ok(Query::DisjunctionMax {
+            queries: vec![
+                Query::MatchTerm {
+                    field: "bar".to_string(),
+                    term: Term::String("foo".to_string()),
+                    matcher: TermMatcher::Exact,
+                    scorer: TermScorer::default_with_boost(2.0f64),
+                },
+                Query::MatchTerm {
+                    field: "baz".to_string(),
+                    term: Term::String("foo".to_string()),
+                    matcher: TermMatcher::Exact,
+                    scorer: TermScorer::default_with_boost(2.0f64),
+                }
+            ],
         }));
     }
 
@@ -281,20 +275,45 @@ mod tests {
 
         assert_eq!(query, Ok(Query::DisjunctionMax {
             queries: vec![
-                Query::Boost {
-                    query: Box::new(Query::MatchTerm {
-                        field: "bar".to_string(),
-                        term: Term::String("foo".to_string()),
-                        matcher: TermMatcher::Exact,
-                        scorer: TermScorer::default(),
-                    }),
-                    boost: 2.0f64,
+                Query::MatchTerm {
+                    field: "bar".to_string(),
+                    term: Term::String("foo".to_string()),
+                    matcher: TermMatcher::Exact,
+                    scorer: TermScorer::default_with_boost(2.0f64),
                 },
                 Query::MatchTerm {
                     field: "baz".to_string(),
                     term: Term::String("foo".to_string()),
                     matcher: TermMatcher::Exact,
                     scorer: TermScorer::default(),
+                }
+            ],
+        }));
+    }
+
+    #[test]
+    fn test_with_field_and_query_boost() {
+        let query = parse(&QueryParseContext::new(), &Json::from_str("
+        {
+            \"query\": \"foo\",
+            \"fields\": [\"bar^2\", \"baz^1.0\"],
+            \"boost\": 2.0
+        }
+        ").unwrap());
+
+        assert_eq!(query, Ok(Query::DisjunctionMax {
+            queries: vec![
+                Query::MatchTerm {
+                    field: "bar".to_string(),
+                    term: Term::String("foo".to_string()),
+                    matcher: TermMatcher::Exact,
+                    scorer: TermScorer::default_with_boost(4.0f64),
+                },
+                Query::MatchTerm {
+                    field: "baz".to_string(),
+                    term: Term::String("foo".to_string()),
+                    matcher: TermMatcher::Exact,
+                    scorer: TermScorer::default_with_boost(2.0f64),
                 }
             ],
         }));
