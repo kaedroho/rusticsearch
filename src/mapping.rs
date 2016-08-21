@@ -3,7 +3,39 @@ use std::ops::{Deref, DerefMut};
 
 use rustc_serialize::json::Json;
 use chrono::{DateTime, UTC};
-use abra::{Term, Token, Analyzer};
+use abra::{Term, Token};
+use abra::analysis::AnalyzerSpec;
+use abra::analysis::tokenizers::TokenizerSpec;
+use abra::analysis::filters::FilterSpec;
+use abra::analysis::ngram_generator::Edge;
+
+
+// TEMPORARY
+fn get_standard_analyzer() -> AnalyzerSpec {
+    AnalyzerSpec {
+        tokenizer: TokenizerSpec::Standard,
+        filters: vec![
+            FilterSpec::Lowercase,
+            FilterSpec::ASCIIFolding,
+        ]
+    }
+}
+
+
+fn get_edgengram_analyzer() -> AnalyzerSpec {
+    AnalyzerSpec {
+        tokenizer: TokenizerSpec::Standard,
+        filters: vec![
+            FilterSpec::Lowercase,
+            FilterSpec::ASCIIFolding,
+            FilterSpec::NGram {
+                min_size: 2,
+                max_size: 15,
+                edge: Edge::Left
+            },
+        ]
+    }
+}
 
 
 #[derive(Debug, PartialEq)]
@@ -28,7 +60,7 @@ pub struct FieldMapping {
     is_stored: bool,
     pub is_in_all: bool,
     boost: f64,
-    analyzer: Option<Analyzer>,
+    analyzer: Option<AnalyzerSpec>,
 }
 
 
@@ -39,7 +71,7 @@ impl Default for FieldMapping {
             is_stored: false,
             is_in_all: true,
             boost: 1.0f64,
-            analyzer: Some(Analyzer::Standard),
+            analyzer: Some(get_standard_analyzer()),
         }
     }
 }
@@ -57,7 +89,10 @@ impl FieldMapping {
                     Json::String(string) => {
                         // Analyze string
                         match self.analyzer {
-                            Some(ref analyzer) => Some(analyzer.run(string)),
+                            Some(ref analyzer) => {
+                                let tokens = analyzer.initialise(&string);
+                                Some(tokens.collect::<Vec<Token>>())
+                            }
                             None => Some(vec![Token{term: Term::String(string), position: 1}]),
                         }
                     }
@@ -200,7 +235,7 @@ impl FieldMapping {
                 "index_analyzer" => {
                     if let Some(ref s) = value.as_string() {
                         if s == &"edgengram_analyzer" {
-                            field_mapping.analyzer = Some(Analyzer::EdgeNGram);
+                            field_mapping.analyzer = Some(get_edgengram_analyzer());
                         }
                     }
                 }
