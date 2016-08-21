@@ -10,7 +10,9 @@ use query::term_scorer::TermScorer;
 
 #[derive(Debug, PartialEq)]
 pub enum Query {
-    MatchAll,
+    MatchAll {
+        score: f64,
+    },
     MatchNone,
     MatchTerm {
         field: String,
@@ -47,6 +49,12 @@ pub enum Query {
 
 
 impl Query {
+    pub fn new_match_all() -> Query {
+        Query::MatchAll {
+            score: 1.0f64,
+        }
+    }
+
     pub fn new_conjunction(queries: Vec<Query>) -> Query {
         match queries.len() {
             0 => Query::MatchNone,
@@ -104,6 +112,52 @@ impl Query {
         }
     }
 
+    pub fn boost(&mut self, add_boost: f64) {
+        if add_boost == 1.0f64 {
+            // This boost query won't have any effect
+            return;
+        }
+
+        match *self {
+            Query::MatchAll{ref mut score} => {
+                *score *= add_boost;
+            },
+            Query::MatchNone => (),
+            Query::MatchTerm{ref field, ref term, ref matcher, ref mut scorer} => {
+                scorer.boost *= add_boost;
+            }
+            Query::Conjunction{ref mut queries} => {
+                for query in queries {
+                    query.boost(add_boost);
+                }
+            }
+            Query::Disjunction{ref mut queries} => {
+                for query in queries {
+                    query.boost(add_boost);
+                }
+            }
+            Query::NDisjunction{ref mut queries, minimum_should_match} => {
+                for query in queries {
+                    query.boost(add_boost);
+                }
+            }
+            Query::DisjunctionMax{ref mut queries} => {
+                for query in queries {
+                    query.boost(add_boost);
+                }
+            }
+            Query::Filter{ref mut query, ref filter} => {
+                query.boost(add_boost);
+            }
+            Query::Exclude{ref mut query, ref exclude} => {
+                query.boost(add_boost);
+            }
+            Query::Boost{ref query, ref mut boost} => {
+                *boost *= add_boost;
+            }
+        }
+    }
+
     pub fn new_boost(query: Query, boost: f64) -> Query {
         if boost == 1.0f64 {
             // This boost query won't have any effect
@@ -118,7 +172,7 @@ impl Query {
 
     pub fn matches(&self, doc: &Document) -> bool {
         match *self {
-            Query::MatchAll => true,
+            Query::MatchAll{score} => true,
             Query::MatchNone => false,
             Query::MatchTerm{ref field, ref term, ref matcher, ref scorer} => {
                 if let Some(field_value) = doc.fields.get(field) {
@@ -187,7 +241,7 @@ impl Query {
 
     pub fn rank<'a, R: IndexReader<'a>>(&self, index_reader: &'a R, doc: &Document) -> Option<f64> {
         match *self {
-            Query::MatchAll => Some(1.0f64),
+            Query::MatchAll{score} => Some(score),
             Query::MatchNone => None,
             Query::MatchTerm{ref field, ref term, ref matcher, ref scorer} => {
                 if let Some(field_value) = doc.fields.get(field) {

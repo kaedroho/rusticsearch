@@ -216,7 +216,7 @@ fn build_disjunction_iterator<'a, T: IndexReader<'a>>(mut iters: VecDeque<QueryS
 
 pub fn build_iterator_from_query<'a, T: IndexReader<'a>>(reader: &'a T, query: &Query) -> QuerySetIterator<'a, T> {
     match *query {
-        Query::MatchAll => {
+        Query::MatchAll{score} => {
             QuerySetIterator::All {
                 iter: reader.iter_docids_all(),
             }
