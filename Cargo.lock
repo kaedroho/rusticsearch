@@ -2,7 +2,7 @@
 name = "rusticsearch"
 version = "0.1.0"
 dependencies = [
- "abra 0.1.0",
+ "abra 0.0.1",
  "byteorder 0.5.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "chrono 0.2.22 (registry+https://github.com/rust-lang/crates.io-index)",
  "iron 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -20,7 +20,7 @@ dependencies = [
 
 [[package]]
 name = "abra"
-version = "0.1.0"
+version = "0.0.1"
 dependencies = [
  "byteorder 0.5.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "chrono 0.2.22 (registry+https://github.com/rust-lang/crates.io-index)",
