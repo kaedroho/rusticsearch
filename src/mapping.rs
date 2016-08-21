@@ -28,7 +28,7 @@ pub struct FieldMapping {
     is_stored: bool,
     pub is_in_all: bool,
     boost: f64,
-    analyzer: Analyzer,
+    analyzer: Option<Analyzer>,
 }
 
 
@@ -39,7 +39,7 @@ impl Default for FieldMapping {
             is_stored: false,
             is_in_all: true,
             boost: 1.0f64,
-            analyzer: Analyzer::Standard,
+            analyzer: Some(Analyzer::Standard),
         }
     }
 }
@@ -55,11 +55,10 @@ impl FieldMapping {
             FieldType::String => {
                 match value {
                     Json::String(string) => {
-                        // Analyzed strings become TSVectors. Unanalyzed strings become... strings
-                        if self.analyzer == Analyzer::None {
-                            Some(vec![Token{term: Term::String(string), position: 1}])
-                        } else {
-                            Some(self.analyzer.run(string))
+                        // Analyze string
+                        match self.analyzer {
+                            Some(ref analyzer) => Some(analyzer.run(string)),
+                            None => Some(vec![Token{term: Term::String(string), position: 1}]),
                         }
                     }
                     Json::I64(num) => self.process_value_for_index(Json::String(num.to_string())),
@@ -192,7 +191,7 @@ impl FieldMapping {
                 "index" => {
                     let index = value.as_string().unwrap();
                     if index == "not_analyzed" {
-                        field_mapping.analyzer = Analyzer::None;
+                        field_mapping.analyzer = None;
                     } else {
                         // TODO: Implement other variants and make this an error
                         warn!("unimplemented index setting! {}", index);
@@ -201,7 +200,7 @@ impl FieldMapping {
                 "index_analyzer" => {
                     if let Some(ref s) = value.as_string() {
                         if s == &"edgengram_analyzer" {
-                            field_mapping.analyzer = Analyzer::EdgeNGram;
+                            field_mapping.analyzer = Some(Analyzer::EdgeNGram);
                         }
                     }
                 }
