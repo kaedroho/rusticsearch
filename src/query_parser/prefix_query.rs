@@ -54,7 +54,7 @@ pub fn parse(context: &QueryParseContext, json: &Json) -> Result<Query, QueryPar
                 };
 
                 // Add boost
-                query = Query::new_boost(query, boost);
+                query.boost(boost);
 
                 Ok(query)
             } else {
@@ -139,14 +139,11 @@ mod tests {
         }
         ").unwrap());
 
-        assert_eq!(query, Ok(Query::Boost {
-            query: Box::new(Query::MatchTerm {
-                field: "foo".to_string(),
-                term: Term::String("bar".to_string()),
-                matcher: TermMatcher::Prefix,
-                scorer: TermScorer::default(),
-            }),
-            boost: 2.0f64,
+        assert_eq!(query, Ok(Query::MatchTerm {
+            field: "foo".to_string(),
+            term: Term::String("bar".to_string()),
+            matcher: TermMatcher::Prefix,
+            scorer: TermScorer::default_with_boost(2.0f64),
         }));
     }
 
@@ -161,14 +158,11 @@ mod tests {
         }
         ").unwrap());
 
-        assert_eq!(query, Ok(Query::Boost {
-            query: Box::new(Query::MatchTerm {
-                field: "foo".to_string(),
-                term: Term::String("bar".to_string()),
-                matcher: TermMatcher::Prefix,
-                scorer: TermScorer::default(),
-            }),
-            boost: 2.0f64,
+        assert_eq!(query, Ok(Query::MatchTerm {
+            field: "foo".to_string(),
+            term: Term::String("bar".to_string()),
+            matcher: TermMatcher::Prefix,
+            scorer: TermScorer::default_with_boost(2.0f64),
         }));
     }
 
