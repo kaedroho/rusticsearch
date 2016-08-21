@@ -8,7 +8,7 @@ use query_parser::{QueryParseContext, QueryParseError, parse as parse_query};
 
 pub fn parse(context: &QueryParseContext, json: &Json) -> Result<Query, QueryParseError> {
     Ok(Query::Exclude {
-        query: Box::new(Query::MatchAll),
+        query: Box::new(Query::new_match_all()),
         exclude: Box::new(try!(parse_query(&context.clone().no_score(), json))),
     })
 }
@@ -35,7 +35,7 @@ mod tests {
         ").unwrap());
 
         assert_eq!(query, Ok(Query::Exclude {
-            query: Box::new(Query::MatchAll),
+            query: Box::new(Query::new_match_all()),
             exclude: Box::new(Query::MatchTerm {
                 field: "test".to_string(),
                 term: Term::String("foo".to_string()),

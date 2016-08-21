@@ -23,7 +23,7 @@ pub fn parse(context: &QueryParseContext, json: &Json) -> Result<Query, QueryPar
     }
 
 
-    let mut query = Query::MatchAll;
+    let mut query = Query::new_match_all();
 
     // Add boost
     query = Query::new_boost(query, boost);
@@ -49,7 +49,7 @@ mod tests {
         }
         ").unwrap());
 
-        assert_eq!(query, Ok(Query::MatchAll))
+        assert_eq!(query, Ok(Query::new_match_all()))
     }
 
     #[test]
@@ -61,7 +61,7 @@ mod tests {
         ").unwrap());
 
         assert_eq!(query, Ok(Query::Boost {
-            query: Box::new(Query::MatchAll),
+            query: Box::new(Query::new_match_all()),
             boost: 2.0f64,
         }))
     }
@@ -75,7 +75,7 @@ mod tests {
         ").unwrap());
 
         assert_eq!(query, Ok(Query::Boost {
-            query: Box::new(Query::MatchAll),
+            query: Box::new(Query::new_match_all()),
             boost: 2.0f64,
         }))
     }

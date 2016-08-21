@@ -10,7 +10,7 @@ use query_parser::{parse as parse_query};
 pub fn parse(context: &QueryParseContext, json: &Json) -> Result<Query, QueryParseError> {
     let object = try!(json.as_object().ok_or(QueryParseError::ExpectedObject));
 
-    let mut query = Query::MatchAll;
+    let mut query = Query::new_match_all();
 
     let mut filter = Query::MatchNone;
     let mut has_filter_key = false;
@@ -95,7 +95,7 @@ mod tests {
         ").unwrap());
 
         assert_eq!(query, Ok(Query::Filter {
-            query: Box::new(Query::MatchAll),
+            query: Box::new(Query::new_match_all()),
             filter: Box::new(Query::MatchTerm {
                 field: "the".to_string(),
                 term: Term::String("filter".to_string()),
