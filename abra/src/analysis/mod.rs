@@ -38,7 +38,6 @@ impl AnalyzerSpec {
 
 #[derive(Debug, PartialEq)]
 pub enum Analyzer {
-    None,
     Standard,
     EdgeNGram,
 }
@@ -47,7 +46,6 @@ pub enum Analyzer {
 impl Analyzer {
     pub fn run(&self, input: String) -> Vec<Token> {
         match *self {
-            Analyzer::None => vec![Token{term: Term::String(input), position: 1}],
             Analyzer::Standard => {
                 let tokens = Box::new(StandardTokenizer::new(&input));
 
