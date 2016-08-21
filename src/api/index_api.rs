@@ -1,3 +1,7 @@
+use abra::analysis::AnalyzerSpec;
+use abra::analysis::tokenizers::TokenizerSpec;
+use abra::analysis::filters::FilterSpec;
+use abra::analysis::ngram_generator::Edge;
 use abra::store::memory::MemoryIndexStore;
 
 use system::index::Index;
@@ -38,11 +42,34 @@ pub fn view_put_index(req: &mut Request) -> IronResult<Response> {
     let mut indices_dir = system.get_indices_dir();
     indices_dir.push(index_name);
     indices_dir.set_extension("rsi");
-    let index = Index::new(index_name.clone().to_owned(), MemoryIndexStore::new());
-    let index_ref = indices.insert(index);
-    indices.aliases.insert(index_name.clone().to_owned(), index_ref);
+    let mut index = Index::new(index_name.clone().to_owned(), MemoryIndexStore::new());
+
+    // Insert standard and edgengram analyzers
+    // TODO: Load these from index settings
+    index.analyzers.insert("standard".to_string(), AnalyzerSpec {
+        tokenizer: TokenizerSpec::Standard,
+        filters: vec![
+            FilterSpec::Lowercase,
+            FilterSpec::ASCIIFolding,
+        ]
+    });
+    index.analyzers.insert("edgengram_analyzer".to_string(), AnalyzerSpec {
+        tokenizer: TokenizerSpec::Standard,
+        filters: vec![
+            FilterSpec::Lowercase,
+            FilterSpec::ASCIIFolding,
+            FilterSpec::NGram {
+                min_size: 2,
+                max_size: 15,
+                edge: Edge::Left
+            },
+        ]
+    });
 
     // TODO: load settings
+
+    let index_ref = indices.insert(index);
+    indices.aliases.insert(index_name.clone().to_owned(), index_ref);
 
     system.log.info("[api] created index", b!("index" => *index_name));
 
