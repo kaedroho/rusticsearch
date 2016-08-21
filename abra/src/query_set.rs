@@ -348,8 +348,5 @@ pub fn build_iterator_from_query<'a, T: IndexReader<'a>>(reader: &'a T, query: &
                 current_doc_b: None,
             }
         }
-        Query::Boost{ref query, boost} => {
-            build_iterator_from_query(reader, query)
-        }
     }
 }
