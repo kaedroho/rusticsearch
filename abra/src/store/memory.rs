@@ -4,6 +4,7 @@ use std::collections::{BTreeMap, HashMap};
 use std::collections::btree_map::Keys;
 
 use document::Document;
+use schema::FieldRef;
 use store::{IndexStore, IndexReader, DocRefIterator};
 
 
@@ -44,7 +45,7 @@ impl MemoryIndexStoreField {
 #[derive(Debug)]
 pub struct MemoryIndexStore {
     docs: BTreeMap<u64, Document>,
-    fields: BTreeMap<String, MemoryIndexStoreField>,
+    fields: HashMap<FieldRef, MemoryIndexStoreField>,
     next_doc_id: u64,
     doc_key2id_map: HashMap<String, u64>,
 }
@@ -54,7 +55,7 @@ impl MemoryIndexStore {
     pub fn new() -> MemoryIndexStore {
         MemoryIndexStore {
             docs: BTreeMap::new(),
-            fields: BTreeMap::new(),
+            fields: HashMap::new(),
             next_doc_id: 1,
             doc_key2id_map: HashMap::new(),
         }
@@ -76,13 +77,13 @@ impl<'a> IndexStore<'a> for MemoryIndexStore {
         self.next_doc_id += 1;
 
         // Put field contents in inverted index
-        for (field_name, tokens) in doc.fields.iter() {
+        for (field_ref, tokens) in doc.fields.iter() {
             for token in tokens.iter() {
-                if !self.fields.contains_key(field_name) {
-                    self.fields.insert(field_name.clone(), MemoryIndexStoreField::new());
+                if !self.fields.contains_key(field_ref) {
+                    self.fields.insert(field_ref.clone(), MemoryIndexStoreField::new());
                 }
 
-                let mut field = self.fields.get_mut(field_name).unwrap();
+                let mut field = self.fields.get_mut(field_ref).unwrap();
                 field.docs.insert(doc_id);
                 field.num_tokens += 1;
 
@@ -148,8 +149,8 @@ impl<'a> IndexReader<'a> for MemoryIndexStoreReader<'a> {
         }
     }
 
-    fn iter_docids_with_term(&'a self, term: &[u8], field_name: &str) -> Option<MemoryIndexStoreTermDocRefIterator<'a>> {
-        let field = match self.store.fields.get(field_name) {
+    fn iter_docids_with_term(&'a self, term: &[u8], field_ref: &FieldRef) -> Option<MemoryIndexStoreTermDocRefIterator<'a>> {
+        let field = match self.store.fields.get(field_ref) {
             Some(field) => field,
             None => return None,
         };
@@ -164,8 +165,8 @@ impl<'a> IndexReader<'a> for MemoryIndexStoreReader<'a> {
         })
     }
 
-    fn iter_terms(&'a self, field_name: &str) -> Option<Box<Iterator<Item=&'a [u8]> + 'a>> {
-        let field = match self.store.fields.get(field_name) {
+    fn iter_terms(&'a self, field_ref: &FieldRef) -> Option<Box<Iterator<Item=&'a [u8]> + 'a>> {
+        let field = match self.store.fields.get(field_ref) {
             Some(field) => field,
             None => return None,
         };
@@ -173,8 +174,8 @@ impl<'a> IndexReader<'a> for MemoryIndexStoreReader<'a> {
         Some(Box::new(field.terms.keys().map(|t| &t[..])))
     }
 
-    fn term_doc_freq(&'a self, term: &[u8], field_name: &str) -> u64 {
-        let field = match self.store.fields.get(field_name) {
+    fn term_doc_freq(&'a self, term: &[u8], field_ref: &FieldRef) -> u64 {
+        let field = match self.store.fields.get(field_ref) {
             Some(field) => field,
             None => return 0,
         };
@@ -187,8 +188,8 @@ impl<'a> IndexReader<'a> for MemoryIndexStoreReader<'a> {
         term.docs.len()
     }
 
-    fn total_tokens(&'a self, field_name: &str) -> u64 {
-        let field = match self.store.fields.get(field_name) {
+    fn total_tokens(&'a self, field_ref: &FieldRef) -> u64 {
+        let field = match self.store.fields.get(field_ref) {
             Some(field) => field,
             None => return 0,
         };
@@ -239,19 +240,23 @@ mod tests {
     use term::Term;
     use token::Token;
     use document::Document;
+    use schema::{Schema, FieldType, FieldRef};
     use store::{IndexStore, IndexReader};
 
     fn make_test_store() -> MemoryIndexStore {
         let mut store = MemoryIndexStore::new();
+        let mut schema = Schema::new();
+        let mut title_field = schema.add_field(FieldType::Text);
+        let mut body_field = schema.add_field(FieldType::Text);
 
         store.insert_or_update_document(Document {
             key: "test_doc".to_string(),
-            fields: btreemap! {
-                "title".to_string() => vec![
+            fields: hashmap! {
+                title_field => vec![
                     Token { term: Term::String("hello".to_string()), position: 1 },
                     Token { term: Term::String("world".to_string()), position: 2 },
                 ],
-                "body".to_string() => vec![
+                body_field => vec![
                     Token { term: Term::String("lorem".to_string()), position: 1 },
                     Token { term: Term::String("ipsum".to_string()), position: 2 },
                     Token { term: Term::String("dolar".to_string()), position: 3 },
@@ -261,12 +266,12 @@ mod tests {
 
         store.insert_or_update_document(Document {
             key: "test_doc".to_string(),
-            fields: btreemap! {
-                "title".to_string() => vec![
+            fields: hashmap! {
+                title_field => vec![
                     Token { term: Term::String("howdy".to_string()), position: 1 },
                     Token { term: Term::String("partner".to_string()), position: 2 },
                 ],
-                "body".to_string() => vec![
+                body_field => vec![
                     Token { term: Term::String("lorem".to_string()), position: 1 },
                     Token { term: Term::String("ipsum".to_string()), position: 2 },
                     Token { term: Term::String("dolar".to_string()), position: 3 },

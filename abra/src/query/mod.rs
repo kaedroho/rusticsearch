@@ -3,6 +3,7 @@ pub mod term_scorer;
 
 use term::Term;
 use document::Document;
+use schema::FieldRef;
 use store::IndexReader;
 use query::term_matcher::TermMatcher;
 use query::term_scorer::TermScorer;
@@ -15,7 +16,7 @@ pub enum Query {
     },
     MatchNone,
     MatchTerm {
-        field: String,
+        field: FieldRef,
         term: Term,
         matcher: TermMatcher,
         scorer: TermScorer,
