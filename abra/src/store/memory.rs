@@ -237,7 +237,7 @@ mod tests {
     use super::{MemoryIndexStore, MemoryIndexStoreReader};
 
     use term::Term;
-    use analysis::Analyzer;
+    use token::Token;
     use document::Document;
     use store::{IndexStore, IndexReader};
 
@@ -247,16 +247,30 @@ mod tests {
         store.insert_or_update_document(Document {
             key: "test_doc".to_string(),
             fields: btreemap! {
-                "title".to_string() => Analyzer::Standard.run("hello world".to_string()),
-                "body".to_string() => Analyzer::Standard.run("lorem ipsum dolar".to_string()),
+                "title".to_string() => vec![
+                    Token { term: Term::String("hello".to_string()), position: 1 },
+                    Token { term: Term::String("world".to_string()), position: 2 },
+                ],
+                "body".to_string() => vec![
+                    Token { term: Term::String("lorem".to_string()), position: 1 },
+                    Token { term: Term::String("ipsum".to_string()), position: 2 },
+                    Token { term: Term::String("dolar".to_string()), position: 3 },
+                ],
             }
         });
 
         store.insert_or_update_document(Document {
             key: "test_doc".to_string(),
             fields: btreemap! {
-                "title".to_string() => Analyzer::Standard.run("howdy partner".to_string()),
-                "body".to_string() => Analyzer::Standard.run("lorem ipsum dolar".to_string()),
+                "title".to_string() => vec![
+                    Token { term: Term::String("howdy".to_string()), position: 1 },
+                    Token { term: Term::String("partner".to_string()), position: 2 },
+                ],
+                "body".to_string() => vec![
+                    Token { term: Term::String("lorem".to_string()), position: 1 },
+                    Token { term: Term::String("ipsum".to_string()), position: 2 },
+                    Token { term: Term::String("dolar".to_string()), position: 3 },
+                ],
             }
         });
 
