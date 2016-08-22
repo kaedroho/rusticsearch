@@ -7,7 +7,7 @@ use analysis::tokenizers::standard::StandardTokenizer;
 use analysis::tokenizers::ngram::NGramTokenizer;
 
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum TokenizerSpec {
     Standard,
     NGram {
