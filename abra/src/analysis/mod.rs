@@ -11,7 +11,7 @@ use analysis::filters::FilterSpec;
 use analysis::ngram_generator::Edge;
 
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct AnalyzerSpec {
     pub tokenizer: TokenizerSpec,
     pub filters: Vec<FilterSpec>,
