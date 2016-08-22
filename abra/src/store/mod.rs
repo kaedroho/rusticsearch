@@ -1,13 +1,14 @@
 pub mod memory;
 
 use document::Document;
-use schema::FieldRef;
+use schema::{Schema, FieldType, FieldRef};
 
 
 pub trait IndexReader<'a> {
     type AllDocRefIterator: DocRefIterator<'a>;
     type TermDocRefIterator: DocRefIterator<'a>;
 
+    fn schema(&self) -> &Schema;
     fn get_document_by_key(&self, doc_key: &str) -> Option<&Document>;
     fn get_document_by_id(&self, doc_id: &u64) -> Option<&Document>;
     fn contains_document_key(&self, doc_key: &str) -> bool;
@@ -30,6 +31,8 @@ pub trait IndexStore<'a> {
     type Reader: IndexReader<'a>;
 
     fn reader(&'a self) -> Self::Reader;
+    fn add_field(&mut self, name: String, field_type: FieldType) -> FieldRef;
+    fn remove_field(&mut self, field_ref: &FieldRef) -> bool;
     fn insert_or_update_document(&mut self, doc: Document);
     fn remove_document_by_key(&mut self, doc_key: &str) -> bool;
 }
