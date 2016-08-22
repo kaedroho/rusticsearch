@@ -1,10 +1,11 @@
-use std::collections::BTreeMap;
+use std::collections::HashMap;
 
 use token::Token;
+use schema::FieldRef;
 
 
 #[derive(Debug)]
 pub struct Document {
     pub key: String,
-    pub fields: BTreeMap<String, Vec<Token>>,
+    pub fields: HashMap<FieldRef, Vec<Token>>,
 }
