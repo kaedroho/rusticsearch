@@ -4,7 +4,7 @@ use std::collections::{BTreeMap, HashMap};
 use std::collections::btree_map::Keys;
 
 use document::Document;
-use schema::FieldRef;
+use schema::{Schema, FieldType, FieldRef};
 use store::{IndexStore, IndexReader, DocRefIterator};
 
 
@@ -44,6 +44,7 @@ impl MemoryIndexStoreField {
 
 #[derive(Debug)]
 pub struct MemoryIndexStore {
+    schema: Schema,
     docs: BTreeMap<u64, Document>,
     fields: HashMap<FieldRef, MemoryIndexStoreField>,
     next_doc_id: u64,
@@ -54,6 +55,7 @@ pub struct MemoryIndexStore {
 impl MemoryIndexStore {
     pub fn new() -> MemoryIndexStore {
         MemoryIndexStore {
+            schema: Schema::new(),
             docs: BTreeMap::new(),
             fields: HashMap::new(),
             next_doc_id: 1,
@@ -72,6 +74,20 @@ impl<'a> IndexStore<'a> for MemoryIndexStore {
         }
     }
 
+    fn add_field(&mut self, name: String, field_type: FieldType) -> FieldRef {
+        let field_ref = self.schema.add_field(name, field_type);
+        self.fields.insert(field_ref, MemoryIndexStoreField::new());
+
+        field_ref
+    }
+
+    fn remove_field(&mut self, field_ref: &FieldRef) -> bool {
+        match self.fields.remove(field_ref) {
+            Some(field_ref) => true,
+            None => false,
+        }
+    }
+
     fn insert_or_update_document(&mut self, doc: Document) {
         let doc_id = self.next_doc_id;
         self.next_doc_id += 1;
@@ -79,22 +95,21 @@ impl<'a> IndexStore<'a> for MemoryIndexStore {
         // Put field contents in inverted index
         for (field_ref, tokens) in doc.fields.iter() {
             for token in tokens.iter() {
-                if !self.fields.contains_key(field_ref) {
-                    self.fields.insert(field_ref.clone(), MemoryIndexStoreField::new());
+                // Silently ignore unrecognised fields
+                // TODO: Review this
+                if let Some(field) = self.fields.get_mut(field_ref) {
+                    field.docs.insert(doc_id);
+                    field.num_tokens += 1;
+
+                    let term_bytes = token.term.to_bytes();
+                    if !field.terms.contains_key(&term_bytes) {
+                        // TODO: We shouldn't need to clone here
+                        field.terms.insert(term_bytes.clone(), MemoryIndexStoreFieldTerm::new());
+                    }
+
+                    let mut term = field.terms.get_mut(&term_bytes).unwrap();
+                    term.docs.insert(doc_id);
                 }
-
-                let mut field = self.fields.get_mut(field_ref).unwrap();
-                field.docs.insert(doc_id);
-                field.num_tokens += 1;
-
-                let term_bytes = token.term.to_bytes();
-                if !field.terms.contains_key(&term_bytes) {
-                    // TODO: We shouldn't need to clone here
-                    field.terms.insert(term_bytes.clone(), MemoryIndexStoreFieldTerm::new());
-                }
-
-                let mut term = field.terms.get_mut(&term_bytes).unwrap();
-                term.docs.insert(doc_id);
             }
         }
 
@@ -123,6 +138,10 @@ pub struct MemoryIndexStoreReader<'a> {
 impl<'a> IndexReader<'a> for MemoryIndexStoreReader<'a> {
     type AllDocRefIterator = MemoryIndexStoreAllDocRefIterator<'a>;
     type TermDocRefIterator = MemoryIndexStoreTermDocRefIterator<'a>;
+
+    fn schema(&self) -> &Schema {
+        &self.store.schema
+    }
 
     fn get_document_by_key(&self, doc_key: &str) -> Option<&Document> {
         match self.store.doc_key2id_map.get(doc_key) {
@@ -243,11 +262,10 @@ mod tests {
     use schema::{Schema, FieldType, FieldRef};
     use store::{IndexStore, IndexReader};
 
-    fn make_test_store() -> (MemoryIndexStore, Schema) {
+    fn make_test_store() -> MemoryIndexStore {
         let mut store = MemoryIndexStore::new();
-        let mut schema = Schema::new();
-        let mut title_field = schema.add_field("title".to_string(), FieldType::Text);
-        let mut body_field = schema.add_field("body".to_string(), FieldType::Text);
+        let mut title_field = store.add_field("title".to_string(), FieldType::Text);
+        let mut body_field = store.add_field("body".to_string(), FieldType::Text);
 
         store.insert_or_update_document(Document {
             key: "test_doc".to_string(),
@@ -279,12 +297,12 @@ mod tests {
             }
         });
 
-        (store, schema)
+        store
     }
 
     #[test]
     fn test_num_docs() {
-        let (store, _) = make_test_store();
+        let store = make_test_store();
         let reader = store.reader();
 
         assert_eq!(reader.num_docs(), 2);
@@ -292,7 +310,7 @@ mod tests {
 
     #[test]
     fn test_all_docs_iterator() {
-        let (store, _) = make_test_store();
+        let store = make_test_store();
         let reader = store.reader();
 
         assert_eq!(reader.iter_docids_all().count(), 2);
@@ -300,9 +318,9 @@ mod tests {
 
     #[test]
     fn test_term_docs_iterator() {
-        let (store, schema) = make_test_store();
+        let store = make_test_store();
         let reader = store.reader();
-        let title_field = schema.get_field_by_name("title").unwrap();
+        let title_field = reader.schema().get_field_by_name("title").unwrap();
 
         assert_eq!(reader.iter_docids_with_term(&Term::String("hello".to_string()).to_bytes(), &title_field).unwrap().count(), 1);
     }
