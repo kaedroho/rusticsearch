@@ -44,7 +44,9 @@ pub struct FieldMapping {
     is_stored: bool,
     pub is_in_all: bool,
     boost: f64,
-    analyzer: Option<AnalyzerSpec>,
+    base_analyzer: AnalyzerSpec,
+    index_analyzer: Option<AnalyzerSpec>,
+    search_analyzer: Option<AnalyzerSpec>,
 }
 
 
@@ -55,14 +57,32 @@ impl Default for FieldMapping {
             is_stored: false,
             is_in_all: true,
             boost: 1.0f64,
-            analyzer: Some(get_standard_analyzer()),
+            base_analyzer: get_standard_analyzer(),
+            index_analyzer: None,
+            search_analyzer: None,
         }
     }
 }
 
 
 impl FieldMapping {
-    pub fn process_value_for_index(&self, value: Json) -> Option<Vec<Token>> {
+    pub fn index_analyzer(&self) -> &AnalyzerSpec {
+        if let Some(ref index_analyzer) = self.index_analyzer {
+            index_analyzer
+        } else {
+            &self.base_analyzer
+        }
+    }
+
+    pub fn search_analyzer(&self) -> &AnalyzerSpec {
+        if let Some(ref search_analyzer) = self.search_analyzer {
+            search_analyzer
+        } else {
+            &self.base_analyzer
+        }
+    }
+
+    fn process_value(&self, analyzer: Option<&AnalyzerSpec>, value: Json) -> Option<Vec<Token>> {
         if value == Json::Null {
             return None;
         }
@@ -72,7 +92,7 @@ impl FieldMapping {
                 match value {
                     Json::String(string) => {
                         // Analyze string
-                        match self.analyzer {
+                        match analyzer {
                             Some(ref analyzer) => {
                                 let tokens = analyzer.initialise(&string);
                                 Some(tokens.collect::<Vec<Token>>())
@@ -80,9 +100,9 @@ impl FieldMapping {
                             None => Some(vec![Token{term: Term::String(string), position: 1}]),
                         }
                     }
-                    Json::I64(num) => self.process_value_for_index(Json::String(num.to_string())),
-                    Json::U64(num) => self.process_value_for_index(Json::String(num.to_string())),
-                    Json::F64(num) => self.process_value_for_index(Json::String(num.to_string())),
+                    Json::I64(num) => self.process_value(analyzer, Json::String(num.to_string())),
+                    Json::U64(num) => self.process_value(analyzer, Json::String(num.to_string())),
+                    Json::F64(num) => self.process_value(analyzer, Json::String(num.to_string())),
                     Json::Array(array) => {
                         // Pack any strings into a vec, ignore nulls. Quit if we see anything else
                         let mut strings = Vec::new();
@@ -97,7 +117,7 @@ impl FieldMapping {
                             }
                         }
 
-                        self.process_value_for_index(Json::String(strings.join(" ")))
+                        self.process_value(analyzer, Json::String(strings.join(" ")))
                     }
                     _ => None,
                 }
@@ -134,9 +154,12 @@ impl FieldMapping {
         }
     }
 
+    pub fn process_value_for_index(&self, value: Json) -> Option<Vec<Token>> {
+        self.process_value(Some(self.index_analyzer()), value)
+    }
+
     pub fn process_value_for_query(&self, value: Json) -> Option<Vec<Token>> {
-        // Currently not different from process_value_for_index
-        self.process_value_for_index(value)
+        self.process_value(Some(self.search_analyzer()), value)
     }
 }
 
@@ -210,15 +233,41 @@ impl FieldMapping {
                 "index" => {
                     let index = value.as_string().unwrap();
                     if index == "not_analyzed" {
-                        field_mapping.analyzer = None;
+                        field_mapping.index_analyzer = None;
+                        field_mapping.search_analyzer = None;
                     } else {
                         // TODO: Implement other variants and make this an error
                         warn!("unimplemented index setting! {}", index);
                     }
                 }
+                "analyzer" => {
+                    if let Some(ref s) = value.as_string() {
+                        match analyzers.get(*s) {
+                            Some(analyzer) => {
+                                field_mapping.base_analyzer = analyzer.clone();
+                            }
+                            None => warn!("unknown analyzer! {}", s)
+                        }
+                    }
+                }
                 "index_analyzer" => {
                     if let Some(ref s) = value.as_string() {
-                        field_mapping.analyzer = Some(analyzers.get(*s).unwrap().clone());
+                        match analyzers.get(*s) {
+                            Some(analyzer) => {
+                                field_mapping.index_analyzer = Some(analyzer.clone());
+                            }
+                            None => warn!("unknown analyzer! {}", s)
+                        }
+                    }
+                }
+                "search_analyzer" => {
+                    if let Some(ref s) = value.as_string() {
+                        match analyzers.get(*s) {
+                            Some(analyzer) => {
+                                field_mapping.search_analyzer = Some(analyzer.clone());
+                            }
+                            None => warn!("unknown analyzer! {}", s)
+                        }
                     }
                 }
                 "boost" => {
