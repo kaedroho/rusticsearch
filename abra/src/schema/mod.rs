@@ -13,13 +13,15 @@ pub enum FieldType {
 
 #[derive(Debug, Clone)]
 pub struct FieldInfo {
+    name: String,
     field_type: FieldType,
 }
 
 
 impl FieldInfo {
-    pub fn new(field_type: FieldType) -> FieldInfo {
+    pub fn new(name: String, field_type: FieldType) -> FieldInfo {
         FieldInfo {
+            name: name,
             field_type: field_type,
         }
     }
@@ -52,13 +54,23 @@ impl Schema {
         field_ref
     }
 
-    pub fn add_field(&mut self, field_type: FieldType) -> FieldRef {
+    pub fn add_field(&mut self, name: String, field_type: FieldType) -> FieldRef {
         let field_ref = self.new_field_ref();
-        let field_info = FieldInfo::new(field_type);
+        let field_info = FieldInfo::new(name, field_type);
 
         self.fields.insert(field_ref, field_info);
 
         field_ref
+    }
+
+    pub fn get_field_by_name(&self, name: &str) -> Option<FieldRef> {
+        for (field_ref, field_info) in self.fields.iter() {
+            if field_info.name == name {
+                return Some(*field_ref);
+            }
+        }
+
+        None
     }
 }
 

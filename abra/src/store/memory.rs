@@ -243,11 +243,11 @@ mod tests {
     use schema::{Schema, FieldType, FieldRef};
     use store::{IndexStore, IndexReader};
 
-    fn make_test_store() -> MemoryIndexStore {
+    fn make_test_store() -> (MemoryIndexStore, Schema) {
         let mut store = MemoryIndexStore::new();
         let mut schema = Schema::new();
-        let mut title_field = schema.add_field(FieldType::Text);
-        let mut body_field = schema.add_field(FieldType::Text);
+        let mut title_field = schema.add_field("title".to_string(), FieldType::Text);
+        let mut body_field = schema.add_field("body".to_string(), FieldType::Text);
 
         store.insert_or_update_document(Document {
             key: "test_doc".to_string(),
@@ -279,12 +279,12 @@ mod tests {
             }
         });
 
-        store
+        (store, schema)
     }
 
     #[test]
     fn test_num_docs() {
-        let store = make_test_store();
+        let (store, _) = make_test_store();
         let reader = store.reader();
 
         assert_eq!(reader.num_docs(), 2);
@@ -292,7 +292,7 @@ mod tests {
 
     #[test]
     fn test_all_docs_iterator() {
-        let store = make_test_store();
+        let (store, _) = make_test_store();
         let reader = store.reader();
 
         assert_eq!(reader.iter_docids_all().count(), 2);
@@ -300,9 +300,10 @@ mod tests {
 
     #[test]
     fn test_term_docs_iterator() {
-        let store = make_test_store();
+        let (store, schema) = make_test_store();
         let reader = store.reader();
+        let title_field = schema.get_field_by_name("title").unwrap();
 
-        assert_eq!(reader.iter_docids_with_term(&Term::String("hello".to_string()).to_bytes(), "title").unwrap().count(), 1);
+        assert_eq!(reader.iter_docids_with_term(&Term::String("hello".to_string()).to_bytes(), &title_field).unwrap().count(), 1);
     }
 }
