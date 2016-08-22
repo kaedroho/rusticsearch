@@ -36,7 +36,7 @@ pub fn view_put_mapping(req: &mut Request) -> IronResult<Response> {
     let data = data.as_object().unwrap().get(*mapping_name).unwrap();
 
     // Insert mapping
-    let mapping = mapping::Mapping::from_json(&data);
+    let mapping = mapping::Mapping::from_json(&index.analyzers, &data);
     debug!("{:#?}", mapping);
     let is_updating = index.mappings.contains_key(*mapping_name);
     index.mappings.insert(mapping_name.clone().to_owned(), mapping);

@@ -5,9 +5,9 @@ use rustc_serialize::json::Json;
 use chrono::{DateTime, UTC};
 use abra::{Term, Token};
 use abra::analysis::AnalyzerSpec;
+use abra::analysis::registry::AnalyzerRegistry;
 use abra::analysis::tokenizers::TokenizerSpec;
 use abra::analysis::filters::FilterSpec;
-use abra::analysis::ngram_generator::Edge;
 
 
 // TEMPORARY
@@ -17,22 +17,6 @@ fn get_standard_analyzer() -> AnalyzerSpec {
         filters: vec![
             FilterSpec::Lowercase,
             FilterSpec::ASCIIFolding,
-        ]
-    }
-}
-
-
-fn get_edgengram_analyzer() -> AnalyzerSpec {
-    AnalyzerSpec {
-        tokenizer: TokenizerSpec::Standard,
-        filters: vec![
-            FilterSpec::Lowercase,
-            FilterSpec::ASCIIFolding,
-            FilterSpec::NGram {
-                min_size: 2,
-                max_size: 15,
-                edge: Edge::Left
-            },
         ]
     }
 }
@@ -163,7 +147,7 @@ pub struct Mapping {
 }
 
 impl Mapping {
-    pub fn from_json(json: &Json) -> Mapping {
+    pub fn from_json(analyzers: &AnalyzerRegistry, json: &Json) -> Mapping {
         let json = json.as_object().unwrap();
         let properties_json = json.get("properties").unwrap().as_object().unwrap();
 
@@ -171,7 +155,7 @@ impl Mapping {
         let mut fields = HashMap::new();
         for (field_name, field_mapping_json) in properties_json.iter() {
             fields.insert(field_name.clone(),
-                          FieldMapping::from_json(field_mapping_json));
+                          FieldMapping::from_json(analyzers, field_mapping_json));
         }
 
         Mapping { fields: fields }
@@ -202,7 +186,7 @@ fn parse_boolean(json: &Json) -> bool {
 
 
 impl FieldMapping {
-    pub fn from_json(json: &Json) -> FieldMapping {
+    pub fn from_json(analyzers: &AnalyzerRegistry, json: &Json) -> FieldMapping {
         let json = json.as_object().unwrap();
         let mut field_mapping = FieldMapping::default();
 
@@ -234,9 +218,7 @@ impl FieldMapping {
                 }
                 "index_analyzer" => {
                     if let Some(ref s) = value.as_string() {
-                        if s == &"edgengram_analyzer" {
-                            field_mapping.analyzer = Some(get_edgengram_analyzer());
-                        }
+                        field_mapping.analyzer = Some(analyzers.get(*s).unwrap().clone());
                     }
                 }
                 "boost" => {
