@@ -11,6 +11,7 @@ extern crate byteorder;
 pub mod term;
 pub mod token;
 pub mod analysis;
+pub mod schema;
 pub mod document;
 pub mod store;
 pub mod similarity;
