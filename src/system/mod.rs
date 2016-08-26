@@ -34,8 +34,8 @@ impl System {
         dir
     }
 
-    fn load_index(&self, path: &Path) -> Index {
-        Index::new(MemoryIndexStore::new())
+    fn load_index(&self, name: String, path: &Path) -> Index {
+        Index::new(name, MemoryIndexStore::new())
     }
 
     pub fn load_indices(&self) {
@@ -49,7 +49,10 @@ impl System {
                     if let Some(ext) = path.extension() {
                         if ext.to_str() == Some("rsi") {
                             self.log.info("[sys] loaded index", b!("index" => index_name));
-                            self.indices.write().unwrap().insert(index_name, self.load_index(path.as_path()));
+
+                            let mut indices_w = self.indices.write().unwrap();
+                            let index_ref = indices_w.insert(self.load_index(index_name.clone().to_owned(), path.as_path()));
+                            indices_w.aliases.insert(index_name, index_ref);
                         }
                     }
                 }

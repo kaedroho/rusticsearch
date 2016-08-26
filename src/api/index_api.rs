@@ -40,8 +40,9 @@ pub fn view_put_index(req: &mut Request) -> IronResult<Response> {
     let mut indices_dir = system.get_indices_dir();
     indices_dir.push(index_name);
     indices_dir.set_extension("rsi");
-    let mut index = Index::new(MemoryIndexStore::new());
-    indices.insert(index_name.clone().to_owned(), index);
+    let mut index = Index::new(index_name.clone().to_owned(), MemoryIndexStore::new());
+    let index_ref = indices.insert(index);
+    indices.aliases.insert(index_name.clone().to_owned(), index_ref);
 
     // TODO: load settings
 
@@ -55,14 +56,21 @@ pub fn view_delete_index(req: &mut Request) -> IronResult<Response> {
     let ref system = get_system!(req);
     let ref index_name = read_path_parameter!(req, "index").unwrap_or("");
 
-    // Make sure the index exists
-    get_index_or_404!(system.indices.read().unwrap(), *index_name);
-
     // Lock index array
     let mut indices = system.indices.write().unwrap();
 
+    // Make sure the index exists
+    get_index_or_404!(indices, *index_name);
+
     // Remove index from array
-    indices.remove(index_name.to_owned());
+    let index_ref = match indices.aliases.get(*index_name) {
+        Some(index_ref) => Some(*index_ref),
+        None => None
+    };
+
+    if let Some(ref index_ref) = index_ref {
+        indices.remove(index_ref);
+    }
 
     // Delete file
     let mut indices_dir = system.get_indices_dir();

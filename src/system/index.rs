@@ -8,6 +8,7 @@ use mapping::{Mapping, FieldMapping, MappingRegistry};
 
 #[derive(Debug)]
 pub struct Index {
+    name: String,
     pub analyzers: AnalyzerRegistry,
     pub mappings: MappingRegistry,
     pub aliases: HashSet<String>,
@@ -16,13 +17,18 @@ pub struct Index {
 
 
 impl Index {
-    pub fn new(store: MemoryIndexStore) -> Index {
+    pub fn new(name: String, store: MemoryIndexStore) -> Index {
         Index {
+            name: name,
             analyzers: AnalyzerRegistry::new(),
             mappings: MappingRegistry::new(),
             aliases: HashSet::new(),
             store: store,
         }
+    }
+
+    pub fn name(&self) -> &str {
+        &self.name
     }
 
     pub fn get_mapping_by_name(&self, name: &str) -> Option<&Mapping> {

@@ -18,13 +18,13 @@ pub fn view_get_global_alias(req: &mut Request) -> IronResult<Response> {
 
     // Find alias
     let mut found_aliases = HashMap::new();
-    for (index_name, index) in indices.iter() {
+    for (index_ref, index) in indices.iter() {
         if index.aliases.contains(*alias_name) {
             let mut inner_map = HashMap::new();
             let mut inner_inner_map = HashMap::new();
             inner_inner_map.insert(alias_name, HashMap::<String, String>::new());
             inner_map.insert("aliases".to_owned(), inner_inner_map);
-            found_aliases.insert(index_name, inner_map);
+            found_aliases.insert(index.name().clone(), inner_map);
         }
     }
 
@@ -73,12 +73,23 @@ pub fn view_put_alias(req: &mut Request) -> IronResult<Response> {
     // Lock index array
     let mut indices = system.indices.write().unwrap();
 
-    // Get index
-    let mut index = get_index_or_404_mut!(indices, *index_name);
+    let is_updating = {
+        // Get index
+        let mut index = get_index_or_404_mut!(indices, *index_name);
+
+        // Insert alias into index
+        let is_updating = index.aliases.contains(*alias_name);
+        index.aliases.insert(alias_name.clone().to_owned());
+
+        is_updating
+    };
 
     // Insert alias
-    let is_updating = index.aliases.contains(*alias_name);
-    index.aliases.insert(alias_name.clone().to_owned());
+    let index_ref = indices.aliases.get(*index_name).map(|r| *r);
+
+    if let Some(index_ref) = index_ref {
+        indices.aliases.insert(alias_name.clone().to_owned(), index_ref);
+    }
 
     if is_updating {
         system.log.info("[api] updated alias", b!("index" => *index_name, "alias" => *alias_name));
