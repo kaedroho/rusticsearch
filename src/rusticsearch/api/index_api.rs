@@ -1,5 +1,7 @@
 use std::fs;
+use std::io::Read;
 
+use rustc_serialize::json::Json;
 use kite_rocksdb::RocksDBIndexStore;
 
 use analysis::AnalyzerSpec;
@@ -7,6 +9,7 @@ use analysis::tokenizers::TokenizerSpec;
 use analysis::filters::FilterSpec;
 use analysis::ngram_generator::Edge;
 use index::Index;
+use index::settings::parse as parse_index_settings;
 
 use api::persistent;
 use api::iron::prelude::*;
@@ -36,9 +39,6 @@ pub fn view_put_index(req: &mut Request) -> IronResult<Response> {
 
     // Lock index array
     let mut indices = system.indices.write().unwrap();
-
-    // Load data from body
-    // let data = json_from_request_body!(req);
 
     // Find index
     let index_ref = indices.names.find_canonical(&index_name);
@@ -78,7 +78,10 @@ pub fn view_put_index(req: &mut Request) -> IronResult<Response> {
                 ]
             });
 
-            // TODO: load settings
+            // Load settings
+            if let Some(data) = json_from_request_body!(req) {
+                parse_index_settings(data);
+            }
 
             let index_ref = indices.insert(index);
 
