@@ -22,7 +22,7 @@ impl TermScorer {
 
     pub fn default_with_boost(boost: f64) -> TermScorer {
         TermScorer {
-            similarity_model: SimilarityModel::BM25 {
+            similarity_model: SimilarityModel::Bm25 {
                 k1: 1.2,
                 b: 0.75,
             },

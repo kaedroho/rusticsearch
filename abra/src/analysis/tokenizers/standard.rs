@@ -25,7 +25,7 @@ impl<'a> Iterator for StandardTokenizer<'a> {
 
     fn next(&mut self) -> Option<Token> {
         match self.unicode_words.next() {
-            Some(mut word) => {
+            Some(word) => {
                 self.position_counter += 1;
 
                 Some(Token {

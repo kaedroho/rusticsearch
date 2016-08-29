@@ -38,7 +38,7 @@ impl<'a> Iterator for NGramFilter<'a> {
             match token {
                 Some(token) => {
                     if let Term::String(ref word) = token.term {
-                        let mut ngram_generator = NGramGenerator::new(&word, self.min_size, self.max_size, self.edge);
+                        let ngram_generator = NGramGenerator::new(&word, self.min_size, self.max_size, self.edge);
 
                         for gram in ngram_generator {
                             self.output_buffer.push_back(Token {
