@@ -18,7 +18,7 @@ impl SearchRequest {
     pub fn run<'a, R: IndexReader<'a>>(&self, index_reader: &'a R) -> SearchResponse<'a> {
         // Find all hits
         let mut hits = Vec::new();
-        let mut iterator = build_iterator_from_query(index_reader, &self.query);
+        let iterator = build_iterator_from_query(index_reader, &self.query);
 
         for doc_id in iterator {
             if let Some(doc) = index_reader.get_document_by_id(&doc_id) {
