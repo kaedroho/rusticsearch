@@ -5,12 +5,11 @@ use rustc_serialize::json::{self, Json};
 use abra::store::IndexStore;
 
 use document::DocumentSource;
-use system::System;
 
 use api::persistent;
 use api::iron::prelude::*;
 use api::iron::status;
-use api::utils::{json_response, index_not_found_response};
+use api::utils::{json_response};
 
 
 pub fn view_post_bulk(req: &mut Request) -> IronResult<Response> {

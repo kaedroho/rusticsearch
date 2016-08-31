@@ -1,27 +1,18 @@
 //! Parses "match" queries
 
 use rustc_serialize::json::Json;
-use abra::{Term, Analyzer, Query, TermMatcher, TermScorer};
-
-use mapping::FieldMapping;
+use abra::{Term, Query, TermMatcher, TermScorer};
 
 use query_parser::{QueryParseContext, QueryParseError};
-use query_parser::utils::{parse_string, parse_float, Operator, parse_operator};
 
 
-pub fn parse(context: &QueryParseContext, json: &Json) -> Result<Query, QueryParseError> {
+pub fn parse(_context: &QueryParseContext, json: &Json) -> Result<Query, QueryParseError> {
     let object = try!(json.as_object().ok_or(QueryParseError::ExpectedObject));
 
     let field_name = if object.len() == 1 {
         object.keys().collect::<Vec<_>>()[0]
     } else {
         return Err(QueryParseError::ExpectedSingleKey);
-    };
-
-    // Get mapping for field
-    let field_mapping = match context.mappings {
-        Some(mappings) => mappings.get_field(field_name),
-        None => None,
     };
 
     // Get configuration

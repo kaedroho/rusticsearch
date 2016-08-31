@@ -1,12 +1,12 @@
 //! Parses "match" queries
 
 use rustc_serialize::json::Json;
-use abra::{Term, Analyzer, Query, TermMatcher, TermScorer};
+use abra::{Query, TermMatcher, TermScorer};
 
 use mapping::FieldMapping;
 
 use query_parser::{QueryParseContext, QueryParseError};
-use query_parser::utils::{parse_string, parse_float, Operator, parse_operator};
+use query_parser::utils::{parse_float, Operator, parse_operator};
 
 
 pub fn parse(context: &QueryParseContext, json: &Json) -> Result<Query, QueryParseError> {
@@ -30,7 +30,7 @@ pub fn parse(context: &QueryParseContext, json: &Json) -> Result<Query, QueryPar
     let mut operator = Operator::Or;
 
     match object[field_name] {
-        Json::String(ref string) => query = object[field_name].clone(),
+        Json::String(_) => query = object[field_name].clone(),
         Json::Object(ref inner_object) => {
             let mut has_query_key = false;
 

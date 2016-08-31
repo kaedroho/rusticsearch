@@ -18,7 +18,7 @@ pub fn view_get_global_alias(req: &mut Request) -> IronResult<Response> {
 
     // Find alias
     let mut found_aliases = HashMap::new();
-    for (index_ref, index) in indices.iter() {
+    for (_index_ref, index) in indices.iter() {
         if index.aliases.contains(*alias_name) {
             let mut inner_map = HashMap::new();
             let mut inner_inner_map = HashMap::new();

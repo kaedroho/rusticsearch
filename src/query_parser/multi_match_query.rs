@@ -1,7 +1,7 @@
 //! Parses "multi_match" queries
 
 use rustc_serialize::json::Json;
-use abra::{Term, Analyzer, Query, TermMatcher, TermScorer};
+use abra::{Query, TermMatcher, TermScorer};
 
 use mapping::FieldMapping;
 

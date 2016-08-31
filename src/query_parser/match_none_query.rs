@@ -6,11 +6,11 @@ use abra::Query;
 use query_parser::{QueryParseContext, QueryParseError};
 
 
-pub fn parse(context: &QueryParseContext, json: &Json) -> Result<Query, QueryParseError> {
+pub fn parse(_context: &QueryParseContext, json: &Json) -> Result<Query, QueryParseError> {
     let object = try!(json.as_object().ok_or(QueryParseError::ExpectedObject));
 
     // Get configuration
-    for (key, value) in object.iter() {
+    for (key, _value) in object.iter() {
         match &key[..] {
             _ => return Err(QueryParseError::UnrecognisedKey(key.clone()))
         }

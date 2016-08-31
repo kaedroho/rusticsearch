@@ -1,6 +1,3 @@
-use std::io::Read;
-
-use rustc_serialize::json::Json;
 use abra::store::memory::MemoryIndexStore;
 
 use system::index::Index;
@@ -19,9 +16,10 @@ pub fn view_get_index(req: &mut Request) -> IronResult<Response> {
     // Lock index array
     let indices = system.indices.read().unwrap();
 
-    // Get index
-    let index = get_index_or_404!(indices, *index_name);
+    // Check index exists
+    get_index_or_404!(indices, *index_name);
 
+    // TODO
     return Ok(json_response(status::Ok, "{}"));
 }
 
@@ -40,7 +38,7 @@ pub fn view_put_index(req: &mut Request) -> IronResult<Response> {
     let mut indices_dir = system.get_indices_dir();
     indices_dir.push(index_name);
     indices_dir.set_extension("rsi");
-    let mut index = Index::new(index_name.clone().to_owned(), MemoryIndexStore::new());
+    let index = Index::new(index_name.clone().to_owned(), MemoryIndexStore::new());
     let index_ref = indices.insert(index);
     indices.aliases.insert(index_name.clone().to_owned(), index_ref);
 
@@ -85,11 +83,12 @@ pub fn view_delete_index(req: &mut Request) -> IronResult<Response> {
 
 
 pub fn view_post_refresh_index(req: &mut Request) -> IronResult<Response> {
-    let ref system = get_system!(req);
-    let ref index_name = read_path_parameter!(req, "index").unwrap_or("");
+    // let ref system = get_system!(req);
+    // let ref index_name = read_path_parameter!(req, "index").unwrap_or("");
 
     // Lock index array
-    let mut indices = system.indices.write().unwrap();
+    // TODO
+    // let mut indices = system.indices.write().unwrap();
 
     // TODO: {"_shards":{"total":10,"successful":5,"failed":0}}
     return Ok(json_response(status::Ok, "{\"acknowledged\": true}"));

@@ -7,7 +7,7 @@ use query_parser::{QueryParseContext, QueryParseError};
 use query_parser::utils::parse_float;
 
 
-pub fn parse(context: &QueryParseContext, json: &Json) -> Result<Query, QueryParseError> {
+pub fn parse(_context: &QueryParseContext, json: &Json) -> Result<Query, QueryParseError> {
     let object = try!(json.as_object().ok_or(QueryParseError::ExpectedObject));
 
     let field_name = if object.len() == 1 {
@@ -23,7 +23,7 @@ pub fn parse(context: &QueryParseContext, json: &Json) -> Result<Query, QueryPar
     let mut boost = 1.0f64;
 
     match *object {
-        Json::String(ref string) => value = Some(object),
+        Json::String(_) => value = Some(object),
         Json::Object(ref inner_object) => {
             for (key, val) in inner_object.iter() {
                 match key.as_ref() {

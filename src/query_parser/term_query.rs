@@ -7,7 +7,7 @@ use query_parser::{QueryParseContext, QueryParseError};
 use query_parser::utils::parse_float;
 
 
-pub fn parse(context: &QueryParseContext, json: &Json) -> Result<Query, QueryParseError> {
+pub fn parse(_context: &QueryParseContext, json: &Json) -> Result<Query, QueryParseError> {
     let object = try!(json.as_object().ok_or(QueryParseError::ExpectedObject));
 
     let field_name = if object.len() == 1 {
