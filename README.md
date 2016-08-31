@@ -7,8 +7,8 @@ A search server with an Elasticsearch-compatible REST API, written in [Rust](htt
 ## Project Goals
 
  - Decent performance with predictible resource usage
+ - Focus on simplicity and stability over features
  - Secure out of the box
- - Rock solid reliability
  - Elasticsearch compatibility (where it makes sense)
  - Simple to install and operate
 
