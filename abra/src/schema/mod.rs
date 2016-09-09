@@ -32,10 +32,17 @@ impl FieldInfo {
 pub struct FieldRef(u32);
 
 
+#[derive(Debug)]
+pub enum AddFieldError {
+    FieldAlreadyExists(String),
+}
+
+
 #[derive(Debug, Clone)]
 pub struct Schema {
     next_field_id: u32,
     fields: HashMap<FieldRef, FieldInfo>,
+    field_names: HashMap<String, FieldRef>,
 }
 
 
@@ -44,6 +51,7 @@ impl Schema {
         Schema {
             next_field_id: 1,
             fields: HashMap::new(),
+            field_names: HashMap::new(),
         }
     }
 
@@ -54,23 +62,22 @@ impl Schema {
         field_ref
     }
 
-    pub fn add_field(&mut self, name: String, field_type: FieldType) -> FieldRef {
+    pub fn add_field(&mut self, name: String, field_type: FieldType) -> Result<FieldRef, AddFieldError> {
+        if self.field_names.contains_key(&name) {
+            return Err(AddFieldError::FieldAlreadyExists(name));
+        }
+
         let field_ref = self.new_field_ref();
-        let field_info = FieldInfo::new(name, field_type);
+        let field_info = FieldInfo::new(name.clone(), field_type);
 
         self.fields.insert(field_ref, field_info);
+        self.field_names.insert(name, field_ref);
 
-        field_ref
+        Ok(field_ref)
     }
 
     pub fn get_field_by_name(&self, name: &str) -> Option<FieldRef> {
-        for (field_ref, field_info) in self.fields.iter() {
-            if field_info.name == name {
-                return Some(*field_ref);
-            }
-        }
-
-        None
+        self.field_names.get(name).cloned()
     }
 }
 
