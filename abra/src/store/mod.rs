@@ -1,7 +1,7 @@
 pub mod memory;
 
 use document::Document;
-use schema::{Schema, FieldType, FieldRef};
+use schema::{Schema, FieldType, FieldRef, AddFieldError};
 
 
 pub trait IndexReader<'a> {
@@ -31,7 +31,7 @@ pub trait IndexStore<'a> {
     type Reader: IndexReader<'a>;
 
     fn reader(&'a self) -> Self::Reader;
-    fn add_field(&mut self, name: String, field_type: FieldType) -> FieldRef;
+    fn add_field(&mut self, name: String, field_type: FieldType) -> Result<FieldRef, AddFieldError>;
     fn remove_field(&mut self, field_ref: &FieldRef) -> bool;
     fn insert_or_update_document(&mut self, doc: Document);
     fn remove_document_by_key(&mut self, doc_key: &str) -> bool;

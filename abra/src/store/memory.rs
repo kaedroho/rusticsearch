@@ -4,7 +4,7 @@ use std::collections::{BTreeMap, HashMap};
 use std::collections::btree_map::Keys;
 
 use document::Document;
-use schema::{Schema, FieldType, FieldRef};
+use schema::{Schema, FieldType, FieldRef, AddFieldError};
 use store::{IndexStore, IndexReader, DocRefIterator};
 
 
@@ -74,11 +74,11 @@ impl<'a> IndexStore<'a> for MemoryIndexStore {
         }
     }
 
-    fn add_field(&mut self, name: String, field_type: FieldType) -> FieldRef {
-        let field_ref = self.schema.add_field(name, field_type);
+    fn add_field(&mut self, name: String, field_type: FieldType) -> Result<FieldRef, AddFieldError> {
+        let field_ref = try!(self.schema.add_field(name, field_type));
         self.fields.insert(field_ref, MemoryIndexStoreField::new());
 
-        field_ref
+        Ok(field_ref)
     }
 
     fn remove_field(&mut self, field_ref: &FieldRef) -> bool {
@@ -264,8 +264,8 @@ mod tests {
 
     fn make_test_store() -> MemoryIndexStore {
         let mut store = MemoryIndexStore::new();
-        let mut title_field = store.add_field("title".to_string(), FieldType::Text);
-        let mut body_field = store.add_field("body".to_string(), FieldType::Text);
+        let mut title_field = store.add_field("title".to_string(), FieldType::Text).unwrap();
+        let mut body_field = store.add_field("body".to_string(), FieldType::Text).unwrap();
 
         store.insert_or_update_document(Document {
             key: "test_doc".to_string(),
