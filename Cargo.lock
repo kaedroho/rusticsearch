@@ -3,6 +3,7 @@ name = "rusticsearch"
 version = "0.1.0"
 dependencies = [
  "abra 0.0.1",
+ "abra_rocksdb 0.0.1",
  "byteorder 0.5.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "chrono 0.2.22 (registry+https://github.com/rust-lang/crates.io-index)",
  "iron 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -30,6 +31,10 @@ dependencies = [
  "rustc-serialize 0.3.19 (registry+https://github.com/rust-lang/crates.io-index)",
  "unicode-segmentation 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
+
+[[package]]
+name = "abra_rocksdb"
+version = "0.0.1"
 
 [[package]]
 name = "ansi_term"

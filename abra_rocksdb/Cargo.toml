@@ -1,0 +1,11 @@
+[package]
+name = "abra_rocksdb"
+version = "0.0.1"
+authors = ["Karl Hobley <karlhobley10@gmail.com>"]
+
+[dependencies]
+rocksdb = "0.4.1"
+
+[dependencies.abra]
+path = "../abra"
+version = "0.0.1"

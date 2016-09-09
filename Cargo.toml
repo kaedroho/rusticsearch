@@ -22,3 +22,7 @@ slog-term = "0.6"
 [dependencies.abra]
 path = "abra"
 version = "0.0.1"
+
+[dependencies.abra_rocksdb]
+path = "abra_rocksdb"
+version = "0.0.1"
