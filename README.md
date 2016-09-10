@@ -8,9 +8,9 @@ A search server with an Elasticsearch-compatible REST API, written in [Rust](htt
 
  - Decent performance with predictible resource usage
  - Focus on simplicity and stability over features
- - Secure out of the box
  - Elasticsearch compatibility (where it makes sense)
  - Simple to install and operate
+ - Secure out of the box
 
 ## Personal Goals
 
