@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::ops::Deref;
 
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum FieldType {
     Text,
     PlainString,
@@ -14,7 +14,7 @@ pub enum FieldType {
 #[derive(Debug, Clone)]
 pub struct FieldInfo {
     name: String,
-    field_type: FieldType,
+    pub field_type: FieldType,
 }
 
 
