@@ -1,4 +1,4 @@
-use std::collections::BTreeMap;
+use std::collections::HashMap;
 
 use rustc_serialize::json::Json;
 use abra::{Term, Token, Document};
@@ -15,7 +15,7 @@ pub struct DocumentSource {
 
 impl DocumentSource {
     pub fn prepare(&self, mapping: &Mapping) -> Document {
-        let mut fields = BTreeMap::new();
+        let mut fields = HashMap::new();
         let mut all_field_strings: Vec<String> = Vec::new();
 
         for (field_name, field_value) in self.data.as_object().unwrap() {
@@ -38,7 +38,7 @@ impl DocumentSource {
                             }
 
                             // Insert the field
-                            fields.insert(field_name.clone(), value);
+                            fields.insert(field_mapping.index_ref.expect("Attempted to prepare a document with an unlinked mapping"), value);
                         }
                         None => {
                             // TODO: Should probably be an error
@@ -49,25 +49,31 @@ impl DocumentSource {
                 None => {
                     // No mapping found, just insert the value as-is
                     // TODO: This should probably be an error
-                    if let Some(term) = Term::from_json(field_value) {
-                        fields.insert(field_name.clone(), vec![Token{term: term, position: 1}]);
-                    }
+                    // if let Some(term) = Term::from_json(field_value) {
+                    //     fields.insert(field_name.clone(), vec![Token{term: term, position: 1}]);
+                    // }
                 }
             }
         }
 
         // Insert _all field
-        let all_field_mapping = FieldMapping::default();
-        let all_field_strings_json = Json::String(all_field_strings.join(" "));
-        let all_field_value = all_field_mapping.process_value_for_index(all_field_strings_json.clone());
+        match mapping.fields.get("_all") {
+            Some(field_mapping) => {
+                let strings_json = Json::String(all_field_strings.join(" "));
+                let value = field_mapping.process_value_for_index(strings_json.clone());
 
-        match all_field_value {
-            Some(all_field_value) => {
-                fields.insert("_all".to_owned(), all_field_value);
+                match value {
+                    Some(value) => {
+                        fields.insert(field_mapping.index_ref.expect("Attempted to prepare a document with an unlinked mapping"), value);
+                    }
+                    None => {
+                        // TODO: Should probably be an error
+                        warn!("Unprocessable value: {}", strings_json);
+                    }
+                }
             }
             None => {
-                // TODO: Should probably be an error
-                warn!("Unprocessable value: {}", all_field_strings_json);
+                // _all field disabled for this mapping
             }
         }
 

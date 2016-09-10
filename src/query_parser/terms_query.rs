@@ -6,13 +6,19 @@ use abra::{Term, Query, TermMatcher, TermScorer};
 use query_parser::{QueryParseContext, QueryParseError};
 
 
-pub fn parse(_context: &QueryParseContext, json: &Json) -> Result<Query, QueryParseError> {
+pub fn parse(context: &QueryParseContext, json: &Json) -> Result<Query, QueryParseError> {
     let object = try!(json.as_object().ok_or(QueryParseError::ExpectedObject));
 
     let field_name = if object.len() == 1 {
         object.keys().collect::<Vec<_>>()[0]
     } else {
         return Err(QueryParseError::ExpectedSingleKey);
+    };
+
+    // Get mapping for field
+    let field_mapping = match context.mappings {
+        Some(mappings) => mappings.get_field(field_name),
+        None => None,
     };
 
     // Get configuration
@@ -28,7 +34,7 @@ pub fn parse(_context: &QueryParseContext, json: &Json) -> Result<Query, QueryPa
         match Term::from_json(&term) {
             Some(term) => {
                 sub_queries.push(Query::MatchTerm {
-                    field: field_name.clone(),
+                    field: field_mapping.unwrap().index_ref.unwrap(), // TODO: What if field_ref is None?
                     term: term,
                     matcher: TermMatcher::Exact,
                     scorer: TermScorer::default(),

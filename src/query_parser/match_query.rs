@@ -85,7 +85,7 @@ pub fn parse(context: &QueryParseContext, json: &Json) -> Result<Query, QueryPar
     let mut sub_queries = Vec::new();
     for token in tokens {
         sub_queries.push(Query::MatchTerm {
-            field: field_name.clone(),
+            field: field_mapping.unwrap().index_ref.unwrap(), // TODO: What if field_ref is None?
             term: token.term,
             matcher: TermMatcher::Exact,
             scorer: TermScorer::default(),

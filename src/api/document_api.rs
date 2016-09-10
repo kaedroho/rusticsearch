@@ -43,9 +43,9 @@ pub fn view_get_doc(req: &mut Request) -> IronResult<Response> {
     // Build JSON document
     // TODO: This is probably completely wrong
     let mut json_object = BTreeMap::new();
-    for (field_name, field_value) in doc.fields.iter() {
-        json_object.insert(field_name.clone(), Json::Array(field_value.iter().map(|v| v.term.as_json()).collect::<Vec<_>>()));
-    }
+    // FIXME: for (field_name, field_value) in doc.fields.iter() {
+    // FIXME:     json_object.insert(field_name.clone(), Json::Array(field_value.iter().map(|v| v.term.as_json()).collect::<Vec<_>>()));
+    // FIXME: }
 
     let json = Json::Object(json_object);
     return Ok(json_response(status::Ok, json::encode(&json).unwrap()));

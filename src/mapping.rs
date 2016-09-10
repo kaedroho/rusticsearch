@@ -8,6 +8,7 @@ use abra::analysis::AnalyzerSpec;
 use abra::analysis::registry::AnalyzerRegistry;
 use abra::analysis::tokenizers::TokenizerSpec;
 use abra::analysis::filters::FilterSpec;
+use abra::schema::FieldRef;
 
 
 // TEMPORARY
@@ -40,7 +41,8 @@ impl Default for FieldType {
 
 #[derive(Debug)]
 pub struct FieldMapping {
-    data_type: FieldType,
+    pub data_type: FieldType,
+    pub index_ref: Option<FieldRef>,
     is_stored: bool,
     pub is_in_all: bool,
     boost: f64,
@@ -54,6 +56,7 @@ impl Default for FieldMapping {
     fn default() -> FieldMapping {
         FieldMapping {
             data_type: FieldType::default(),
+            index_ref: None,
             is_stored: false,
             is_in_all: true,
             boost: 1.0f64,
@@ -179,6 +182,17 @@ impl Mapping {
         for (field_name, field_mapping_json) in properties_json.iter() {
             fields.insert(field_name.clone(),
                           FieldMapping::from_json(analyzers, field_mapping_json));
+        }
+
+        // Insert _all field
+        if !fields.contains_key("_all") {
+            // TODO: Support disabling the _all field
+            fields.insert("_all".to_string(), FieldMapping {
+                data_type: FieldType::String,
+                is_stored: false,
+                is_in_all: false,
+                .. FieldMapping::default()
+            });
         }
 
         Mapping { fields: fields }

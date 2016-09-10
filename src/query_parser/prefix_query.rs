@@ -7,7 +7,7 @@ use query_parser::{QueryParseContext, QueryParseError};
 use query_parser::utils::parse_float;
 
 
-pub fn parse(_context: &QueryParseContext, json: &Json) -> Result<Query, QueryParseError> {
+pub fn parse(context: &QueryParseContext, json: &Json) -> Result<Query, QueryParseError> {
     let object = try!(json.as_object().ok_or(QueryParseError::ExpectedObject));
 
     let field_name = if object.len() == 1 {
@@ -17,6 +17,12 @@ pub fn parse(_context: &QueryParseContext, json: &Json) -> Result<Query, QueryPa
     };
 
     let object = object.get(field_name).unwrap();
+
+    // Get mapping for field
+    let field_mapping = match context.mappings {
+        Some(mappings) => mappings.get_field(field_name),
+        None => None,
+    };
 
     // Get configuration
     let mut value: Option<&Json> = None;
@@ -47,7 +53,7 @@ pub fn parse(_context: &QueryParseContext, json: &Json) -> Result<Query, QueryPa
         Some(value) => {
             if let Json::String(ref string) = *value {
                 let mut query = Query::MatchTerm {
-                    field: field_name.clone(),
+                    field: field_mapping.unwrap().index_ref.unwrap(), // TODO: What if field_ref is None?
                     term: Term::String(string.clone()),
                     matcher: TermMatcher::Prefix,
                     scorer: TermScorer::default(),
