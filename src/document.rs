@@ -47,11 +47,8 @@ impl DocumentSource {
                     }
                 }
                 None => {
-                    // No mapping found, just insert the value as-is
+                    // No mapping found
                     // TODO: This should probably be an error
-                    // if let Some(term) = Term::from_json(field_value) {
-                    //     fields.insert(field_name.clone(), vec![Token{term: term, position: 1}]);
-                    // }
                 }
             }
         }
