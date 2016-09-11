@@ -58,7 +58,7 @@ fn bench_all(b: &mut Bencher) {
 
     b.iter(|| {
         let mut iterator: QuerySetIterator<MemoryIndexStoreReader> = QuerySetIterator::All {
-            iter: reader.iter_docids_all(),
+            iter: reader.iter_all_docs(),
         };
 
         for doc_id in iterator {}
@@ -76,7 +76,7 @@ fn bench_fizz_term(b: &mut Bencher) {
 
     b.iter(|| {
         let mut iterator: QuerySetIterator<MemoryIndexStoreReader> = QuerySetIterator::Term {
-            iter: reader.iter_docids_with_term(&fizz_term, &body_field).unwrap(),
+            iter: reader.iter_docs_with_term(&fizz_term, &body_field).unwrap(),
         };
 
         for doc_id in iterator {}
@@ -94,7 +94,7 @@ fn bench_buzz_term(b: &mut Bencher) {
 
     b.iter(|| {
         let mut iterator: QuerySetIterator<MemoryIndexStoreReader> = QuerySetIterator::Term {
-            iter: reader.iter_docids_with_term(&buzz_term, &body_field).unwrap(),
+            iter: reader.iter_docs_with_term(&buzz_term, &body_field).unwrap(),
         };
 
         for doc_id in iterator {}
@@ -113,10 +113,10 @@ fn bench_fizzbuzz_conjunction(b: &mut Bencher) {
 
     b.iter(|| {
         let mut fizz_iterator: QuerySetIterator<MemoryIndexStoreReader> = QuerySetIterator::Term {
-            iter: reader.iter_docids_with_term(&fizz_term, &body_field).unwrap(),
+            iter: reader.iter_docs_with_term(&fizz_term, &body_field).unwrap(),
         };
         let mut buzz_iterator: QuerySetIterator<MemoryIndexStoreReader> = QuerySetIterator::Term {
-            iter: reader.iter_docids_with_term(&buzz_term, &body_field).unwrap(),
+            iter: reader.iter_docs_with_term(&buzz_term, &body_field).unwrap(),
         };
         let mut iterator: QuerySetIterator<MemoryIndexStoreReader> = QuerySetIterator::Conjunction {
             iter_a: Box::new(fizz_iterator),
@@ -142,10 +142,10 @@ fn bench_fizzbuzz_disjunction(b: &mut Bencher) {
 
     b.iter(|| {
         let mut fizz_iterator: QuerySetIterator<MemoryIndexStoreReader> = QuerySetIterator::Term {
-            iter: reader.iter_docids_with_term(&fizz_term, &body_field).unwrap(),
+            iter: reader.iter_docs_with_term(&fizz_term, &body_field).unwrap(),
         };
         let mut buzz_iterator: QuerySetIterator<MemoryIndexStoreReader> = QuerySetIterator::Term {
-            iter: reader.iter_docids_with_term(&buzz_term, &body_field).unwrap(),
+            iter: reader.iter_docs_with_term(&buzz_term, &body_field).unwrap(),
         };
         let mut iterator: QuerySetIterator<MemoryIndexStoreReader> = QuerySetIterator::Disjunction {
             iter_a: Box::new(fizz_iterator),
@@ -171,10 +171,10 @@ fn bench_fizzbuzz_exclusion(b: &mut Bencher) {
 
     b.iter(|| {
         let mut fizz_iterator: QuerySetIterator<MemoryIndexStoreReader> = QuerySetIterator::Term {
-            iter: reader.iter_docids_with_term(&fizz_term, &body_field).unwrap(),
+            iter: reader.iter_docs_with_term(&fizz_term, &body_field).unwrap(),
         };
         let mut buzz_iterator: QuerySetIterator<MemoryIndexStoreReader> = QuerySetIterator::Term {
-            iter: reader.iter_docids_with_term(&buzz_term, &body_field).unwrap(),
+            iter: reader.iter_docs_with_term(&buzz_term, &body_field).unwrap(),
         };
         let mut iterator: QuerySetIterator<MemoryIndexStoreReader> = QuerySetIterator::Exclusion {
             iter_a: Box::new(fizz_iterator),

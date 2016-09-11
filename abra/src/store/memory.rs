@@ -162,13 +162,13 @@ impl<'a> IndexReader<'a> for MemoryIndexStoreReader<'a> {
         self.store.docs.len()
     }
 
-    fn iter_docids_all(&'a self) -> MemoryIndexStoreAllDocRefIterator<'a> {
+    fn iter_all_docs(&'a self) -> MemoryIndexStoreAllDocRefIterator<'a> {
         MemoryIndexStoreAllDocRefIterator {
             keys: self.store.docs.keys(),
         }
     }
 
-    fn iter_docids_with_term(&'a self, term: &[u8], field_ref: &FieldRef) -> Option<MemoryIndexStoreTermDocRefIterator<'a>> {
+    fn iter_docs_with_term(&'a self, term: &[u8], field_ref: &FieldRef) -> Option<MemoryIndexStoreTermDocRefIterator<'a>> {
         let field = match self.store.fields.get(field_ref) {
             Some(field) => field,
             None => return None,
@@ -184,7 +184,7 @@ impl<'a> IndexReader<'a> for MemoryIndexStoreReader<'a> {
         })
     }
 
-    fn iter_terms(&'a self, field_ref: &FieldRef) -> Option<Box<Iterator<Item=&'a [u8]> + 'a>> {
+    fn iter_all_terms(&'a self, field_ref: &FieldRef) -> Option<Box<Iterator<Item=&'a [u8]> + 'a>> {
         let field = match self.store.fields.get(field_ref) {
             Some(field) => field,
             None => return None,
@@ -193,7 +193,7 @@ impl<'a> IndexReader<'a> for MemoryIndexStoreReader<'a> {
         Some(Box::new(field.terms.keys().map(|t| &t[..])))
     }
 
-    fn term_doc_freq(&'a self, term: &[u8], field_ref: &FieldRef) -> u64 {
+    fn num_docs_with_term(&'a self, term: &[u8], field_ref: &FieldRef) -> u64 {
         let field = match self.store.fields.get(field_ref) {
             Some(field) => field,
             None => return 0,
@@ -313,7 +313,7 @@ mod tests {
         let store = make_test_store();
         let reader = store.reader();
 
-        assert_eq!(reader.iter_docids_all().count(), 2);
+        assert_eq!(reader.iter_all_docs().count(), 2);
     }
 
     #[test]
@@ -322,6 +322,6 @@ mod tests {
         let reader = store.reader();
         let title_field = reader.schema().get_field_by_name("title").unwrap();
 
-        assert_eq!(reader.iter_docids_with_term(&Term::String("hello".to_string()).to_bytes(), &title_field).unwrap().count(), 1);
+        assert_eq!(reader.iter_docs_with_term(&Term::String("hello".to_string()).to_bytes(), &title_field).unwrap().count(), 1);
     }
 }
