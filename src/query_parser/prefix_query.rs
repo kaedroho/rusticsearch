@@ -53,7 +53,7 @@ pub fn parse(context: &QueryParseContext, json: &Json) -> Result<Query, QueryPar
         Some(value) => {
             if let Json::String(ref string) = *value {
                 let mut query = Query::MatchTerm {
-                    field: field_mapping.unwrap().index_ref.unwrap(), // TODO: What if field_ref is None?
+                    field: context.schema.get_field_by_name(&field_name).unwrap(), // TODO: Error if field doesn't exist
                     term: Term::String(string.clone()),
                     matcher: TermMatcher::Prefix,
                     scorer: TermScorer::default(),
@@ -77,14 +77,23 @@ mod tests {
     use rustc_serialize::json::Json;
 
     use abra::{Term, Query, TermMatcher, TermScorer};
+    use abra::schema::{Schema, FieldType, FieldRef};
 
     use query_parser::{QueryParseContext, QueryParseError};
+    use mapping::{MappingRegistry, Mapping, FieldMapping};
 
     use super::parse;
 
+    fn make_one_field_schema() -> (Schema, FieldRef) {
+        let mut schema = Schema::new();
+        let foo_field = schema.add_field("foo".to_string(), FieldType::Text).unwrap();
+        (schema, foo_field)
+    }
+
     #[test]
     fn test_prefix_query() {
-        let query = parse(&QueryParseContext::new(), &Json::from_str("
+        let (schema, foo_field) = make_one_field_schema();
+        let query = parse(&QueryParseContext::new(&schema), &Json::from_str("
         {
             \"foo\": {
                 \"value\": \"bar\"
@@ -93,7 +102,7 @@ mod tests {
         ").unwrap());
 
         assert_eq!(query, Ok(Query::MatchTerm {
-            field: "foo".to_string(),
+            field: foo_field,
             term: Term::String("bar".to_string()),
             matcher: TermMatcher::Prefix,
             scorer: TermScorer::default(),
@@ -102,14 +111,15 @@ mod tests {
 
     #[test]
     fn test_simple_prefix_query() {
-        let query = parse(&QueryParseContext::new(), &Json::from_str("
+        let (schema, foo_field) = make_one_field_schema();
+        let query = parse(&QueryParseContext::new(&schema), &Json::from_str("
         {
             \"foo\": \"bar\"
         }
         ").unwrap());
 
         assert_eq!(query, Ok(Query::MatchTerm {
-            field: "foo".to_string(),
+            field: foo_field,
             term: Term::String("bar".to_string()),
             matcher: TermMatcher::Prefix,
             scorer: TermScorer::default(),
@@ -118,7 +128,8 @@ mod tests {
 
     #[test]
     fn test_with_prefix_key() {
-        let query = parse(&QueryParseContext::new(), &Json::from_str("
+        let (schema, foo_field) = make_one_field_schema();
+        let query = parse(&QueryParseContext::new(&schema), &Json::from_str("
         {
             \"foo\": {
                 \"prefix\": \"bar\"
@@ -127,7 +138,7 @@ mod tests {
         ").unwrap());
 
         assert_eq!(query, Ok(Query::MatchTerm {
-            field: "foo".to_string(),
+            field: foo_field,
             term: Term::String("bar".to_string()),
             matcher: TermMatcher::Prefix,
             scorer: TermScorer::default(),
@@ -136,7 +147,8 @@ mod tests {
 
     #[test]
     fn test_with_boost() {
-        let query = parse(&QueryParseContext::new(), &Json::from_str("
+        let (schema, foo_field) = make_one_field_schema();
+        let query = parse(&QueryParseContext::new(&schema), &Json::from_str("
         {
             \"foo\": {
                 \"value\": \"bar\",
@@ -146,7 +158,7 @@ mod tests {
         ").unwrap());
 
         assert_eq!(query, Ok(Query::MatchTerm {
-            field: "foo".to_string(),
+            field: foo_field,
             term: Term::String("bar".to_string()),
             matcher: TermMatcher::Prefix,
             scorer: TermScorer::default_with_boost(2.0f64),
@@ -155,7 +167,8 @@ mod tests {
 
     #[test]
     fn test_with_boost_integer() {
-        let query = parse(&QueryParseContext::new(), &Json::from_str("
+        let (schema, foo_field) = make_one_field_schema();
+        let query = parse(&QueryParseContext::new(&schema), &Json::from_str("
         {
             \"foo\": {
                 \"value\": \"bar\",
@@ -165,7 +178,7 @@ mod tests {
         ").unwrap());
 
         assert_eq!(query, Ok(Query::MatchTerm {
-            field: "foo".to_string(),
+            field: foo_field,
             term: Term::String("bar".to_string()),
             matcher: TermMatcher::Prefix,
             scorer: TermScorer::default_with_boost(2.0f64),
@@ -174,8 +187,10 @@ mod tests {
 
     #[test]
     fn test_gives_error_for_incorrect_type() {
+        let (schema, foo_field) = make_one_field_schema();
+
         // Array
-        let query = parse(&QueryParseContext::new(), &Json::from_str("
+        let query = parse(&QueryParseContext::new(&schema), &Json::from_str("
         [
             \"foo\"
         ]
@@ -184,14 +199,14 @@ mod tests {
         assert_eq!(query, Err(QueryParseError::ExpectedObject));
 
         // Integer
-        let query = parse(&QueryParseContext::new(), &Json::from_str("
+        let query = parse(&QueryParseContext::new(&schema), &Json::from_str("
         123
         ").unwrap());
 
         assert_eq!(query, Err(QueryParseError::ExpectedObject));
 
         // Float
-        let query = parse(&QueryParseContext::new(), &Json::from_str("
+        let query = parse(&QueryParseContext::new(&schema), &Json::from_str("
         123.1234
         ").unwrap());
 
@@ -200,8 +215,10 @@ mod tests {
 
     #[test]
     fn test_gives_error_for_incorrect_boost_type() {
+        let (schema, foo_field) = make_one_field_schema();
+
         // String
-        let query = parse(&QueryParseContext::new(), &Json::from_str("
+        let query = parse(&QueryParseContext::new(&schema), &Json::from_str("
         {
             \"foo\": {
                 \"query\": \"bar\",
@@ -213,7 +230,7 @@ mod tests {
         assert_eq!(query, Err(QueryParseError::ExpectedFloat));
 
         // Array
-        let query = parse(&QueryParseContext::new(), &Json::from_str("
+        let query = parse(&QueryParseContext::new(&schema), &Json::from_str("
         {
             \"foo\": {
                 \"query\": \"bar\",
@@ -225,7 +242,7 @@ mod tests {
         assert_eq!(query, Err(QueryParseError::ExpectedFloat));
 
         // Object
-        let query = parse(&QueryParseContext::new(), &Json::from_str("
+        let query = parse(&QueryParseContext::new(&schema), &Json::from_str("
         {
             \"foo\": {
                 \"query\": \"bar\",
@@ -241,7 +258,9 @@ mod tests {
 
     #[test]
     fn test_gives_error_for_missing_value() {
-        let query = parse(&QueryParseContext::new(), &Json::from_str("
+        let (schema, foo_field) = make_one_field_schema();
+
+        let query = parse(&QueryParseContext::new(&schema), &Json::from_str("
         {
             \"foo\": {
             }
@@ -253,7 +272,9 @@ mod tests {
 
     #[test]
     fn test_gives_error_for_extra_key() {
-        let query = parse(&QueryParseContext::new(), &Json::from_str("
+        let (schema, foo_field) = make_one_field_schema();
+
+        let query = parse(&QueryParseContext::new(&schema), &Json::from_str("
         {
             \"foo\": {
                 \"query\": \"bar\"
@@ -267,7 +288,9 @@ mod tests {
 
     #[test]
     fn test_gives_error_for_extra_inner_key() {
-        let query = parse(&QueryParseContext::new(), &Json::from_str("
+        let (schema, foo_field) = make_one_field_schema();
+
+        let query = parse(&QueryParseContext::new(&schema), &Json::from_str("
         {
             \"foo\": {
                 \"query\": \"bar\",

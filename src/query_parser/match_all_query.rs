@@ -37,6 +37,7 @@ mod tests {
     use rustc_serialize::json::Json;
 
     use abra::{Term, Query, TermMatcher, TermScorer};
+    use abra::schema::Schema;
 
     use query_parser::{QueryParseContext, QueryParseError};
 
@@ -44,7 +45,8 @@ mod tests {
 
     #[test]
     fn test_match_all_query() {
-        let query = parse(&QueryParseContext::new(), &Json::from_str("
+        let schema = Schema::new();
+        let query = parse(&QueryParseContext::new(&schema), &Json::from_str("
         {
         }
         ").unwrap());
@@ -54,7 +56,8 @@ mod tests {
 
     #[test]
     fn test_with_boost() {
-        let query = parse(&QueryParseContext::new(), &Json::from_str("
+        let schema = Schema::new();
+        let query = parse(&QueryParseContext::new(&schema), &Json::from_str("
         {
             \"boost\": 2.0
         }
@@ -65,7 +68,8 @@ mod tests {
 
     #[test]
     fn test_with_boost_integer() {
-        let query = parse(&QueryParseContext::new(), &Json::from_str("
+        let schema = Schema::new();
+        let query = parse(&QueryParseContext::new(&schema), &Json::from_str("
         {
             \"boost\": 2
         }
@@ -76,8 +80,10 @@ mod tests {
 
     #[test]
     fn test_gives_error_for_incorrect_type() {
+        let schema = Schema::new();
+
         // Array
-        let query = parse(&QueryParseContext::new(), &Json::from_str("
+        let query = parse(&QueryParseContext::new(&schema), &Json::from_str("
         [
             \"foo\"
         ]
@@ -86,14 +92,14 @@ mod tests {
         assert_eq!(query, Err(QueryParseError::ExpectedObject));
 
         // Integer
-        let query = parse(&QueryParseContext::new(), &Json::from_str("
+        let query = parse(&QueryParseContext::new(&schema), &Json::from_str("
         123
         ").unwrap());
 
         assert_eq!(query, Err(QueryParseError::ExpectedObject));
 
         // Float
-        let query = parse(&QueryParseContext::new(), &Json::from_str("
+        let query = parse(&QueryParseContext::new(&schema), &Json::from_str("
         123.1234
         ").unwrap());
 
@@ -102,8 +108,10 @@ mod tests {
 
     #[test]
     fn test_gives_error_for_incorrect_boost_type() {
+        let schema = Schema::new();
+
         // String
-        let query = parse(&QueryParseContext::new(), &Json::from_str("
+        let query = parse(&QueryParseContext::new(&schema), &Json::from_str("
         {
             \"boost\": \"2\"
         }
@@ -112,7 +120,7 @@ mod tests {
         assert_eq!(query, Err(QueryParseError::ExpectedFloat));
 
         // Array
-        let query = parse(&QueryParseContext::new(), &Json::from_str("
+        let query = parse(&QueryParseContext::new(&schema), &Json::from_str("
         {
             \"boost\": [2]
         }
@@ -121,7 +129,7 @@ mod tests {
         assert_eq!(query, Err(QueryParseError::ExpectedFloat));
 
         // Object
-        let query = parse(&QueryParseContext::new(), &Json::from_str("
+        let query = parse(&QueryParseContext::new(&schema), &Json::from_str("
         {
             \"boost\": {
                 \"value\": 2
@@ -134,7 +142,8 @@ mod tests {
 
     #[test]
     fn test_gives_error_for_unrecognised_key() {
-        let query = parse(&QueryParseContext::new(), &Json::from_str("
+        let schema = Schema::new();
+        let query = parse(&QueryParseContext::new(&schema), &Json::from_str("
         {
             \"hello\": \"world\"
         }

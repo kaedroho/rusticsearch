@@ -28,7 +28,7 @@ pub fn view_count(req: &mut Request) -> IronResult<Response> {
     let count = match json_from_request_body!(req) {
         Some(query_json) => {
             // Parse query
-            let query = parse_query(&QueryParseContext::new().set_mappings(&index.mappings).no_score(), query_json.as_object().unwrap().get("query").unwrap());
+            let query = parse_query(&QueryParseContext::new(index_reader.schema()).set_mappings(&index.mappings).no_score(), query_json.as_object().unwrap().get("query").unwrap());
             debug!("{:#?}", query);
 
             match query {
@@ -72,7 +72,7 @@ pub fn view_search(req: &mut Request) -> IronResult<Response> {
     match json_from_request_body!(req) {
         Some(query_json) => {
             // Parse query
-            let query = parse_query(&QueryParseContext::new().set_mappings(&index.mappings), query_json.as_object().unwrap().get("query").unwrap());
+            let query = parse_query(&QueryParseContext::new(index_reader.schema()).set_mappings(&index.mappings), query_json.as_object().unwrap().get("query").unwrap());
             debug!("{:#?}", query);
 
             match query {
