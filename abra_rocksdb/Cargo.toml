@@ -5,6 +5,7 @@ authors = ["Karl Hobley <karlhobley10@gmail.com>"]
 
 [dependencies]
 rocksdb = "0.4.1"
+rustc-serialize = "0.3"
 
 [dependencies.abra]
 path = "../abra"

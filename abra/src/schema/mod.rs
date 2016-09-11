@@ -1,8 +1,10 @@
 use std::collections::HashMap;
 use std::ops::Deref;
 
+use rustc_serialize::{Encodable, Decodable, Encoder, Decoder};
 
-#[derive(Debug, Clone, PartialEq)]
+
+#[derive(Debug, Clone, PartialEq, RustcEncodable, RustcDecodable)]
 pub enum FieldType {
     Text,
     PlainString,
@@ -12,7 +14,7 @@ pub enum FieldType {
 }
 
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, RustcEncodable, RustcDecodable)]
 pub struct FieldInfo {
     name: String,
     pub field_type: FieldType,
@@ -33,13 +35,26 @@ impl FieldInfo {
 pub struct FieldRef(u32);
 
 
+impl Encodable for FieldRef {
+    fn encode<S: Encoder>(&self, s: &mut S) -> Result<(), S::Error> {
+        s.emit_u32(self.0)
+    }
+}
+
+impl Decodable for FieldRef {
+    fn decode<D: Decoder>(d: &mut D) -> Result<FieldRef, D::Error> {
+        Ok(FieldRef(try!(d.read_u32())))
+    }
+}
+
+
 #[derive(Debug)]
 pub enum AddFieldError {
     FieldAlreadyExists(String),
 }
 
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, RustcEncodable, RustcDecodable)]
 pub struct Schema {
     next_field_id: u32,
     fields: HashMap<FieldRef, FieldInfo>,
