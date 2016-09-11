@@ -7,6 +7,7 @@ pub enum FieldType {
     Text,
     PlainString,
     I64,
+    Boolean,
     DateTime,
 }
 
