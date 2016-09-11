@@ -70,7 +70,7 @@ pub fn parse(context: &QueryParseContext, json: &Json) -> Result<Query, QueryPar
     let mut sub_queries = Vec::new();
     for token in tokens {
         sub_queries.push(Query::MatchTerm {
-            field: context.schema.get_field_by_name(&field_name).unwrap(), // TODO: Error if field doesn't exist
+            field: try!(context.schema.get_field_by_name(&field_name).ok_or_else(|| QueryParseError::FieldDoesntExist(field_name.clone()))),
             term: token.term,
             matcher: TermMatcher::Exact,
             scorer: TermScorer::default(),
@@ -326,6 +326,18 @@ mod tests {
         ").unwrap());
 
         assert_eq!(query, Err(QueryParseError::ExpectedFloat));
+    }
+
+    #[test]
+    fn test_gives_error_for_unrecognised_field() {
+        let (schema, foo_field) = make_one_field_schema();
+        let query = parse(&QueryParseContext::new(&schema), &Json::from_str("
+        {
+            \"baz\": \"bar\"
+        }
+        ").unwrap());
+
+        assert_eq!(query, Err(QueryParseError::FieldDoesntExist("baz".to_string())));
     }
 
     #[test]

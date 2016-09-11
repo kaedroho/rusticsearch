@@ -53,7 +53,7 @@ pub fn parse(context: &QueryParseContext, json: &Json) -> Result<Query, QueryPar
         Some(value) => {
             if let Json::String(ref string) = *value {
                 let mut query = Query::MatchTerm {
-                    field: context.schema.get_field_by_name(&field_name).unwrap(), // TODO: Error if field doesn't exist
+                    field: try!(context.schema.get_field_by_name(&field_name).ok_or_else(|| QueryParseError::FieldDoesntExist(field_name.clone()))),
                     term: Term::String(string.clone()),
                     matcher: TermMatcher::Prefix,
                     scorer: TermScorer::default(),
@@ -254,6 +254,18 @@ mod tests {
         ").unwrap());
 
         assert_eq!(query, Err(QueryParseError::ExpectedFloat));
+    }
+
+    #[test]
+    fn test_gives_error_for_unrecognised_field() {
+        let (schema, foo_field) = make_one_field_schema();
+        let query = parse(&QueryParseContext::new(&schema), &Json::from_str("
+        {
+            \"baz\": \"bar\"
+        }
+        ").unwrap());
+
+        assert_eq!(query, Err(QueryParseError::FieldDoesntExist("baz".to_string())));
     }
 
     #[test]

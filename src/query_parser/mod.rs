@@ -54,6 +54,7 @@ impl<'a, 'b> QueryParseContext<'a, 'b> {
 #[derive(Debug, PartialEq)]
 pub enum QueryParseError {
     UnrecognisedQueryType(String),
+    FieldDoesntExist(String),
     UnrecognisedKey(String),
     ExpectedKey(&'static str),
     ExpectedObject,
