@@ -9,7 +9,7 @@ use analysis::filters::ngram::NGramFilter;
 use analysis::filters::asciifolding::ASCIIFoldingFilter;
 
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum FilterSpec {
     Lowercase,
     NGram {
