@@ -52,7 +52,7 @@ pub fn view_put_mapping(req: &mut Request) -> IronResult<Response> {
             let field_type = match field_mapping.data_type {
                 mapping::FieldType::String => FieldType::Text,
                 mapping::FieldType::Integer => FieldType::I64,
-                mapping::FieldType::Boolean => FieldType::I64,
+                mapping::FieldType::Boolean => FieldType::Boolean,
                 mapping::FieldType::Date => FieldType::DateTime,
             };
 
