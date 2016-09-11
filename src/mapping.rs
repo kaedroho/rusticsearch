@@ -8,6 +8,7 @@ use abra::analysis::AnalyzerSpec;
 use abra::analysis::registry::AnalyzerRegistry;
 use abra::analysis::tokenizers::TokenizerSpec;
 use abra::analysis::filters::FilterSpec;
+use abra::similarity::SimilarityModel;
 use abra::schema::FieldRef;
 
 
@@ -35,6 +36,26 @@ pub enum FieldType {
 impl Default for FieldType {
     fn default() -> FieldType {
         FieldType::String
+    }
+}
+
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct FieldSearchOptions {
+    pub analyzer: AnalyzerSpec,
+    pub similarity_model: SimilarityModel,
+}
+
+
+impl Default for FieldSearchOptions {
+    fn default() -> FieldSearchOptions {
+        FieldSearchOptions {
+            analyzer: get_standard_analyzer(),
+            similarity_model: SimilarityModel::Bm25 {
+                k1: 1.2,
+                b: 0.75,
+            },
+        }
     }
 }
 
@@ -82,6 +103,13 @@ impl FieldMapping {
             search_analyzer
         } else {
             &self.base_analyzer
+        }
+    }
+
+    pub fn get_search_options(&self) -> FieldSearchOptions {
+        FieldSearchOptions {
+            analyzer: self.search_analyzer().clone(),
+            .. FieldSearchOptions::default()
         }
     }
 
