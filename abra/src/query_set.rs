@@ -218,7 +218,7 @@ pub fn build_iterator_from_query<'a, T: IndexReader<'a>>(reader: &'a T, query: &
     match *query {
         Query::MatchAll{score} => {
             QuerySetIterator::All {
-                iter: reader.iter_docids_all(),
+                iter: reader.iter_all_docs(),
             }
         }
         Query::MatchNone => {
@@ -227,7 +227,7 @@ pub fn build_iterator_from_query<'a, T: IndexReader<'a>>(reader: &'a T, query: &
         Query::MatchTerm{ref field, ref term, ref matcher, ref scorer} => {
             match *matcher {
                 TermMatcher::Exact => {
-                    match reader.iter_docids_with_term(&term.to_bytes(), field) {
+                    match reader.iter_docs_with_term(&term.to_bytes(), field) {
                         Some(iter) => {
                             QuerySetIterator::Term {
                                 iter: iter,
@@ -245,7 +245,7 @@ pub fn build_iterator_from_query<'a, T: IndexReader<'a>>(reader: &'a T, query: &
                     // Find all terms in the index that match the prefix
                     let terms = match *term {
                          Term::String(_) => {
-                             match reader.iter_terms(field) {
+                             match reader.iter_all_terms(field) {
                                  Some(terms) => {
                                      terms.filter_map(|k| {
                                          if k.starts_with(&term_bytes) {
@@ -264,7 +264,7 @@ pub fn build_iterator_from_query<'a, T: IndexReader<'a>>(reader: &'a T, query: &
                     match terms.len() {
                         0 => QuerySetIterator::None,
                         1 => {
-                            match reader.iter_docids_with_term(&term_bytes, field) {
+                            match reader.iter_docs_with_term(&term_bytes, field) {
                                 Some(iter) => {
                                     QuerySetIterator::Term {
                                         iter: iter,
@@ -280,7 +280,7 @@ pub fn build_iterator_from_query<'a, T: IndexReader<'a>>(reader: &'a T, query: &
                             // Produce a disjunction iterator for all the terms
                             let mut iters = VecDeque::new();
                             for term in terms.iter() {
-                                match reader.iter_docids_with_term(term, field) {
+                                match reader.iter_docs_with_term(term, field) {
                                     Some(iter) => {
                                         iters.push_back(QuerySetIterator::Term {
                                             iter: iter,

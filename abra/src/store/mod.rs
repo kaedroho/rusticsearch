@@ -13,10 +13,10 @@ pub trait IndexReader<'a> {
     fn get_document_by_id(&self, doc_id: &u64) -> Option<&Document>;
     fn contains_document_key(&self, doc_key: &str) -> bool;
     fn num_docs(&self) -> usize;
-    fn iter_docids_all(&'a self) -> Self::AllDocRefIterator;
-    fn iter_docids_with_term(&'a self, term: &[u8], field_ref: &FieldRef) -> Option<Self::TermDocRefIterator>;
-    fn iter_terms(&'a self, field_ref: &FieldRef) -> Option<Box<Iterator<Item=&'a [u8]> + 'a>>;
-    fn term_doc_freq(&'a self, term: &[u8], field_ref: &FieldRef) -> u64;
+    fn iter_all_docs(&'a self) -> Self::AllDocRefIterator;
+    fn iter_docs_with_term(&'a self, term: &[u8], field_ref: &FieldRef) -> Option<Self::TermDocRefIterator>;
+    fn iter_all_terms(&'a self, field_ref: &FieldRef) -> Option<Box<Iterator<Item=&'a [u8]> + 'a>>;
+    fn num_docs_with_term(&'a self, term: &[u8], field_ref: &FieldRef) -> u64;
     fn total_tokens(&'a self, field_ref: &FieldRef) -> u64;
     //pub fn retrieve_document(&self, &Self::DocRef) -> Document;
 }
