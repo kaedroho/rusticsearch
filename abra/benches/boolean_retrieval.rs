@@ -9,6 +9,7 @@ use test::Bencher;
 
 use abra::term::Term;
 use abra::token::Token;
+use abra::schema::FieldType;
 use abra::document::Document;
 use abra::store::{IndexStore, IndexReader};
 use abra::store::memory::{MemoryIndexStore, MemoryIndexStoreReader};
@@ -17,6 +18,7 @@ use abra::query_set::QuerySetIterator;
 
 fn make_test_store() -> MemoryIndexStore {
     let mut store = MemoryIndexStore::new();
+    let body_field = store.add_field("body".to_string(), FieldType::Text).unwrap();
 
     for i in 0..10000 {
         let mut tokens = Vec::new();
@@ -39,8 +41,8 @@ fn make_test_store() -> MemoryIndexStore {
 
         store.insert_or_update_document(Document {
             key: i.to_string(),
-            fields: btreemap! {
-                "body".to_string() => tokens
+            fields: hashmap! {
+                body_field => tokens
             }
         });
     }
@@ -68,12 +70,13 @@ fn bench_all(b: &mut Bencher) {
 fn bench_fizz_term(b: &mut Bencher) {
     let store = make_test_store();
     let reader = store.reader();
+    let body_field = reader.schema().get_field_by_name("body").unwrap();
 
     let fizz_term = Term::String("fizz".to_string()).to_bytes();
 
     b.iter(|| {
         let mut iterator: QuerySetIterator<MemoryIndexStoreReader> = QuerySetIterator::Term {
-            iter: reader.iter_docids_with_term(&fizz_term, "body").unwrap(),
+            iter: reader.iter_docids_with_term(&fizz_term, &body_field).unwrap(),
         };
 
         for doc_id in iterator {}
@@ -85,12 +88,13 @@ fn bench_fizz_term(b: &mut Bencher) {
 fn bench_buzz_term(b: &mut Bencher) {
     let store = make_test_store();
     let reader = store.reader();
+    let body_field = reader.schema().get_field_by_name("body").unwrap();
 
     let buzz_term = Term::String("buzz".to_string()).to_bytes();
 
     b.iter(|| {
         let mut iterator: QuerySetIterator<MemoryIndexStoreReader> = QuerySetIterator::Term {
-            iter: reader.iter_docids_with_term(&buzz_term, "body").unwrap(),
+            iter: reader.iter_docids_with_term(&buzz_term, &body_field).unwrap(),
         };
 
         for doc_id in iterator {}
@@ -102,16 +106,17 @@ fn bench_buzz_term(b: &mut Bencher) {
 fn bench_fizzbuzz_conjunction(b: &mut Bencher) {
     let store = make_test_store();
     let reader = store.reader();
+    let body_field = reader.schema().get_field_by_name("body").unwrap();
 
     let fizz_term = Term::String("fizz".to_string()).to_bytes();
     let buzz_term = Term::String("buzz".to_string()).to_bytes();
 
     b.iter(|| {
         let mut fizz_iterator: QuerySetIterator<MemoryIndexStoreReader> = QuerySetIterator::Term {
-            iter: reader.iter_docids_with_term(&fizz_term, "body").unwrap(),
+            iter: reader.iter_docids_with_term(&fizz_term, &body_field).unwrap(),
         };
         let mut buzz_iterator: QuerySetIterator<MemoryIndexStoreReader> = QuerySetIterator::Term {
-            iter: reader.iter_docids_with_term(&buzz_term, "body").unwrap(),
+            iter: reader.iter_docids_with_term(&buzz_term, &body_field).unwrap(),
         };
         let mut iterator: QuerySetIterator<MemoryIndexStoreReader> = QuerySetIterator::Conjunction {
             iter_a: Box::new(fizz_iterator),
@@ -130,16 +135,17 @@ fn bench_fizzbuzz_conjunction(b: &mut Bencher) {
 fn bench_fizzbuzz_disjunction(b: &mut Bencher) {
     let store = make_test_store();
     let reader = store.reader();
+    let body_field = reader.schema().get_field_by_name("body").unwrap();
 
     let fizz_term = Term::String("fizz".to_string()).to_bytes();
     let buzz_term = Term::String("buzz".to_string()).to_bytes();
 
     b.iter(|| {
         let mut fizz_iterator: QuerySetIterator<MemoryIndexStoreReader> = QuerySetIterator::Term {
-            iter: reader.iter_docids_with_term(&fizz_term, "body").unwrap(),
+            iter: reader.iter_docids_with_term(&fizz_term, &body_field).unwrap(),
         };
         let mut buzz_iterator: QuerySetIterator<MemoryIndexStoreReader> = QuerySetIterator::Term {
-            iter: reader.iter_docids_with_term(&buzz_term, "body").unwrap(),
+            iter: reader.iter_docids_with_term(&buzz_term, &body_field).unwrap(),
         };
         let mut iterator: QuerySetIterator<MemoryIndexStoreReader> = QuerySetIterator::Disjunction {
             iter_a: Box::new(fizz_iterator),
@@ -158,16 +164,17 @@ fn bench_fizzbuzz_disjunction(b: &mut Bencher) {
 fn bench_fizzbuzz_exclusion(b: &mut Bencher) {
     let store = make_test_store();
     let reader = store.reader();
+    let body_field = reader.schema().get_field_by_name("body").unwrap();
 
     let fizz_term = Term::String("fizz".to_string()).to_bytes();
     let buzz_term = Term::String("buzz".to_string()).to_bytes();
 
     b.iter(|| {
         let mut fizz_iterator: QuerySetIterator<MemoryIndexStoreReader> = QuerySetIterator::Term {
-            iter: reader.iter_docids_with_term(&fizz_term, "body").unwrap(),
+            iter: reader.iter_docids_with_term(&fizz_term, &body_field).unwrap(),
         };
         let mut buzz_iterator: QuerySetIterator<MemoryIndexStoreReader> = QuerySetIterator::Term {
-            iter: reader.iter_docids_with_term(&buzz_term, "body").unwrap(),
+            iter: reader.iter_docids_with_term(&buzz_term, &body_field).unwrap(),
         };
         let mut iterator: QuerySetIterator<MemoryIndexStoreReader> = QuerySetIterator::Exclusion {
             iter_a: Box::new(fizz_iterator),
