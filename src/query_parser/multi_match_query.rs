@@ -1,7 +1,7 @@
 //! Parses "multi_match" queries
 
 use rustc_serialize::json::Json;
-use abra::{Query, TermMatcher, TermScorer};
+use abra::{Token, Query, TermMatcher, TermScorer};
 
 use mapping::FieldMapping;
 
@@ -60,35 +60,20 @@ pub fn parse(context: &QueryParseContext, json: &Json) -> Result<Query, QueryPar
     // Convert query string into term query objects
     let mut field_queries = Vec::new();
     for (field_name, field_boost) in fields_with_boosts {
-        // Get mapping for field
-        let field_mapping = match context.mappings {
-            Some(mappings) => mappings.get_field(&field_name),
-            None => None,
+        // Get search options for field
+        let field_search_options = match context.mappings {
+            Some(mappings) => {
+                match mappings.get_field(&field_name) {
+                    Some(field_mapping) => field_mapping.get_search_options(),
+                    None => FieldSearchOptions::default(),  // TODO: error?
+                }
+            }
+            None => FieldSearchOptions::default(),  // TODO: error?
         };
 
         // Tokenise query string
-        let tokens = match field_mapping {
-            Some(ref field_mapping) => {
-                field_mapping.process_value_for_query(Json::String(query.clone()))
-            }
-            None => {
-                // TODO: Raise error?
-                warn!("Unknown field: {}", field_name);
-
-                FieldMapping::default().process_value_for_query(Json::String(query.clone()))
-            }
-        };
-
-        let tokens = match tokens {
-            Some(tokens) => tokens,
-            None => {
-                // Couldn't convert the passed in value into tokens
-                // TODO: Raise error
-                warn!("Unprocessable query: {}", query);
-
-                vec![]
-            }
-        };
+        let analyzer = field_search_options.analyzer.initialise(&query);
+        let tokens = analyzer.collect::<Vec<Token>>();
 
         let mut term_queries = Vec::new();
         for token in tokens {

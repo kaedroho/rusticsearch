@@ -113,7 +113,7 @@ impl FieldMapping {
         }
     }
 
-    fn process_value(&self, analyzer: Option<&AnalyzerSpec>, value: Json) -> Option<Vec<Token>> {
+    pub fn process_value_for_index(&self, value: Json) -> Option<Vec<Token>> {
         if value == Json::Null {
             return None;
         }
@@ -123,17 +123,12 @@ impl FieldMapping {
                 match value {
                     Json::String(string) => {
                         // Analyze string
-                        match analyzer {
-                            Some(ref analyzer) => {
-                                let tokens = analyzer.initialise(&string);
-                                Some(tokens.collect::<Vec<Token>>())
-                            }
-                            None => Some(vec![Token{term: Term::String(string), position: 1}]),
-                        }
+                        let tokens = self.index_analyzer().initialise(&string);
+                        Some(tokens.collect::<Vec<Token>>())
                     }
-                    Json::I64(num) => self.process_value(analyzer, Json::String(num.to_string())),
-                    Json::U64(num) => self.process_value(analyzer, Json::String(num.to_string())),
-                    Json::F64(num) => self.process_value(analyzer, Json::String(num.to_string())),
+                    Json::I64(num) => self.process_value_for_index(Json::String(num.to_string())),
+                    Json::U64(num) => self.process_value_for_index(Json::String(num.to_string())),
+                    Json::F64(num) => self.process_value_for_index(Json::String(num.to_string())),
                     Json::Array(array) => {
                         // Pack any strings into a vec, ignore nulls. Quit if we see anything else
                         let mut strings = Vec::new();
@@ -148,7 +143,7 @@ impl FieldMapping {
                             }
                         }
 
-                        self.process_value(analyzer, Json::String(strings.join(" ")))
+                        self.process_value_for_index(Json::String(strings.join(" ")))
                     }
                     _ => None,
                 }
@@ -183,14 +178,6 @@ impl FieldMapping {
                 }
             }
         }
-    }
-
-    pub fn process_value_for_index(&self, value: Json) -> Option<Vec<Token>> {
-        self.process_value(Some(self.index_analyzer()), value)
-    }
-
-    pub fn process_value_for_query(&self, value: Json) -> Option<Vec<Token>> {
-        self.process_value(Some(self.search_analyzer()), value)
     }
 }
 

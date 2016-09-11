@@ -1,9 +1,9 @@
 //! Parses "match" queries
 
 use rustc_serialize::json::Json;
-use abra::{Query, TermMatcher, TermScorer};
+use abra::{Token, Query, TermMatcher, TermScorer};
 
-use mapping::FieldMapping;
+use mapping::{FieldSearchOptions};
 
 use query_parser::{QueryParseContext, QueryParseError};
 use query_parser::utils::{parse_float, Operator, parse_operator};
@@ -18,10 +18,15 @@ pub fn parse(context: &QueryParseContext, json: &Json) -> Result<Query, QueryPar
         return Err(QueryParseError::ExpectedSingleKey)
     };
 
-    // Get mapping for field
-    let field_mapping = match context.mappings {
-        Some(mappings) => mappings.get_field(field_name),
-        None => None,
+    // Get search options for field
+    let field_search_options = match context.mappings {
+        Some(mappings) => {
+            match mappings.get_field(field_name) {
+                Some(field_mapping) => field_mapping.get_search_options(),
+                None => FieldSearchOptions::default(),  // TODO: error?
+            }
+        }
+        None => FieldSearchOptions::default(),  // TODO: error?
     };
 
     // Get configuration
@@ -58,28 +63,8 @@ pub fn parse(context: &QueryParseContext, json: &Json) -> Result<Query, QueryPar
     }
 
     // Tokenise query string
-    let tokens = match field_mapping {
-        Some(ref field_mapping) => {
-            field_mapping.process_value_for_query(query.clone())
-        }
-        None => {
-            // TODO: Raise error?
-            warn!("Unknown field: {}", field_name);
-
-            FieldMapping::default().process_value_for_query(query.clone())
-        }
-    };
-
-    let tokens = match tokens {
-        Some(tokens) => tokens,
-        None => {
-            // Couldn't convert the passed in value into tokens
-            // TODO: Raise error
-            warn!("Unprocessable query: {}", query);
-
-            return Ok(Query::MatchNone);
-        }
-    };
+    let analyzer = field_search_options.analyzer.initialise(&query);
+    let tokens = analyzer.collect::<Vec<Token>>();
 
     // Create a term query for each token
     let mut sub_queries = Vec::new();
