@@ -6,7 +6,7 @@ use abra::{Token, Query, TermMatcher, TermScorer};
 use mapping::{FieldSearchOptions};
 
 use query_parser::{QueryParseContext, QueryParseError};
-use query_parser::utils::{parse_float, Operator, parse_operator};
+use query_parser::utils::{parse_string, parse_float, Operator, parse_operator};
 
 
 pub fn parse(context: &QueryParseContext, json: &Json) -> Result<Query, QueryParseError> {
@@ -30,12 +30,12 @@ pub fn parse(context: &QueryParseContext, json: &Json) -> Result<Query, QueryPar
     };
 
     // Get configuration
-    let mut query = Json::Null;
+    let mut query = String::new();
     let mut boost = 1.0f64;
     let mut operator = Operator::Or;
 
     match object[field_name] {
-        Json::String(_) => query = object[field_name].clone(),
+        Json::String(_) => query = try!(parse_string(&object[field_name])),
         Json::Object(ref inner_object) => {
             let mut has_query_key = false;
 
@@ -43,7 +43,7 @@ pub fn parse(context: &QueryParseContext, json: &Json) -> Result<Query, QueryPar
                 match key.as_ref() {
                     "query" => {
                         has_query_key = true;
-                        query = value.clone();
+                        query = try!(parse_string(value));
                     }
                     "boost" => {
                         boost = try!(parse_float(value));
