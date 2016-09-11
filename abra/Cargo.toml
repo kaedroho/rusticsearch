@@ -3,7 +3,7 @@ name = "abra"
 version = "0.0.1"
 authors = ["Karl Hobley <karlhobley10@gmail.com>"]
 description = "Information retrieval library"
-license = "MIT/Apache-2.0"
+license = "Apache-2.0"
 
 [dependencies]
 rustc-serialize = "0.3"
