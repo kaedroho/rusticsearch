@@ -1,17 +1,28 @@
+#![feature(integer_atomics)]
+
 extern crate abra;
 extern crate rocksdb;
 extern crate rustc_serialize;
 
-use std::sync::Arc;
+use std::sync::{Arc, RwLock};
+use std::sync::atomic::{AtomicU32, Ordering};
+use std::collections::BTreeMap;
 
 use rocksdb::{DB, Writable, Options};
+use abra::{Term, Document};
 use abra::schema::{Schema, FieldType, FieldRef, AddFieldError};
 use rustc_serialize::{json, Encodable};
+
+
+#[derive(Debug, Clone, Copy, Eq, PartialEq, Hash)]
+struct TermRef(u32);
 
 
 pub struct RocksDBIndexStore {
     schema: Arc<Schema>,
     db: DB,
+    next_term_ref: AtomicU32,
+    term_dictionary: RwLock<BTreeMap<Vec<u8>, TermRef>>,
 }
 
 
@@ -25,9 +36,14 @@ impl RocksDBIndexStore {
         let schema = Schema::new();
         db.put(b"schema", json::encode(&schema).unwrap().as_bytes());
 
+        // Next term ref
+        db.put(b"next_term_ref", b"1");
+
         Ok(RocksDBIndexStore {
             schema: Arc::new(schema),
             db: db,
+            next_term_ref: AtomicU32::new(1),
+            term_dictionary: RwLock::new(BTreeMap::new()),
         })
     }
 
@@ -44,9 +60,19 @@ impl RocksDBIndexStore {
             Err(_) => Schema::new(),  // TODO: error
         };
 
+        let next_term_ref = match db.get(b"next_term_ref") {
+            Ok(Some(next_term_ref)) => {
+                next_term_ref.to_utf8().unwrap().parse::<u32>().unwrap()
+            }
+            Ok(None) => 1,  // TODO: error
+            Err(_) => 1,  // TODO: error
+        };
+
         Ok(RocksDBIndexStore {
             schema: Arc::new(schema),
             db: db,
+            next_term_ref: AtomicU32::new(next_term_ref),
+            term_dictionary: RwLock::new(BTreeMap::new()),
         })
     }
 
@@ -70,6 +96,57 @@ impl RocksDBIndexStore {
         }
 
         field_removed
+    }
+
+    fn get_or_create_term(&mut self, term: &Term) -> TermRef {
+        let term_bytes = term.to_bytes();
+
+        if let Some(term_ref) = self.term_dictionary.read().unwrap().get(&term_bytes) {
+            return *term_ref;
+        }
+
+        // Term doesn't exist in the term dictionary
+
+        // Increment next_term_ref
+        let next_term_ref = self.next_term_ref.fetch_add(1, Ordering::SeqCst);
+        self.db.put(b"next_term_ref", (next_term_ref + 1).to_string().as_bytes());
+
+        // Create term ref
+        let term_ref = TermRef(next_term_ref);
+
+        // Get exclusive lock to term dictionary
+        let mut term_dictionary = self.term_dictionary.write().unwrap();
+
+        // It's possible that another thread has written the term to the dictionary
+        // since we checked earlier. If this is the case, We should forget about
+        // writing our TermRef and use the one that has been inserted already.
+        if let Some(term_ref) = term_dictionary.get(&term_bytes) {
+            return *term_ref;
+        }
+
+        // Write it to the on-disk term dictionary
+        let mut key = Vec::with_capacity(3 + term_bytes.len());
+        key.push(b't');
+        key.push(b'd');
+        key.push(b'/');
+        for byte in term_bytes.iter() {
+            key.push(*byte);
+        }
+        self.db.put(&key, next_term_ref.to_string().as_bytes());
+
+        // Write it to the term dictionary
+        term_dictionary.insert(term_bytes, term_ref);
+
+        term_ref
+    }
+
+    pub fn insert_or_update_document(&mut self, doc: Document) {
+        // Put field contents in inverted index
+        for (field_ref, tokens) in doc.fields.iter() {
+            for token in tokens.iter() {
+                let term_ref = self.get_or_create_term(&token.term);
+            }
+        }
     }
 }
 
