@@ -77,6 +77,16 @@ impl Schema {
         Ok(field_ref)
     }
 
+    pub fn remove_field(&mut self, field_ref: &FieldRef) -> bool {
+        match self.fields.remove(field_ref) {
+            Some(removed_field) => {
+                self.field_names.remove(&removed_field.name);
+                true
+            }
+            None => false
+        }
+    }
+
     pub fn get_field_by_name(&self, name: &str) -> Option<FieldRef> {
         self.field_names.get(name).cloned()
     }
