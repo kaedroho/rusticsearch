@@ -35,9 +35,16 @@ impl FieldInfo {
 pub struct FieldRef(u32);
 
 
+impl FieldRef {
+    pub fn ord(&self) -> u32 {
+        self.0
+    }
+}
+
+
 impl Encodable for FieldRef {
     fn encode<S: Encoder>(&self, s: &mut S) -> Result<(), S::Error> {
-        s.emit_u32(self.0)
+        s.emit_u32(self.ord())
     }
 }
 
