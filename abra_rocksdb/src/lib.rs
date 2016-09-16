@@ -11,7 +11,7 @@ use std::sync::{Arc, RwLock};
 use std::sync::atomic::{AtomicU32, Ordering};
 use std::collections::BTreeMap;
 
-use rocksdb::{DB, Writable, Options, MergeOperands};
+use rocksdb::{DB, WriteBatch, Writable, Options, MergeOperands};
 use abra::{Term, Document};
 use abra::schema::{Schema, FieldType, FieldRef, AddFieldError};
 use rustc_serialize::{json, Encodable};
@@ -234,6 +234,9 @@ impl RocksDBIndexStore {
         // Create doc ref
         let doc_ref = DocRef(next_chunk, 0);
 
+        // Start write batch
+        let mut write_batch = WriteBatch::default();
+
         // Insert contents
         for (field_ref, tokens) in doc.fields.iter() {
             for token in tokens.iter() {
@@ -255,9 +258,12 @@ impl RocksDBIndexStore {
 
                 let mut doc_id_bytes = [0; 2];
                 BigEndian::write_u16(&mut doc_id_bytes, doc_ref.ord());
-                self.db.merge(&key, &doc_id_bytes);
+                write_batch.merge(&key, &doc_id_bytes);
             }
         }
+
+        // Write
+        self.db.write(write_batch);
     }
 }
 
