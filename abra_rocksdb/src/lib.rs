@@ -354,21 +354,17 @@ impl RocksDBIndexStore {
 
 #[cfg(test)]
 mod tests {
+    use std::fs::remove_dir_all;
+
     use rocksdb::{DB, Options, IteratorMode};
     use abra::{Term, Token, Document};
     use abra::schema::{Schema, FieldType, FieldRef};
 
     use super::RocksDBIndexStore;
 
-    fn clean_test_indices() {
-        use std::fs::remove_dir_all;
-
-        remove_dir_all("test_indices");
-    }
-
     #[test]
     fn test_create() {
-        clean_test_indices();
+        remove_dir_all("test_indices/test_create");
 
         let store = RocksDBIndexStore::create("test_indices/test_create");
         assert!(store.is_ok());
@@ -376,7 +372,7 @@ mod tests {
 
     #[test]
     fn test_open() {
-        clean_test_indices();
+        remove_dir_all("test_indices/test_open");
 
         let store = RocksDBIndexStore::open("test_indices/test_open");
         assert!(store.is_err());
@@ -453,7 +449,7 @@ mod tests {
 
     #[test]
     fn test() {
-        clean_test_indices();
+        remove_dir_all("test_indices/test");
 
         let store = make_test_store("test_indices/test");
 
