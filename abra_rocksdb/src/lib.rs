@@ -75,6 +75,22 @@ fn merge_keys(key: &[u8], existing_val: Option<&[u8]>, operands: &mut MergeOpera
 
             new_val
         }
+        b's' => {
+            // Statistic
+            // An i64 number that can be incremented or decremented
+            let mut value = match existing_val {
+                Some(existing_val) => BigEndian::read_i64(existing_val),
+                None => 0
+            };
+
+            for op in operands {
+                value += BigEndian::read_i64(op);
+            }
+
+            let mut buf = [0; 8];
+            BigEndian::write_i64(&mut buf, value);
+            buf.iter().cloned().collect()
+        }
         _ => {
             // Unrecognised key, fallback to emulating a put operation (by taking the last value)
             operands.last().unwrap().iter().cloned().collect()
@@ -246,8 +262,10 @@ impl RocksDBIndexStore {
         let mut write_batch = WriteBatch::default();
 
         // Insert contents
+        let mut token_count: i64 = 0;
         for (field_ref, tokens) in doc.fields.iter() {
             for token in tokens.iter() {
+                token_count += 1;
                 let term_ref = self.get_or_create_term(&token.term);
 
                 let mut key = Vec::with_capacity(20);
@@ -269,6 +287,32 @@ impl RocksDBIndexStore {
                 write_batch.merge(&key, &doc_id_bytes);
             }
         }
+
+        // Increment total docs
+        let mut key = Vec::with_capacity(5);
+        for byte in b"stotal_docs".iter() {
+            key.push(*byte);
+        }
+        key.push(b'/');
+        for byte in doc_ref.chunk().to_string().as_bytes() {
+            key.push(*byte);
+        }
+        let mut inc_bytes = [0; 8];
+        BigEndian::write_i64(&mut inc_bytes, 1);
+        write_batch.merge(&key, &inc_bytes);
+
+        // Increment total tokens
+        let mut key = Vec::with_capacity(5);
+        for byte in b"stotal_tokens".iter() {
+            key.push(*byte);
+        }
+        key.push(b'/');
+        for byte in doc_ref.chunk().to_string().as_bytes() {
+            key.push(*byte);
+        }
+        let mut inc_bytes = [0; 8];
+        BigEndian::write_i64(&mut inc_bytes, token_count);
+        write_batch.merge(&key, &inc_bytes);
 
         // Write document data
         self.db.write(write_batch);
