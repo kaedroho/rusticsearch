@@ -34,10 +34,10 @@ impl RocksDBIndexStore {
 
         // Schema
         let schema = Schema::new();
-        db.put(b"schema", json::encode(&schema).unwrap().as_bytes());
+        db.put(b".schema", json::encode(&schema).unwrap().as_bytes());
 
         // Next term ref
-        db.put(b"next_term_ref", b"1");
+        db.put(b".next_term_ref", b"1");
 
         Ok(RocksDBIndexStore {
             schema: Arc::new(schema),
@@ -51,7 +51,7 @@ impl RocksDBIndexStore {
         let mut opts = Options::default();
         let db = try!(DB::open(&opts, path));
 
-        let schema = match db.get(b"schema") {
+        let schema = match db.get(b".schema") {
             Ok(Some(schema)) => {
                 let schema = schema.to_utf8().unwrap().to_string();
                 json::decode(&schema).unwrap()
@@ -60,7 +60,7 @@ impl RocksDBIndexStore {
             Err(_) => Schema::new(),  // TODO: error
         };
 
-        let next_term_ref = match db.get(b"next_term_ref") {
+        let next_term_ref = match db.get(b".next_term_ref") {
             Ok(Some(next_term_ref)) => {
                 next_term_ref.to_utf8().unwrap().parse::<u32>().unwrap()
             }
@@ -81,7 +81,7 @@ impl RocksDBIndexStore {
         let field_ref = try!(schema_copy.add_field(name, field_type));
         self.schema = Arc::new(schema_copy);
 
-        self.db.put(b"schema", json::encode(&self.schema).unwrap().as_bytes());
+        self.db.put(b".schema", json::encode(&self.schema).unwrap().as_bytes());
 
         Ok(field_ref)
     }
@@ -92,7 +92,7 @@ impl RocksDBIndexStore {
 
         if field_removed {
             self.schema = Arc::new(schema_copy);
-            self.db.put(b"schema", json::encode(&self.schema).unwrap().as_bytes());
+            self.db.put(b".schema", json::encode(&self.schema).unwrap().as_bytes());
         }
 
         field_removed
@@ -109,7 +109,7 @@ impl RocksDBIndexStore {
 
         // Increment next_term_ref
         let next_term_ref = self.next_term_ref.fetch_add(1, Ordering::SeqCst);
-        self.db.put(b"next_term_ref", (next_term_ref + 1).to_string().as_bytes());
+        self.db.put(b".next_term_ref", (next_term_ref + 1).to_string().as_bytes());
 
         // Create term ref
         let term_ref = TermRef(next_term_ref);
@@ -125,10 +125,8 @@ impl RocksDBIndexStore {
         }
 
         // Write it to the on-disk term dictionary
-        let mut key = Vec::with_capacity(3 + term_bytes.len());
+        let mut key = Vec::with_capacity(1 + term_bytes.len());
         key.push(b't');
-        key.push(b'd');
-        key.push(b'/');
         for byte in term_bytes.iter() {
             key.push(*byte);
         }
