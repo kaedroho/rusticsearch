@@ -68,14 +68,24 @@ mod tests {
 
     use super::RocksDBIndexStore;
 
+    fn clean_test_indices() {
+        use std::fs::remove_dir_all;
+
+        remove_dir_all("test_indices");
+    }
+
     #[test]
     fn test_create() {
+        clean_test_indices();
+
         let store = RocksDBIndexStore::create("test_indices/test_create");
         assert!(store.is_ok());
     }
 
     #[test]
     fn test_open() {
+        clean_test_indices();
+
         let store = RocksDBIndexStore::open("test_indices/test_open");
         assert!(store.is_err());
 
