@@ -46,8 +46,10 @@ impl DocRef {
 
 fn merge_keys(key: &[u8], existing_val: Option<&[u8]>, operands: &mut MergeOperands) -> Vec<u8> {
     match key[0] {
-        b'd' => {
-            // Directory (sequence of two byte document ids)
+        b'd' | b'x' => {
+            // Sequence of two byte document ids
+            // d = directory
+            // x = deletion list
 
             // Allocate vec for new Value
             let new_size = match existing_val {
@@ -87,6 +89,8 @@ pub struct RocksDBIndexStore {
     next_term_ref: AtomicU32,
     term_dictionary: RwLock<BTreeMap<Vec<u8>, TermRef>>,
     next_chunk: AtomicU32,
+    doc_key_mapping: RwLock<BTreeMap<Vec<u8>, DocRef>>,
+    deleted_docs: RwLock<Vec<DocRef>>,
 }
 
 
@@ -113,6 +117,8 @@ impl RocksDBIndexStore {
             next_term_ref: AtomicU32::new(1),
             term_dictionary: RwLock::new(BTreeMap::new()),
             next_chunk: AtomicU32::new(1),
+            doc_key_mapping: RwLock::new(BTreeMap::new()),
+            deleted_docs: RwLock::new(Vec::new()),
         })
     }
 
@@ -152,6 +158,8 @@ impl RocksDBIndexStore {
             next_term_ref: AtomicU32::new(next_term_ref),
             term_dictionary: RwLock::new(BTreeMap::new()),
             next_chunk: AtomicU32::new(next_chunk),
+            doc_key_mapping: RwLock::new(BTreeMap::new()),
+            deleted_docs: RwLock::new(Vec::new()),
         })
     }
 
@@ -262,7 +270,39 @@ impl RocksDBIndexStore {
             }
         }
 
-        // Write
+        // Write document data
+        self.db.write(write_batch);
+
+        // Update doc_key_mapping
+        let mut write_batch = WriteBatch::default();
+        let previous_doc_ref = self.doc_key_mapping.write().unwrap().insert(doc.key.as_bytes().iter().cloned().collect(), doc_ref);
+
+        let mut key = Vec::with_capacity(1 + doc.key.len());
+        key.push(b'k');
+        for byte in doc.key.as_bytes() {
+            key.push(*byte);
+        }
+        let mut doc_ref_bytes = [0; 6];
+        BigEndian::write_u32(&mut doc_ref_bytes, doc_ref.chunk());
+        BigEndian::write_u16(&mut doc_ref_bytes[4..], doc_ref.ord());
+        write_batch.put(&key, &doc_ref_bytes);
+
+        // If there was a document there previously, mark it as deleted
+        if let Some(previous_doc_ref) = previous_doc_ref {
+            self.deleted_docs.write().unwrap().push(previous_doc_ref);
+
+            let mut key = Vec::with_capacity(5);
+            key.push(b'x');
+            for byte in previous_doc_ref.chunk().to_string().as_bytes() {
+                key.push(*byte);
+            }
+
+            let mut previous_doc_id_bytes = [0; 2];
+            BigEndian::write_u16(&mut previous_doc_id_bytes, previous_doc_ref.ord());
+            write_batch.merge(&key, &previous_doc_id_bytes);
+        }
+
+        // Write document data
         self.db.write(write_batch);
     }
 }
@@ -327,7 +367,7 @@ mod tests {
         });
 
         store.insert_or_update_document(Document {
-            key: "test_doc".to_string(),
+            key: "another_test_doc".to_string(),
             fields: hashmap! {
                 title_field => vec![
                     Token { term: Term::String("howdy".to_string()), position: 1 },
