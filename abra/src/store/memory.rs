@@ -82,6 +82,8 @@ impl<'a> IndexStore<'a> for MemoryIndexStore {
     }
 
     fn remove_field(&mut self, field_ref: &FieldRef) -> bool {
+        self.schema.remove_field(field_ref);
+
         match self.fields.remove(field_ref) {
             Some(field_ref) => true,
             None => false,
