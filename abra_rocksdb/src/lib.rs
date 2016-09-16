@@ -3,6 +3,8 @@
 extern crate abra;
 extern crate rocksdb;
 extern crate rustc_serialize;
+#[macro_use]
+extern crate maplit;
 extern crate byteorder;
 
 use std::sync::{Arc, RwLock};
@@ -262,7 +264,9 @@ impl RocksDBIndexStore {
 
 #[cfg(test)]
 mod tests {
-    use rocksdb::{DB, Options};
+    use rocksdb::{DB, Options, IteratorMode};
+    use abra::{Term, Token, Document};
+    use abra::schema::{Schema, FieldType, FieldRef};
 
     use super::RocksDBIndexStore;
 
@@ -294,5 +298,76 @@ mod tests {
 
         let store = RocksDBIndexStore::open("test_indices/test_open");
         assert!(store.is_ok());
+    }
+
+    fn make_test_store(path: &str) -> RocksDBIndexStore {
+        let mut store = RocksDBIndexStore::create(path).unwrap();
+        let mut title_field = store.add_field("title".to_string(), FieldType::Text).unwrap();
+        let mut body_field = store.add_field("body".to_string(), FieldType::Text).unwrap();
+
+        store.insert_or_update_document(Document {
+            key: "test_doc".to_string(),
+            fields: hashmap! {
+                title_field => vec![
+                    Token { term: Term::String("hello".to_string()), position: 1 },
+                    Token { term: Term::String("world".to_string()), position: 2 },
+                ],
+                body_field => vec![
+                    Token { term: Term::String("lorem".to_string()), position: 1 },
+                    Token { term: Term::String("ipsum".to_string()), position: 2 },
+                    Token { term: Term::String("dolar".to_string()), position: 3 },
+                ],
+            }
+        });
+
+        store.insert_or_update_document(Document {
+            key: "test_doc".to_string(),
+            fields: hashmap! {
+                title_field => vec![
+                    Token { term: Term::String("howdy".to_string()), position: 1 },
+                    Token { term: Term::String("partner".to_string()), position: 2 },
+                ],
+                body_field => vec![
+                    Token { term: Term::String("lorem".to_string()), position: 1 },
+                    Token { term: Term::String("ipsum".to_string()), position: 2 },
+                    Token { term: Term::String("dolar".to_string()), position: 3 },
+                ],
+            }
+        });
+
+        store
+    }
+
+    pub fn print_keys(db: &DB) {
+        fn bytes_to_string(bytes: &Box<[u8]>) -> String {
+            use std::char;
+
+            let mut string = String::new();
+
+            for byte in bytes.iter() {
+                if *byte < 128 {
+                    // ASCII character
+                    string.push(char::from_u32(*byte as u32).unwrap());
+                } else {
+                    string.push('?');
+                }
+            }
+
+            string
+        }
+
+        for (key, value) in db.iterator(IteratorMode::Start) {
+            println!("{} = {:?}", bytes_to_string(&key), value);
+        }
+    }
+
+    #[test]
+    fn test() {
+        clean_test_indices();
+
+        let store = make_test_store("test_indices/test");
+
+        print_keys(&store.db);
+
     }
 }
