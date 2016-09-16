@@ -59,6 +59,18 @@ impl RocksDBIndexStore {
 
         Ok(field_ref)
     }
+
+    pub fn remove_field(&mut self, field_ref: &FieldRef) -> bool {
+        let mut schema_copy = (*self.schema).clone();
+        let field_removed = schema_copy.remove_field(field_ref);
+
+        if field_removed {
+            self.schema = Arc::new(schema_copy);
+            self.db.put(b"schema", json::encode(&self.schema).unwrap().as_bytes());
+        }
+
+        field_removed
+    }
 }
 
 
