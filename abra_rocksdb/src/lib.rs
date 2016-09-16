@@ -12,6 +12,7 @@ use std::sync::atomic::{AtomicU32, Ordering};
 use std::collections::BTreeMap;
 
 use rocksdb::{DB, WriteBatch, Writable, Options, MergeOperands};
+use rocksdb::rocksdb::Snapshot;
 use abra::{Term, Document};
 use abra::schema::{Schema, FieldType, FieldRef, AddFieldError};
 use rustc_serialize::{json, Encodable};
@@ -349,6 +350,26 @@ impl RocksDBIndexStore {
         // Write document data
         self.db.write(write_batch);
     }
+
+    pub fn reader<'a>(&'a self) -> RocksDBIndexReader<'a> {
+        RocksDBIndexReader {
+            store: &self,
+            snapshot: self.db.snapshot(),
+        }
+    }
+}
+
+
+pub struct RocksDBIndexReader<'a> {
+    store: &'a RocksDBIndexStore,
+    snapshot: Snapshot<'a>
+}
+
+
+impl<'a> RocksDBIndexReader<'a> {
+    pub fn schema(&self) -> &Schema {
+        &self.store.schema
+    }
 }
 
 
@@ -452,6 +473,8 @@ mod tests {
         remove_dir_all("test_indices/test");
 
         let store = make_test_store("test_indices/test");
+
+        let index_reader = store.reader();
 
         print_keys(&store.db);
 
