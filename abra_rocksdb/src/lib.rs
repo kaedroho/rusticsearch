@@ -7,6 +7,8 @@ extern crate rustc_serialize;
 extern crate maplit;
 extern crate byteorder;
 
+pub mod key_builder;
+
 use std::sync::{Arc, RwLock};
 use std::sync::atomic::{AtomicU32, Ordering};
 use std::collections::BTreeMap;
@@ -17,6 +19,8 @@ use abra::{Term, Document};
 use abra::schema::{Schema, FieldType, FieldRef, AddFieldError};
 use rustc_serialize::{json, Encodable};
 use byteorder::{ByteOrder, BigEndian};
+
+use key_builder::KeyBuilder;
 
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Hash)]
@@ -229,12 +233,8 @@ impl RocksDBIndexStore {
         }
 
         // Write it to the on-disk term dictionary
-        let mut key = Vec::with_capacity(1 + term_bytes.len());
-        key.push(b't');
-        for byte in term_bytes.iter() {
-            key.push(*byte);
-        }
-        self.db.put(&key, next_term_ref.to_string().as_bytes());
+        let mut kb = KeyBuilder::term_dict_mapping(&term_bytes);
+        self.db.put(kb.key(), next_term_ref.to_string().as_bytes());
 
         // Write it to the term dictionary
         term_dictionary.insert(term_bytes, term_ref);
@@ -269,51 +269,24 @@ impl RocksDBIndexStore {
                 token_count += 1;
                 let term_ref = self.get_or_create_term(&token.term);
 
-                let mut key = Vec::with_capacity(20);
-                key.push(b'd');
-                for byte in field_ref.ord().to_string().as_bytes() {
-                    key.push(*byte);
-                }
-                key.push(b'/');
-                for byte in term_ref.ord().to_string().as_bytes() {
-                    key.push(*byte);
-                }
-                key.push(b'/');
-                for byte in doc_ref.chunk().to_string().as_bytes() {
-                    key.push(*byte);
-                }
-
+                let mut kb = KeyBuilder::chunk_dir_list(doc_ref.chunk(), field_ref.ord(), term_ref.ord());
                 let mut doc_id_bytes = [0; 2];
                 BigEndian::write_u16(&mut doc_id_bytes, doc_ref.ord());
-                write_batch.merge(&key, &doc_id_bytes);
+                write_batch.merge(&kb.key(), &doc_id_bytes);
             }
         }
 
         // Increment total docs
-        let mut key = Vec::with_capacity(5);
-        for byte in b"stotal_docs".iter() {
-            key.push(*byte);
-        }
-        key.push(b'/');
-        for byte in doc_ref.chunk().to_string().as_bytes() {
-            key.push(*byte);
-        }
+        let mut kb = KeyBuilder::chunk_stat(doc_ref.chunk(), b"total_docs");
         let mut inc_bytes = [0; 8];
         BigEndian::write_i64(&mut inc_bytes, 1);
-        write_batch.merge(&key, &inc_bytes);
+        write_batch.merge(&kb.key(), &inc_bytes);
 
         // Increment total tokens
-        let mut key = Vec::with_capacity(5);
-        for byte in b"stotal_tokens".iter() {
-            key.push(*byte);
-        }
-        key.push(b'/');
-        for byte in doc_ref.chunk().to_string().as_bytes() {
-            key.push(*byte);
-        }
+        let mut kb = KeyBuilder::chunk_stat(doc_ref.chunk(), b"total_tokens");
         let mut inc_bytes = [0; 8];
         BigEndian::write_i64(&mut inc_bytes, token_count);
-        write_batch.merge(&key, &inc_bytes);
+        write_batch.merge(&kb.key(), &inc_bytes);
 
         // Write document data
         self.db.write(write_batch);
@@ -322,42 +295,26 @@ impl RocksDBIndexStore {
         let mut write_batch = WriteBatch::default();
         let previous_doc_ref = self.doc_key_mapping.write().unwrap().insert(doc.key.as_bytes().iter().cloned().collect(), doc_ref);
 
-        let mut key = Vec::with_capacity(1 + doc.key.len());
-        key.push(b'k');
-        for byte in doc.key.as_bytes() {
-            key.push(*byte);
-        }
+        let mut kb = KeyBuilder::doc_key_mapping(doc.key.as_bytes());
         let mut doc_ref_bytes = [0; 6];
         BigEndian::write_u32(&mut doc_ref_bytes, doc_ref.chunk());
         BigEndian::write_u16(&mut doc_ref_bytes[4..], doc_ref.ord());
-        write_batch.put(&key, &doc_ref_bytes);
+        write_batch.put(&kb.key(), &doc_ref_bytes);
 
         // If there was a document there previously, mark it as deleted
         if let Some(previous_doc_ref) = previous_doc_ref {
             self.deleted_docs.write().unwrap().push(previous_doc_ref);
 
-            let mut key = Vec::with_capacity(5);
-            key.push(b'x');
-            for byte in previous_doc_ref.chunk().to_string().as_bytes() {
-                key.push(*byte);
-            }
-
+            let mut kb = KeyBuilder::chunk_del_list(previous_doc_ref.chunk());
             let mut previous_doc_id_bytes = [0; 2];
             BigEndian::write_u16(&mut previous_doc_id_bytes, previous_doc_ref.ord());
-            write_batch.merge(&key, &previous_doc_id_bytes);
+            write_batch.merge(&kb.key(), &previous_doc_id_bytes);
 
             // Increment deleted docs
-            let mut key = Vec::with_capacity(5);
-            for byte in b"sdeleted_docs".iter() {
-                key.push(*byte);
-            }
-            key.push(b'/');
-            for byte in previous_doc_ref.chunk().to_string().as_bytes() {
-                key.push(*byte);
-            }
+            let mut kb = KeyBuilder::chunk_stat(previous_doc_ref.chunk(), b"deleted_docs");
             let mut inc_bytes = [0; 8];
             BigEndian::write_i64(&mut inc_bytes, 1);
-            write_batch.merge(&key, &inc_bytes);
+            write_batch.merge(&kb.key(), &inc_bytes);
         }
 
         // Write document data
