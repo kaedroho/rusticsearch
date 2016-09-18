@@ -8,6 +8,7 @@ extern crate maplit;
 extern crate byteorder;
 
 pub mod key_builder;
+pub mod chunk;
 
 use std::sync::{Arc, RwLock};
 use std::sync::atomic::{AtomicU32, Ordering};
@@ -21,6 +22,7 @@ use rustc_serialize::{json, Encodable};
 use byteorder::{ByteOrder, BigEndian};
 
 use key_builder::KeyBuilder;
+use chunk::ChunkManager;
 
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Hash)]
@@ -109,7 +111,7 @@ pub struct RocksDBIndexStore {
     db: DB,
     next_term_ref: AtomicU32,
     term_dictionary: RwLock<BTreeMap<Vec<u8>, TermRef>>,
-    next_chunk: AtomicU32,
+    chunks: ChunkManager,
     doc_key_mapping: RwLock<BTreeMap<Vec<u8>, DocRef>>,
     deleted_docs: RwLock<Vec<DocRef>>,
 }
@@ -129,15 +131,15 @@ impl RocksDBIndexStore {
         // Next term ref
         db.put(b".next_term_ref", b"1");
 
-        // Next chunk
-        db.put(b".next_chunk", b"1");
+        // Chunk manager
+        let chunks = ChunkManager::new(&db);
 
         Ok(RocksDBIndexStore {
             schema: Arc::new(schema),
             db: db,
             next_term_ref: AtomicU32::new(1),
             term_dictionary: RwLock::new(BTreeMap::new()),
-            next_chunk: AtomicU32::new(1),
+            chunks: chunks,
             doc_key_mapping: RwLock::new(BTreeMap::new()),
             deleted_docs: RwLock::new(Vec::new()),
         })
@@ -165,20 +167,15 @@ impl RocksDBIndexStore {
             Err(_) => 1,  // TODO: error
         };
 
-        let next_chunk = match db.get(b".next_chunk") {
-            Ok(Some(next_chunk)) => {
-                next_chunk.to_utf8().unwrap().parse::<u32>().unwrap()
-            }
-            Ok(None) => 1,  // TODO: error
-            Err(_) => 1,  // TODO: error
-        };
+        // Chunk manager
+        let chunks = ChunkManager::open(&db);
 
         Ok(RocksDBIndexStore {
             schema: Arc::new(schema),
             db: db,
             next_term_ref: AtomicU32::new(next_term_ref),
             term_dictionary: RwLock::new(BTreeMap::new()),
-            next_chunk: AtomicU32::new(next_chunk),
+            chunks: chunks,
             doc_key_mapping: RwLock::new(BTreeMap::new()),
             deleted_docs: RwLock::new(Vec::new()),
         })
@@ -251,13 +248,10 @@ impl RocksDBIndexStore {
         // together.
 
         // For best performance, documents should be inserted in batches.
-
-        // Increment next_chunk
-        let next_chunk = self.next_chunk.fetch_add(1, Ordering::SeqCst);
-        self.db.put(b".next_chunk", (next_chunk + 1).to_string().as_bytes());
+        let chunk = self.chunks.new_chunk(&self.db);
 
         // Create doc ref
-        let doc_ref = DocRef(next_chunk, 0);
+        let doc_ref = DocRef(chunk, 0);
 
         // Start write batch
         let mut write_batch = WriteBatch::default();
