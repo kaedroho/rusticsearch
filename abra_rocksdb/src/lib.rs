@@ -345,6 +345,19 @@ impl RocksDBIndexStore {
             let mut previous_doc_id_bytes = [0; 2];
             BigEndian::write_u16(&mut previous_doc_id_bytes, previous_doc_ref.ord());
             write_batch.merge(&key, &previous_doc_id_bytes);
+
+            // Increment deleted docs
+            let mut key = Vec::with_capacity(5);
+            for byte in b"sdeleted_docs".iter() {
+                key.push(*byte);
+            }
+            key.push(b'/');
+            for byte in previous_doc_ref.chunk().to_string().as_bytes() {
+                key.push(*byte);
+            }
+            let mut inc_bytes = [0; 8];
+            BigEndian::write_i64(&mut inc_bytes, 1);
+            write_batch.merge(&key, &inc_bytes);
         }
 
         // Write document data
