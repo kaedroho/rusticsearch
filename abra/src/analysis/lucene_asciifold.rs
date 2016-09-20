@@ -1,4 +1,4 @@
-// Rust port of the org.apache.lucene.analysis.miscellaneous.ASCIIFoldingFilter class from Lucene
+//! Rust port of [ASCIIFoldingFilter](https://lucene.apache.org/core/3_1_0/api/core/org/apache/lucene/analysis/ASCIIFoldingFilter.html) from Apache Lucene
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one or more

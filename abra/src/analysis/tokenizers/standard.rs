@@ -1,3 +1,5 @@
+//! Splits strings by word boundaries, according to the Unicode Standard [Annex #29](http://unicode.org/reports/tr29/) rules
+
 use unicode_segmentation::{UnicodeSegmentation, UnicodeWords};
 
 use term::Term;
