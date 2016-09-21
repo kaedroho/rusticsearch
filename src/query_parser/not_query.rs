@@ -3,14 +3,29 @@
 use rustc_serialize::json::Json;
 use kite::Query;
 
-use query_parser::{QueryParseContext, QueryParseError, parse as parse_query};
+use query_parser::{QueryParseContext, QueryParseError, QueryBuilder, parse as parse_query};
 
 
-pub fn parse(context: &QueryParseContext, json: &Json) -> Result<Query, QueryParseError> {
-    Ok(Query::Exclude {
-        query: Box::new(Query::new_match_all()),
-        exclude: Box::new(try!(parse_query(&context.clone().no_score(), json))),
-    })
+#[derive(Debug)]
+struct NotQueryBuilder {
+    query: Box<QueryBuilder>,
+}
+
+
+impl QueryBuilder for NotQueryBuilder {
+    fn build(&self) -> Query {
+        Query::Exclude {
+            query: Box::new(Query::new_match_all()),
+            exclude: Box::new(self.query.build()),
+        }
+    }
+}
+
+
+pub fn parse(context: &QueryParseContext, json: &Json) -> Result<Box<QueryBuilder>, QueryParseError> {
+    Ok(Box::new(NotQueryBuilder {
+        query: try!(parse_query(&context.clone().no_score(), json)),
+    }))
 }
 
 
@@ -32,7 +47,7 @@ mod tests {
                 \"test\":  \"foo\"
             }
         }
-        ").unwrap());
+        ").unwrap()).and_then(|builder| Ok(builder.build()));
 
         assert_eq!(query, Ok(Query::Exclude {
             query: Box::new(Query::new_match_all()),
@@ -51,7 +66,7 @@ mod tests {
         \"hello\"
         ").unwrap());
 
-        assert_eq!(query, Err(QueryParseError::ExpectedObject));
+        assert_eq!(query.err(), Some(QueryParseError::ExpectedObject));
 
         // Array
         let query = parse(&QueryParseContext::new(), &Json::from_str("
@@ -60,20 +75,20 @@ mod tests {
         ]
         ").unwrap());
 
-        assert_eq!(query, Err(QueryParseError::ExpectedObject));
+        assert_eq!(query.err(), Some(QueryParseError::ExpectedObject));
 
         // Integer
         let query = parse(&QueryParseContext::new(), &Json::from_str("
         123
         ").unwrap());
 
-        assert_eq!(query, Err(QueryParseError::ExpectedObject));
+        assert_eq!(query.err(), Some(QueryParseError::ExpectedObject));
 
         // Float
         let query = parse(&QueryParseContext::new(), &Json::from_str("
         123.1234
         ").unwrap());
 
-        assert_eq!(query, Err(QueryParseError::ExpectedObject));
+        assert_eq!(query.err(), Some(QueryParseError::ExpectedObject));
     }
 }

@@ -21,6 +21,7 @@ pub fn parse_float(json: &Json) -> Result<f64, QueryParseError> {
 }
 
 
+#[derive(Debug)]
 pub enum Operator {
     Or,
     And,

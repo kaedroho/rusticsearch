@@ -13,6 +13,8 @@ pub mod and_query;
 pub mod or_query;
 pub mod not_query;
 
+use std::fmt::Debug;
+
 use rustc_serialize::json::Json;
 use kite::Query;
 
@@ -65,7 +67,12 @@ pub enum QueryParseError {
 }
 
 
-fn get_query_parser(query_name: &str) -> Option<fn(&QueryParseContext, &Json) -> Result<Query, QueryParseError>> {
+pub trait QueryBuilder: Debug {
+    fn build(&self) -> Query;
+}
+
+
+fn get_query_parser(query_name: &str) -> Option<fn(&QueryParseContext, &Json) -> Result<Box<QueryBuilder>, QueryParseError>> {
     match query_name {
         "match" => Some(match_query::parse),
         "multi_match" => Some(multi_match_query::parse),
@@ -84,7 +91,7 @@ fn get_query_parser(query_name: &str) -> Option<fn(&QueryParseContext, &Json) ->
 }
 
 
-pub fn parse(context: &QueryParseContext, json: &Json) -> Result<Query, QueryParseError> {
+pub fn parse(context: &QueryParseContext, json: &Json) -> Result<Box<QueryBuilder>, QueryParseError> {
     let object = try!(json.as_object().ok_or(QueryParseError::ExpectedObject));
 
     let query_type = if object.len() == 1 {

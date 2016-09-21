@@ -3,18 +3,40 @@
 use rustc_serialize::json::Json;
 use kite::Query;
 
-use query_parser::{QueryParseContext, QueryParseError, parse as parse_query};
+use query_parser::{QueryParseContext, QueryParseError, QueryBuilder, parse as parse_query};
 
 
-pub fn parse(context: &QueryParseContext, json: &Json) -> Result<Query, QueryParseError> {
+#[derive(Debug)]
+struct OrQueryBuilder {
+    queries: Vec<Box<QueryBuilder>>,
+}
+
+
+impl QueryBuilder for OrQueryBuilder {
+    fn build(&self) -> Query {
+        let mut queries = Vec::new();
+
+        for query in self.queries.iter() {
+            queries.push(query.build());
+        }
+
+        Query::new_disjunction(queries)
+    }
+}
+
+
+
+pub fn parse(context: &QueryParseContext, json: &Json) -> Result<Box<QueryBuilder>, QueryParseError> {
     let filters = try!(json.as_array().ok_or(QueryParseError::ExpectedArray));
-    let mut sub_queries = Vec::new();
 
+    let mut queries = Vec::new();
     for filter in filters.iter() {
-        sub_queries.push(try!(parse_query(context, filter)));
+        queries.push(try!(parse_query(context, filter)));
     }
 
-    Ok(Query::new_disjunction(sub_queries))
+    Ok(Box::new(OrQueryBuilder {
+        queries: queries
+    }))
 }
 
 
@@ -43,7 +65,7 @@ mod tests {
                 }
             }
         ]
-        ").unwrap());
+        ").unwrap()).and_then(|builder| Ok(builder.build()));
 
         assert_eq!(query, Ok(Query::Disjunction {
             queries: vec![
@@ -68,7 +90,7 @@ mod tests {
         \"hello\"
         ").unwrap());
 
-        assert_eq!(query, Err(QueryParseError::ExpectedArray));
+        assert_eq!(query.err(), Some(QueryParseError::ExpectedArray));
 
         // Object
         let query = parse(&QueryParseContext::new(), &Json::from_str("
@@ -77,20 +99,20 @@ mod tests {
         }
         ").unwrap());
 
-        assert_eq!(query, Err(QueryParseError::ExpectedArray));
+        assert_eq!(query.err(), Some(QueryParseError::ExpectedArray));
 
         // Integer
         let query = parse(&QueryParseContext::new(), &Json::from_str("
         123
         ").unwrap());
 
-        assert_eq!(query, Err(QueryParseError::ExpectedArray));
+        assert_eq!(query.err(), Some(QueryParseError::ExpectedArray));
 
         // Float
         let query = parse(&QueryParseContext::new(), &Json::from_str("
         123.1234
         ").unwrap());
 
-        assert_eq!(query, Err(QueryParseError::ExpectedArray));
+        assert_eq!(query.err(), Some(QueryParseError::ExpectedArray));
     }
 }
