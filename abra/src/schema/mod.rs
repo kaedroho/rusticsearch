@@ -39,6 +39,17 @@ pub enum AddFieldError {
 }
 
 
+pub trait SchemaRead {
+    fn get_field_by_name(&self, name: &str) -> Option<FieldRef>;
+}
+
+
+pub trait SchemaWrite {
+    fn add_field(&mut self, name: String, field_type: FieldType) -> Result<FieldRef, AddFieldError>;
+    fn remove_field(&mut self, field_ref: &FieldRef) -> bool;
+}
+
+
 #[derive(Debug, Clone)]
 pub struct Schema {
     next_field_id: u32,
@@ -62,8 +73,18 @@ impl Schema {
 
         field_ref
     }
+}
 
-    pub fn add_field(&mut self, name: String, field_type: FieldType) -> Result<FieldRef, AddFieldError> {
+
+impl SchemaRead for Schema {
+    fn get_field_by_name(&self, name: &str) -> Option<FieldRef> {
+        self.field_names.get(name).cloned()
+    }
+}
+
+
+impl SchemaWrite for Schema {
+    fn add_field(&mut self, name: String, field_type: FieldType) -> Result<FieldRef, AddFieldError> {
         if self.field_names.contains_key(&name) {
             return Err(AddFieldError::FieldAlreadyExists(name));
         }
@@ -77,7 +98,7 @@ impl Schema {
         Ok(field_ref)
     }
 
-    pub fn remove_field(&mut self, field_ref: &FieldRef) -> bool {
+    fn remove_field(&mut self, field_ref: &FieldRef) -> bool {
         match self.fields.remove(field_ref) {
             Some(removed_field) => {
                 self.field_names.remove(&removed_field.name);
@@ -85,10 +106,6 @@ impl Schema {
             }
             None => false
         }
-    }
-
-    pub fn get_field_by_name(&self, name: &str) -> Option<FieldRef> {
-        self.field_names.get(name).cloned()
     }
 }
 
