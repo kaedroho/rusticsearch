@@ -9,7 +9,7 @@ use test::Bencher;
 
 use abra::term::Term;
 use abra::token::Token;
-use abra::schema::FieldType;
+use abra::schema::{SchemaRead, FieldType};
 use abra::document::Document;
 use abra::store::{IndexStore, IndexReader};
 use abra::store::memory::{MemoryIndexStore, MemoryIndexStoreReader};
