@@ -44,7 +44,7 @@ mod tests {
     use rustc_serialize::json::Json;
 
     use abra::{Term, Query, TermMatcher, TermScorer};
-    use abra::schema::{Schema, FieldType, FieldRef};
+    use abra::schema::{Schema, SchemaWrite, FieldType, FieldRef};
 
     use query_parser::{QueryParseContext, QueryParseError};
     use mapping::{MappingRegistry, Mapping, FieldMapping};

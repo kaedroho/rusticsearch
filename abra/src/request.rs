@@ -1,5 +1,6 @@
 use std::cmp::Ordering;
 
+use schema::SchemaRead;
 use store::IndexReader;
 use query::Query;
 use response::{SearchResponse, SearchHit};

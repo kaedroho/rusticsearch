@@ -1,7 +1,7 @@
 use std::io::Read;
 use std::collections::HashMap;
 
-use abra::schema::FieldType;
+use abra::schema::{SchemaRead, FieldType};
 use abra::store::{IndexStore, IndexReader};
 use rustc_serialize::json::Json;
 
