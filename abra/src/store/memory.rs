@@ -96,20 +96,16 @@ impl<'a> IndexStore<'a> for MemoryIndexStore {
 
         // Put field contents in inverted index
         for (field_ref, tokens) in doc.fields.iter() {
-            for token in tokens.iter() {
-                // Silently ignore unrecognised fields
-                // TODO: Review this
-                if let Some(field) = self.fields.get_mut(field_ref) {
-                    field.docs.insert(doc_id);
+            // Silently ignore unrecognised fields
+            // TODO: Review this
+            if let Some(field) = self.fields.get_mut(field_ref) {
+                field.docs.insert(doc_id);
+
+                for token in tokens.iter() {
                     field.num_tokens += 1;
 
                     let term_bytes = token.term.to_bytes();
-                    if !field.terms.contains_key(&term_bytes) {
-                        // TODO: We shouldn't need to clone here
-                        field.terms.insert(term_bytes.clone(), MemoryIndexStoreFieldTerm::new());
-                    }
-
-                    let mut term = field.terms.get_mut(&term_bytes).unwrap();
+                    let mut term = field.terms.entry(term_bytes).or_insert_with(|| MemoryIndexStoreFieldTerm::new());
                     term.docs.insert(doc_id);
                 }
             }
