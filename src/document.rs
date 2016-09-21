@@ -38,7 +38,7 @@ impl DocumentSource {
                             }
 
                             // Insert the field
-                            fields.insert(field_mapping.index_ref.expect("Attempted to prepare a document with an unlinked mapping"), value);
+                            fields.insert(field_name.clone(), value);
                         }
                         None => {
                             // TODO: Should probably be an error
@@ -61,7 +61,7 @@ impl DocumentSource {
 
                 match value {
                     Some(value) => {
-                        fields.insert(field_mapping.index_ref.expect("Attempted to prepare a document with an unlinked mapping"), value);
+                        fields.insert("_all".to_string(), value);
                     }
                     None => {
                         // TODO: Should probably be an error

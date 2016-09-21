@@ -44,7 +44,7 @@ fn bench_insert_document(b: &mut Bencher) {
         store.insert_or_update_document(Document {
             key: i.to_string(),
             fields: hashmap! {
-                body_field => tokens.clone()
+                "body".to_string() => tokens.clone()
             }
         });
     });

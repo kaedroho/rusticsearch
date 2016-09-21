@@ -14,37 +14,34 @@ pub mod or_query;
 pub mod not_query;
 
 use rustc_serialize::json::Json;
-use abra::schema::Schema;
 use abra::Query;
 
 use mapping::MappingRegistry;
 
 
 #[derive(Debug, Clone)]
-pub struct QueryParseContext<'a, 'b> {
-    pub schema: &'b Schema,
+pub struct QueryParseContext<'a> {
     pub mappings: Option<&'a MappingRegistry>,
     score_required: bool,
 }
 
 
-impl<'a, 'b> QueryParseContext<'a, 'b> {
-    pub fn new(schema: &'b Schema) -> QueryParseContext<'a, 'b> {
+impl<'a> QueryParseContext<'a> {
+    pub fn new() -> QueryParseContext<'a> {
         QueryParseContext {
-            schema: schema,
             mappings: None,
             score_required: true
         }
     }
 
     #[inline]
-    pub fn set_mappings(mut self, mappings: &'a MappingRegistry) -> QueryParseContext<'a, 'b> {
+    pub fn set_mappings(mut self, mappings: &'a MappingRegistry) -> QueryParseContext<'a> {
         self.mappings = Some(mappings);
         self
     }
 
     #[inline]
-    pub fn no_score(mut self) -> QueryParseContext<'a, 'b> {
+    pub fn no_score(mut self) -> QueryParseContext<'a> {
         self.score_required = false;
         self
     }
