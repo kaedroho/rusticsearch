@@ -1,6 +1,5 @@
 use std::cmp::Ordering;
 
-use schema::SchemaRead;
 use store::IndexReader;
 use query::Query;
 use response::{SearchResponse, SearchHit};
@@ -25,7 +24,6 @@ impl SearchRequest {
             if let Some(doc) = index_reader.get_document_by_id(&doc_id) {
                 if let Some(score) = self.query.rank(index_reader, &doc) {
                     hits.push(SearchHit {
-                        pk_field: index_reader.schema().get_field_by_name("pk"),
                         doc: &doc,
                         score: score,
                     });

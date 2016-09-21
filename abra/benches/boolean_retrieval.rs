@@ -42,7 +42,7 @@ fn make_test_store() -> MemoryIndexStore {
         store.insert_or_update_document(Document {
             key: i.to_string(),
             fields: hashmap! {
-                body_field => tokens
+                "body".to_string() => tokens
             }
         });
     }
