@@ -27,7 +27,7 @@ fn get_standard_analyzer() -> AnalyzerSpec {
 }
 
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum FieldType {
     String,
     Integer,
@@ -63,7 +63,7 @@ impl Default for FieldSearchOptions {
 }
 
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct FieldMapping {
     pub data_type: FieldType,
     pub index_ref: Option<FieldRef>,
@@ -185,7 +185,7 @@ impl FieldMapping {
 }
 
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct Mapping {
     pub fields: HashMap<String, FieldMapping>,
 }
