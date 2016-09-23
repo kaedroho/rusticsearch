@@ -97,6 +97,11 @@ fn parse_field(json: &Json) -> Result<FieldMappingBuilder, MappingParseError> {
     let field_type_str = try!(field_type_json.as_string().ok_or(MappingParseError::ExpectedString));
     mapping_builder.field_type = try!(parse_field_type(field_type_str));
 
+    // Non-string fields cannot be analyzed
+    if mapping_builder.field_type != FieldType::String {
+        mapping_builder.is_analyzed = false;
+    }
+
     // "index" setting
     if let Some(index_json) = field_object.get("index") {
         let index_str = try!(index_json.as_string().ok_or(MappingParseError::ExpectedString));
@@ -310,6 +315,7 @@ mod tests {
 
         assert_eq!(mapping, Ok(FieldMappingBuilder {
             field_type: FieldType::String,
+            is_analyzed: true,
             ..FieldMappingBuilder::default()
         }));
 
@@ -322,6 +328,7 @@ mod tests {
 
         assert_eq!(mapping, Ok(FieldMappingBuilder {
             field_type: FieldType::Integer,
+            is_analyzed: false,
             ..FieldMappingBuilder::default()
         }));
 
@@ -334,6 +341,7 @@ mod tests {
 
         assert_eq!(mapping, Ok(FieldMappingBuilder {
             field_type: FieldType::Boolean,
+            is_analyzed: false,
             ..FieldMappingBuilder::default()
         }));
 
@@ -346,6 +354,7 @@ mod tests {
 
         assert_eq!(mapping, Ok(FieldMappingBuilder {
             field_type: FieldType::Date,
+            is_analyzed: false,
             ..FieldMappingBuilder::default()
         }));
     }
