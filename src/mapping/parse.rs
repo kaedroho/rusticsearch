@@ -8,6 +8,8 @@ use mapping::{Mapping, FieldType};
 #[derive(Debug, PartialEq)]
 pub struct FieldMappingBuilder {
     field_type: FieldType,
+    is_indexed: bool,
+    is_analyzed: bool,
     is_stored: bool,
     is_in_all: bool,
     boost: f64,
@@ -21,6 +23,8 @@ impl Default for FieldMappingBuilder {
     fn default() -> FieldMappingBuilder {
         FieldMappingBuilder {
             field_type: FieldType::String,
+            is_indexed: true,
+            is_analyzed: true,
             is_stored: false,
             is_in_all: true,
             boost: 1.0f64,
@@ -42,8 +46,30 @@ pub struct MappingBuilder {
 pub enum MappingParseError {
     ExpectedObject,
     ExpectedString,
+    ExpectedBoolean,
     ExpectedKey(String),
+
+    // Field type
     UnrecognisedFieldType(String),
+
+    // "index" setting
+    IndexAnalyzedOnlyAllowedOnStringType,
+    UnrecognisedIndexSetting(String),
+}
+
+
+fn parse_boolean(json: &Json) -> Result<bool, MappingParseError> {
+    match *json {
+        Json::Boolean(val) => Ok(val),
+        Json::String(ref s) => {
+            match s.as_ref() {
+                "yes" => Ok(true),
+                "no" => Ok(false),
+                _ => Err(MappingParseError::ExpectedBoolean)
+            }
+        }
+        _ => Err(MappingParseError::ExpectedBoolean)
+    }
 }
 
 
@@ -66,6 +92,34 @@ fn parse_field(json: &Json) -> Result<FieldMappingBuilder, MappingParseError> {
     let field_type_json = try!(field_object.get("type").ok_or(MappingParseError::ExpectedKey("type".to_string())));
     let field_type_str = try!(field_type_json.as_string().ok_or(MappingParseError::ExpectedString));
     mapping_builder.field_type = try!(parse_field_type(field_type_str));
+
+    // "index" setting
+    if let Some(index_json) = field_object.get("index") {
+        let index_str = try!(index_json.as_string().ok_or(MappingParseError::ExpectedString));
+
+        match index_str {
+            "no" => {
+                mapping_builder.is_indexed = false;
+                mapping_builder.is_analyzed = false;
+            }
+            "not_analyzed" => {
+                mapping_builder.is_indexed = true;
+                mapping_builder.is_analyzed = false;
+            }
+            "analyzed" => {
+                mapping_builder.is_indexed = true;
+                mapping_builder.is_analyzed = true;
+
+                // Not valid for non-string fields
+                if mapping_builder.field_type != FieldType::String {
+                    return Err(MappingParseError::IndexAnalyzedOnlyAllowedOnStringType);
+                }
+            }
+            _ => {
+                return Err(MappingParseError::UnrecognisedIndexSetting(index_str.to_string()));
+            }
+        }
+    }
 
     Ok(mapping_builder)
 }
@@ -277,5 +331,96 @@ mod tests {
         ").unwrap());
 
         assert_eq!(mapping, Err(MappingParseError::ExpectedString));
+    }
+
+    #[test]
+    fn test_parse_index_default() {
+        let mapping = parse_field(&Json::from_str("
+        {
+            \"type\": \"string\"
+        }
+        ").unwrap());
+
+        assert_eq!(mapping, Ok(FieldMappingBuilder {
+            field_type: FieldType::String,
+            is_indexed: true,
+            is_analyzed: true,
+            ..FieldMappingBuilder::default()
+        }));
+    }
+
+    #[test]
+    fn test_parse_index_no() {
+        let mapping = parse_field(&Json::from_str("
+        {
+            \"type\": \"string\",
+            \"index\": \"no\"
+        }
+        ").unwrap());
+
+        assert_eq!(mapping, Ok(FieldMappingBuilder {
+            field_type: FieldType::String,
+            is_indexed: false,
+            is_analyzed: false,
+            ..FieldMappingBuilder::default()
+        }));
+    }
+
+    #[test]
+    fn test_parse_index_not_analyzed() {
+        let mapping = parse_field(&Json::from_str("
+        {
+            \"type\": \"string\",
+            \"index\": \"not_analyzed\"
+        }
+        ").unwrap());
+
+        assert_eq!(mapping, Ok(FieldMappingBuilder {
+            field_type: FieldType::String,
+            is_indexed: true,
+            is_analyzed: false,
+            ..FieldMappingBuilder::default()
+        }));
+    }
+
+    #[test]
+    fn test_parse_index_analyzed() {
+        let mapping = parse_field(&Json::from_str("
+        {
+            \"type\": \"string\",
+            \"index\": \"analyzed\"
+        }
+        ").unwrap());
+
+        assert_eq!(mapping, Ok(FieldMappingBuilder {
+            field_type: FieldType::String,
+            is_indexed: true,
+            is_analyzed: true,
+            ..FieldMappingBuilder::default()
+        }));
+    }
+
+    #[test]
+    fn test_parse_index_analyzed_on_non_string_type() {
+        let mapping = parse_field(&Json::from_str("
+        {
+            \"type\": \"integer\",
+            \"index\": \"analyzed\"
+        }
+        ").unwrap());
+
+        assert_eq!(mapping, Err(MappingParseError::IndexAnalyzedOnlyAllowedOnStringType));
+    }
+
+    #[test]
+    fn test_parse_index_unrecognised_value() {
+        let mapping = parse_field(&Json::from_str("
+        {
+            \"type\": \"string\",
+            \"index\": \"foo\"
+        }
+        ").unwrap());
+
+        assert_eq!(mapping, Err(MappingParseError::UnrecognisedIndexSetting("foo".to_string())));
     }
 }
