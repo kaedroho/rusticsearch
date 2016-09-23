@@ -190,31 +190,10 @@ pub struct Mapping {
     pub fields: HashMap<String, FieldMapping>,
 }
 
-impl Mapping {
-    pub fn from_json(analyzers: &AnalyzerRegistry, json: &Json) -> Mapping {
-        let json = json.as_object().unwrap();
-        let properties_json = json.get("properties").unwrap().as_object().unwrap();
 
-        // Parse fields
-        let mut fields = HashMap::new();
-        for (field_name, field_mapping_json) in properties_json.iter() {
-            fields.insert(field_name.clone(),
-                          FieldMapping::from_json(analyzers, field_mapping_json));
-        }
-
-        // Insert _all field
-        if !fields.contains_key("_all") {
-            // TODO: Support disabling the _all field
-            fields.insert("_all".to_string(), FieldMapping {
-                data_type: FieldType::String,
-                is_stored: false,
-                is_in_all: false,
-                .. FieldMapping::default()
-            });
-        }
-
-        Mapping { fields: fields }
-    }
+#[derive(Debug)]
+pub struct MappingRegistry {
+    mappings: HashMap<String, Mapping>,
 }
 
 
@@ -229,7 +208,7 @@ fn parse_boolean(json: &Json) -> bool {
                     warn!("bad boolean value {:?}", s);
                     false
                 }
-            }
+           }
         }
         _ => {
             // TODO: Raise error
@@ -239,92 +218,6 @@ fn parse_boolean(json: &Json) -> bool {
     }
 }
 
-
-impl FieldMapping {
-    pub fn from_json(analyzers: &AnalyzerRegistry, json: &Json) -> FieldMapping {
-        let json = json.as_object().unwrap();
-        let mut field_mapping = FieldMapping::default();
-
-        for (key, value) in json.iter() {
-            match key.as_ref() {
-                "type" => {
-                    let type_name = value.as_string().unwrap();
-
-                    field_mapping.data_type = match type_name.as_ref() {
-                        "string" => FieldType::String,
-                        "integer" => FieldType::Integer,
-                        "boolean" => FieldType::Boolean,
-                        "date" => FieldType::Date,
-                        _ => {
-                            // TODO; make this an error
-                            warn!("unimplemented type name! {}", type_name);
-                            FieldType::default()
-                        }
-                    };
-                }
-                "index" => {
-                    let index = value.as_string().unwrap();
-                    if index == "not_analyzed" {
-                        field_mapping.index_analyzer = None;
-                        field_mapping.search_analyzer = None;
-                    } else {
-                        // TODO: Implement other variants and make this an error
-                        warn!("unimplemented index setting! {}", index);
-                    }
-                }
-                "analyzer" => {
-                    if let Some(ref s) = value.as_string() {
-                        match analyzers.get(*s) {
-                            Some(analyzer) => {
-                                field_mapping.base_analyzer = analyzer.clone();
-                            }
-                            None => warn!("unknown analyzer! {}", s)
-                        }
-                    }
-                }
-                "index_analyzer" => {
-                    if let Some(ref s) = value.as_string() {
-                        match analyzers.get(*s) {
-                            Some(analyzer) => {
-                                field_mapping.index_analyzer = Some(analyzer.clone());
-                            }
-                            None => warn!("unknown analyzer! {}", s)
-                        }
-                    }
-                }
-                "search_analyzer" => {
-                    if let Some(ref s) = value.as_string() {
-                        match analyzers.get(*s) {
-                            Some(analyzer) => {
-                                field_mapping.search_analyzer = Some(analyzer.clone());
-                            }
-                            None => warn!("unknown analyzer! {}", s)
-                        }
-                    }
-                }
-                "boost" => {
-                    field_mapping.boost = value.as_f64().unwrap();
-                }
-                "store" => {
-                    field_mapping.is_stored = parse_boolean(value);
-                }
-                "include_in_all" => {
-                    field_mapping.is_in_all = parse_boolean(value);
-                }
-                _ => warn!("unimplemented field mapping key! {}", key),
-            }
-
-        }
-
-        field_mapping
-    }
-}
-
-
-#[derive(Debug)]
-pub struct MappingRegistry {
-    mappings: HashMap<String, Mapping>,
-}
 
 
 impl MappingRegistry {
