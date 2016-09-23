@@ -7,7 +7,7 @@ use mapping::build::{MappingBuilder, FieldMappingBuilder};
 
 
 #[derive(Debug, PartialEq)]
-pub enum MappingParseError {
+pub enum FieldMappingParseError {
     ExpectedObject,
     ExpectedString,
     ExpectedBoolean,
@@ -32,44 +32,56 @@ pub enum MappingParseError {
 }
 
 
-fn parse_boolean(json: &Json) -> Result<bool, MappingParseError> {
+#[derive(Debug, PartialEq)]
+pub enum MappingParseError {
+    ExpectedObject,
+    ExpectedString,
+    ExpectedBoolean,
+    ExpectedNumber,
+    ExpectedKey(String),
+    UnrecognisedKeys(Vec<String>),
+    FieldMappingParseError(String, FieldMappingParseError),
+}
+
+
+fn parse_boolean(json: &Json) -> Result<bool, FieldMappingParseError> {
     match *json {
         Json::Boolean(val) => Ok(val),
         Json::String(ref s) => {
             match s.as_ref() {
                 "yes" => Ok(true),
                 "no" => Ok(false),
-                _ => Err(MappingParseError::ExpectedBoolean)
+                _ => Err(FieldMappingParseError::ExpectedBoolean)
             }
         }
-        _ => Err(MappingParseError::ExpectedBoolean)
+        _ => Err(FieldMappingParseError::ExpectedBoolean)
     }
 }
 
 
-fn parse_float(json: &Json) -> Result<f64, MappingParseError> {
+fn parse_float(json: &Json) -> Result<f64, FieldMappingParseError> {
     match *json {
         Json::F64(val) => Ok(val),
         Json::I64(val) => Ok(val as f64),
         Json::U64(val) => Ok(val as f64),
-        _ => Err(MappingParseError::ExpectedNumber)
+        _ => Err(FieldMappingParseError::ExpectedNumber)
     }
 }
 
 
-fn parse_field_type(field_type_str: &str) -> Result<FieldType, MappingParseError> {
+fn parse_field_type(field_type_str: &str) -> Result<FieldType, FieldMappingParseError> {
     match field_type_str {
         "string" => Ok(FieldType::String),
         "integer" => Ok(FieldType::Integer),
         "boolean" => Ok(FieldType::Boolean),
         "date" => Ok(FieldType::Date),
-        _ => Err(MappingParseError::UnrecognisedFieldType(field_type_str.to_string())),
+        _ => Err(FieldMappingParseError::UnrecognisedFieldType(field_type_str.to_string())),
     }
 }
 
 
-fn parse_field(json: &Json) -> Result<FieldMappingBuilder, MappingParseError> {
-    let field_object = try!(json.as_object().ok_or(MappingParseError::ExpectedObject));
+fn parse_field(json: &Json) -> Result<FieldMappingBuilder, FieldMappingParseError> {
+    let field_object = try!(json.as_object().ok_or(FieldMappingParseError::ExpectedObject));
     let mut mapping_builder = FieldMappingBuilder::default();
 
     // Check for unrecognised keys
@@ -87,12 +99,12 @@ fn parse_field(json: &Json) -> Result<FieldMappingBuilder, MappingParseError> {
     let unrecognised_keys = provided_keys.difference(&allowed_keys).cloned().collect::<Vec<String>>();
 
     if !unrecognised_keys.is_empty() {
-        return Err(MappingParseError::UnrecognisedKeys(unrecognised_keys));
+        return Err(FieldMappingParseError::UnrecognisedKeys(unrecognised_keys));
     }
 
     // Field type
-    let field_type_json = try!(field_object.get("type").ok_or(MappingParseError::ExpectedKey("type".to_string())));
-    let field_type_str = try!(field_type_json.as_string().ok_or(MappingParseError::ExpectedString));
+    let field_type_json = try!(field_object.get("type").ok_or(FieldMappingParseError::ExpectedKey("type".to_string())));
+    let field_type_str = try!(field_type_json.as_string().ok_or(FieldMappingParseError::ExpectedString));
     mapping_builder.field_type = try!(parse_field_type(field_type_str));
 
     // Non-string fields cannot be analyzed
@@ -102,7 +114,7 @@ fn parse_field(json: &Json) -> Result<FieldMappingBuilder, MappingParseError> {
 
     // "index" setting
     if let Some(index_json) = field_object.get("index") {
-        let index_str = try!(index_json.as_string().ok_or(MappingParseError::ExpectedString));
+        let index_str = try!(index_json.as_string().ok_or(FieldMappingParseError::ExpectedString));
 
         match index_str {
             "no" => {
@@ -119,11 +131,11 @@ fn parse_field(json: &Json) -> Result<FieldMappingBuilder, MappingParseError> {
 
                 // Not valid for non-string fields
                 if mapping_builder.field_type != FieldType::String {
-                    return Err(MappingParseError::IndexAnalyzedOnlyAllowedOnStringType);
+                    return Err(FieldMappingParseError::IndexAnalyzedOnlyAllowedOnStringType);
                 }
             }
             _ => {
-                return Err(MappingParseError::UnrecognisedIndexSetting(index_str.to_string()));
+                return Err(FieldMappingParseError::UnrecognisedIndexSetting(index_str.to_string()));
             }
         }
     }
@@ -135,41 +147,41 @@ fn parse_field(json: &Json) -> Result<FieldMappingBuilder, MappingParseError> {
 
     // Analyzers
     if let Some(analyzer_json) = field_object.get("analyzer") {
-        let analyzer_str = try!(analyzer_json.as_string().ok_or(MappingParseError::ExpectedString));
+        let analyzer_str = try!(analyzer_json.as_string().ok_or(FieldMappingParseError::ExpectedString));
         mapping_builder.base_analyzer = analyzer_str.to_string();
 
         if mapping_builder.field_type != FieldType::String {
-            return Err(MappingParseError::AnalyzersOnlyAllowedOnStringType);
+            return Err(FieldMappingParseError::AnalyzersOnlyAllowedOnStringType);
         }
 
         if !mapping_builder.is_analyzed {
-            return Err(MappingParseError::AnalyzersOnlyAllowedOnAnalyzedFields);
+            return Err(FieldMappingParseError::AnalyzersOnlyAllowedOnAnalyzedFields);
         }
     }
 
     if let Some(index_analyzer_json) = field_object.get("index_analyzer") {
-        let index_analyzer_str = try!(index_analyzer_json.as_string().ok_or(MappingParseError::ExpectedString));
+        let index_analyzer_str = try!(index_analyzer_json.as_string().ok_or(FieldMappingParseError::ExpectedString));
         mapping_builder.index_analyzer = Some(index_analyzer_str.to_string());
 
         if mapping_builder.field_type != FieldType::String {
-            return Err(MappingParseError::AnalyzersOnlyAllowedOnStringType);
+            return Err(FieldMappingParseError::AnalyzersOnlyAllowedOnStringType);
         }
 
         if !mapping_builder.is_analyzed {
-            return Err(MappingParseError::AnalyzersOnlyAllowedOnAnalyzedFields);
+            return Err(FieldMappingParseError::AnalyzersOnlyAllowedOnAnalyzedFields);
         }
     }
 
     if let Some(search_analyzer_json) = field_object.get("search_analyzer") {
-        let search_analyzer_str = try!(search_analyzer_json.as_string().ok_or(MappingParseError::ExpectedString));
+        let search_analyzer_str = try!(search_analyzer_json.as_string().ok_or(FieldMappingParseError::ExpectedString));
         mapping_builder.search_analyzer = Some(search_analyzer_str.to_string());
 
         if mapping_builder.field_type != FieldType::String {
-            return Err(MappingParseError::AnalyzersOnlyAllowedOnStringType);
+            return Err(FieldMappingParseError::AnalyzersOnlyAllowedOnStringType);
         }
 
         if !mapping_builder.is_analyzed {
-            return Err(MappingParseError::AnalyzersOnlyAllowedOnAnalyzedFields);
+            return Err(FieldMappingParseError::AnalyzersOnlyAllowedOnAnalyzedFields);
         }
     }
 
@@ -179,11 +191,11 @@ fn parse_field(json: &Json) -> Result<FieldMappingBuilder, MappingParseError> {
         mapping_builder.boost = boost_num;
 
         if !mapping_builder.is_indexed {
-            return Err(MappingParseError::BoostOnlyAllowedOnIndexedFields);
+            return Err(FieldMappingParseError::BoostOnlyAllowedOnIndexedFields);
         }
 
         if boost_num < 0.0f64 {
-            return Err(MappingParseError::BoostMustBePositive);
+            return Err(FieldMappingParseError::BoostMustBePositive);
         }
     }
 
@@ -217,8 +229,14 @@ pub fn parse(json: &Json) -> Result<MappingBuilder, MappingParseError> {
     let mut properties = HashMap::new();
 
     for (field_name, field_json) in properties_object {
-        let field = try!(parse_field(field_json));
-        properties.insert(field_name.to_string(), field);
+        match parse_field(field_json) {
+            Ok(field) => {
+                properties.insert(field_name.to_string(), field);
+            }
+            Err(e) => {
+                return Err(MappingParseError::FieldMappingParseError(field_name.to_string(), e));
+            }
+        }
     }
 
     Ok(MappingBuilder {
@@ -234,7 +252,7 @@ mod tests {
     use mapping::FieldType;
     use mapping::build::{FieldMappingBuilder, MappingBuilder};
 
-    use super::{MappingParseError, parse, parse_field};
+    use super::{MappingParseError, FieldMappingParseError, parse, parse_field};
 
     #[test]
     fn test_parse() {
@@ -256,6 +274,20 @@ mod tests {
                 }
             }
         }));
+    }
+
+    #[test]
+    fn test_parse_field_error() {
+        let mapping = parse(&Json::from_str("
+        {
+            \"properties\": {
+                \"myfield\": {
+                }
+            }
+        }
+        ").unwrap());
+
+        assert_eq!(mapping, Err(MappingParseError::FieldMappingParseError("myfield".to_string(), FieldMappingParseError::ExpectedKey("type".to_string()))));
     }
 
     #[test]
@@ -409,7 +441,7 @@ mod tests {
         }
         ").unwrap());
 
-        assert_eq!(mapping, Err(MappingParseError::ExpectedKey("type".to_string())));
+        assert_eq!(mapping, Err(FieldMappingParseError::ExpectedKey("type".to_string())));
     }
 
     #[test]
@@ -420,7 +452,7 @@ mod tests {
         }
         ").unwrap());
 
-        assert_eq!(mapping, Err(MappingParseError::UnrecognisedFieldType("foo".to_string())));
+        assert_eq!(mapping, Err(FieldMappingParseError::UnrecognisedFieldType("foo".to_string())));
     }
 
     #[test]
@@ -431,7 +463,7 @@ mod tests {
         }
         ").unwrap());
 
-        assert_eq!(mapping, Err(MappingParseError::ExpectedString));
+        assert_eq!(mapping, Err(FieldMappingParseError::ExpectedString));
     }
 
     #[test]
@@ -444,7 +476,7 @@ mod tests {
         }
         ").unwrap());
 
-        assert_eq!(mapping, Err(MappingParseError::UnrecognisedKeys(vec!["baz".to_string(), "foo".to_string()])));
+        assert_eq!(mapping, Err(FieldMappingParseError::UnrecognisedKeys(vec!["baz".to_string(), "foo".to_string()])));
     }
 
     #[test]
@@ -523,7 +555,7 @@ mod tests {
         }
         ").unwrap());
 
-        assert_eq!(mapping, Err(MappingParseError::IndexAnalyzedOnlyAllowedOnStringType));
+        assert_eq!(mapping, Err(FieldMappingParseError::IndexAnalyzedOnlyAllowedOnStringType));
     }
 
     #[test]
@@ -535,7 +567,7 @@ mod tests {
         }
         ").unwrap());
 
-        assert_eq!(mapping, Err(MappingParseError::UnrecognisedIndexSetting("foo".to_string())));
+        assert_eq!(mapping, Err(FieldMappingParseError::UnrecognisedIndexSetting("foo".to_string())));
     }
 
     #[test]
@@ -594,7 +626,7 @@ mod tests {
         }
         ").unwrap());
 
-        assert_eq!(mapping, Err(MappingParseError::ExpectedBoolean));
+        assert_eq!(mapping, Err(FieldMappingParseError::ExpectedBoolean));
     }
 
     #[test]
@@ -677,7 +709,7 @@ mod tests {
         }
         ").unwrap());
 
-        assert_eq!(mapping, Err(MappingParseError::AnalyzersOnlyAllowedOnStringType));
+        assert_eq!(mapping, Err(FieldMappingParseError::AnalyzersOnlyAllowedOnStringType));
     }
 
     #[test]
@@ -690,7 +722,7 @@ mod tests {
         }
         ").unwrap());
 
-        assert_eq!(mapping, Err(MappingParseError::AnalyzersOnlyAllowedOnAnalyzedFields));
+        assert_eq!(mapping, Err(FieldMappingParseError::AnalyzersOnlyAllowedOnAnalyzedFields));
     }
 
     #[test]
@@ -750,7 +782,7 @@ mod tests {
         }
         ").unwrap());
 
-        assert_eq!(mapping, Err(MappingParseError::BoostOnlyAllowedOnIndexedFields));
+        assert_eq!(mapping, Err(FieldMappingParseError::BoostOnlyAllowedOnIndexedFields));
     }
 
     #[test]
@@ -762,7 +794,7 @@ mod tests {
         }
         ").unwrap());
 
-        assert_eq!(mapping, Err(MappingParseError::BoostMustBePositive));
+        assert_eq!(mapping, Err(FieldMappingParseError::BoostMustBePositive));
     }
 
     #[test]
