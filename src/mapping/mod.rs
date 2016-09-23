@@ -1,3 +1,5 @@
+pub mod parse;
+
 use std::collections::HashMap;
 use std::ops::{Deref, DerefMut};
 
