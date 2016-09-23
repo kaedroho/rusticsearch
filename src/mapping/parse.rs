@@ -55,6 +55,10 @@ pub enum MappingParseError {
     // "index" setting
     IndexAnalyzedOnlyAllowedOnStringType,
     UnrecognisedIndexSetting(String),
+
+    // "analyzer" settings
+    AnalyzersOnlyAllowedOnStringType,
+    AnalyzersOnlyAllowedOnAnalyzedFields,
 }
 
 
@@ -124,6 +128,46 @@ fn parse_field(json: &Json) -> Result<FieldMappingBuilder, MappingParseError> {
     // "store" setting
     if let Some(store_json) = field_object.get("store") {
         mapping_builder.is_stored = try!(parse_boolean(store_json));
+    }
+
+    // Analyzers
+    if let Some(analyzer_json) = field_object.get("analyzer") {
+        let analyzer_str = try!(analyzer_json.as_string().ok_or(MappingParseError::ExpectedString));
+        mapping_builder.base_analyzer = analyzer_str.to_string();
+
+        if mapping_builder.field_type != FieldType::String {
+            return Err(MappingParseError::AnalyzersOnlyAllowedOnStringType);
+        }
+
+        if !mapping_builder.is_analyzed {
+            return Err(MappingParseError::AnalyzersOnlyAllowedOnAnalyzedFields);
+        }
+    }
+
+    if let Some(index_analyzer_json) = field_object.get("index_analyzer") {
+        let index_analyzer_str = try!(index_analyzer_json.as_string().ok_or(MappingParseError::ExpectedString));
+        mapping_builder.index_analyzer = Some(index_analyzer_str.to_string());
+
+        if mapping_builder.field_type != FieldType::String {
+            return Err(MappingParseError::AnalyzersOnlyAllowedOnStringType);
+        }
+
+        if !mapping_builder.is_analyzed {
+            return Err(MappingParseError::AnalyzersOnlyAllowedOnAnalyzedFields);
+        }
+    }
+
+    if let Some(search_analyzer_json) = field_object.get("search_analyzer") {
+        let search_analyzer_str = try!(search_analyzer_json.as_string().ok_or(MappingParseError::ExpectedString));
+        mapping_builder.search_analyzer = Some(search_analyzer_str.to_string());
+
+        if mapping_builder.field_type != FieldType::String {
+            return Err(MappingParseError::AnalyzersOnlyAllowedOnStringType);
+        }
+
+        if !mapping_builder.is_analyzed {
+            return Err(MappingParseError::AnalyzersOnlyAllowedOnAnalyzedFields);
+        }
     }
 
     Ok(mapping_builder)
@@ -486,5 +530,101 @@ mod tests {
         ").unwrap());
 
         assert_eq!(mapping, Err(MappingParseError::ExpectedBoolean));
+    }
+
+    #[test]
+    fn test_parse_analyzer_default() {
+        let mapping = parse_field(&Json::from_str("
+        {
+            \"type\": \"string\"
+        }
+        ").unwrap());
+
+        assert_eq!(mapping, Ok(FieldMappingBuilder {
+            field_type: FieldType::String,
+            base_analyzer: "default".to_string(),
+            index_analyzer: None,
+            search_analyzer: None,
+            ..FieldMappingBuilder::default()
+        }));
+    }
+
+    #[test]
+    fn test_parse_analyzer() {
+        let mapping = parse_field(&Json::from_str("
+        {
+            \"type\": \"string\",
+            \"analyzer\": \"foo\"
+        }
+        ").unwrap());
+
+        assert_eq!(mapping, Ok(FieldMappingBuilder {
+            field_type: FieldType::String,
+            base_analyzer: "foo".to_string(),
+            index_analyzer: None,
+            search_analyzer: None,
+            ..FieldMappingBuilder::default()
+        }));
+    }
+
+    #[test]
+    fn test_parse_index_analyzer() {
+        let mapping = parse_field(&Json::from_str("
+        {
+            \"type\": \"string\",
+            \"index_analyzer\": \"foo\"
+        }
+        ").unwrap());
+
+        assert_eq!(mapping, Ok(FieldMappingBuilder {
+            field_type: FieldType::String,
+            base_analyzer: "default".to_string(),
+            index_analyzer: Some("foo".to_string()),
+            search_analyzer: None,
+            ..FieldMappingBuilder::default()
+        }));
+    }
+
+    #[test]
+    fn test_parse_search_analyzer() {
+        let mapping = parse_field(&Json::from_str("
+        {
+            \"type\": \"string\",
+            \"search_analyzer\": \"foo\"
+        }
+        ").unwrap());
+
+        assert_eq!(mapping, Ok(FieldMappingBuilder {
+            field_type: FieldType::String,
+            base_analyzer: "default".to_string(),
+            index_analyzer: None,
+            search_analyzer: Some("foo".to_string()),
+            ..FieldMappingBuilder::default()
+        }));
+    }
+
+    #[test]
+    fn test_parse_analyzer_on_integer_field() {
+        let mapping = parse_field(&Json::from_str("
+        {
+            \"type\": \"integer\",
+            \"analyzer\": \"foo\"
+        }
+        ").unwrap());
+
+        assert_eq!(mapping, Err(MappingParseError::AnalyzersOnlyAllowedOnStringType));
+    }
+
+    #[test]
+    fn test_parse_analyzer_on_non_analyzed_field() {
+        let mapping = parse_field(&Json::from_str("
+        {
+            \"type\": \"string\",
+            \"index\": \"not_analyzed\",
+            \"analyzer\": \"foo\"
+        }
+        ").unwrap());
+
+        assert_eq!(mapping, Err(MappingParseError::AnalyzersOnlyAllowedOnAnalyzedFields));
     }
 }
