@@ -121,6 +121,11 @@ fn parse_field(json: &Json) -> Result<FieldMappingBuilder, MappingParseError> {
         }
     }
 
+    // "store" setting
+    if let Some(store_json) = field_object.get("store") {
+        mapping_builder.is_stored = try!(parse_boolean(store_json));
+    }
+
     Ok(mapping_builder)
 }
 
@@ -422,5 +427,64 @@ mod tests {
         ").unwrap());
 
         assert_eq!(mapping, Err(MappingParseError::UnrecognisedIndexSetting("foo".to_string())));
+    }
+
+    #[test]
+    fn test_parse_store_default() {
+        let mapping = parse_field(&Json::from_str("
+        {
+            \"type\": \"string\"
+        }
+        ").unwrap());
+
+        assert_eq!(mapping, Ok(FieldMappingBuilder {
+            field_type: FieldType::String,
+            is_stored: false,
+            ..FieldMappingBuilder::default()
+        }));
+    }
+
+    #[test]
+    fn test_parse_store_yes() {
+        let mapping = parse_field(&Json::from_str("
+        {
+            \"type\": \"string\",
+            \"store\": \"yes\"
+        }
+        ").unwrap());
+
+        assert_eq!(mapping, Ok(FieldMappingBuilder {
+            field_type: FieldType::String,
+            is_stored: true,
+            ..FieldMappingBuilder::default()
+        }));
+    }
+
+    #[test]
+    fn test_parse_store_true() {
+        let mapping = parse_field(&Json::from_str("
+        {
+            \"type\": \"string\",
+            \"store\": true
+        }
+        ").unwrap());
+
+        assert_eq!(mapping, Ok(FieldMappingBuilder {
+            field_type: FieldType::String,
+            is_stored: true,
+            ..FieldMappingBuilder::default()
+        }));
+    }
+
+    #[test]
+    fn test_parse_store_non_boolean() {
+        let mapping = parse_field(&Json::from_str("
+        {
+            \"type\": \"string\",
+            \"store\": \"foo\"
+        }
+        ").unwrap());
+
+        assert_eq!(mapping, Err(MappingParseError::ExpectedBoolean));
     }
 }
