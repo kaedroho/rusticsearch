@@ -6,6 +6,7 @@ use abra::store::{IndexStore, IndexReader};
 use rustc_serialize::json::Json;
 
 use mapping;
+use mapping::parse::parse as parse_mapping;
 
 use api::persistent;
 use api::iron::prelude::*;
@@ -39,7 +40,14 @@ pub fn view_put_mapping(req: &mut Request) -> IronResult<Response> {
     let data = data.as_object().unwrap().get(*mapping_name).unwrap();
 
     // Insert mapping
-    let mut mapping = mapping::Mapping::from_json(&index.analyzers, &data);
+    let mapping_builder = match parse_mapping(&data) {
+        Ok(mapping_builder) => mapping_builder,
+        Err(e) => {
+            // TODO: Better error
+            return Ok(json_response(status::BadRequest, "{\"acknowledged\": false}"));
+        }
+    };
+    let mut mapping = mapping_builder.build(&index.analyzers);
     debug!("{:#?}", mapping);
     let is_updating = index.mappings.contains_key(*mapping_name);
 
