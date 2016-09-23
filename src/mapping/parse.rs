@@ -47,6 +47,7 @@ pub enum MappingParseError {
     ExpectedObject,
     ExpectedString,
     ExpectedBoolean,
+    ExpectedNumber,
     ExpectedKey(String),
 
     // Field type
@@ -59,6 +60,10 @@ pub enum MappingParseError {
     // "analyzer" settings
     AnalyzersOnlyAllowedOnStringType,
     AnalyzersOnlyAllowedOnAnalyzedFields,
+
+    // "boost" setting
+    BoostOnlyAllowedOnIndexedFields,
+    BoostMustBePositive,
 }
 
 
@@ -73,6 +78,16 @@ fn parse_boolean(json: &Json) -> Result<bool, MappingParseError> {
             }
         }
         _ => Err(MappingParseError::ExpectedBoolean)
+    }
+}
+
+
+fn parse_float(json: &Json) -> Result<f64, MappingParseError> {
+    match *json {
+        Json::F64(val) => Ok(val),
+        Json::I64(val) => Ok(val as f64),
+        Json::U64(val) => Ok(val as f64),
+        _ => Err(MappingParseError::ExpectedNumber)
     }
 }
 
@@ -172,6 +187,20 @@ fn parse_field(json: &Json) -> Result<FieldMappingBuilder, MappingParseError> {
 
         if !mapping_builder.is_analyzed {
             return Err(MappingParseError::AnalyzersOnlyAllowedOnAnalyzedFields);
+        }
+    }
+
+    // Boost
+    if let Some(boost_json) = field_object.get("boost") {
+        let boost_num = try!(parse_float(boost_json));
+        mapping_builder.boost = boost_num;
+
+        if !mapping_builder.is_indexed {
+            return Err(MappingParseError::BoostOnlyAllowedOnIndexedFields);
+        }
+
+        if boost_num < 0.0f64 {
+            return Err(MappingParseError::BoostMustBePositive);
         }
     }
 
@@ -635,5 +664,77 @@ mod tests {
         ").unwrap());
 
         assert_eq!(mapping, Err(MappingParseError::AnalyzersOnlyAllowedOnAnalyzedFields));
+    }
+
+    #[test]
+    fn test_parse_boost_default() {
+        let mapping = parse_field(&Json::from_str("
+        {
+            \"type\": \"string\"
+        }
+        ").unwrap());
+
+        assert_eq!(mapping, Ok(FieldMappingBuilder {
+            field_type: FieldType::String,
+            boost: 1.0f64,
+            ..FieldMappingBuilder::default()
+        }));
+    }
+
+    #[test]
+    fn test_parse_boost_float() {
+        let mapping = parse_field(&Json::from_str("
+        {
+            \"type\": \"string\",
+            \"boost\": 2.0
+        }
+        ").unwrap());
+
+        assert_eq!(mapping, Ok(FieldMappingBuilder {
+            field_type: FieldType::String,
+            boost: 2.0f64,
+            ..FieldMappingBuilder::default()
+        }));
+    }
+
+    #[test]
+    fn test_parse_boost_integer() {
+        let mapping = parse_field(&Json::from_str("
+        {
+            \"type\": \"string\",
+            \"boost\": 2
+        }
+        ").unwrap());
+
+        assert_eq!(mapping, Ok(FieldMappingBuilder {
+            field_type: FieldType::String,
+            boost: 2.0f64,
+            ..FieldMappingBuilder::default()
+        }));
+    }
+
+    #[test]
+    fn test_parse_boost_non_indexed_field() {
+        let mapping = parse_field(&Json::from_str("
+        {
+            \"type\": \"string\",
+            \"index\": \"no\",
+            \"boost\": 2.0
+        }
+        ").unwrap());
+
+        assert_eq!(mapping, Err(MappingParseError::BoostOnlyAllowedOnIndexedFields));
+    }
+
+    #[test]
+    fn test_parse_boost_negative() {
+        let mapping = parse_field(&Json::from_str("
+        {
+            \"type\": \"string\",
+            \"boost\": -2.0
+        }
+        ").unwrap());
+
+        assert_eq!(mapping, Err(MappingParseError::BoostMustBePositive));
     }
 }
