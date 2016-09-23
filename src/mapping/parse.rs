@@ -64,6 +64,9 @@ pub enum MappingParseError {
     // "boost" setting
     BoostOnlyAllowedOnIndexedFields,
     BoostMustBePositive,
+
+    // "include_in_all" setting
+    IncludeInAllOnlyAllowedOnStringType,
 }
 
 
@@ -201,6 +204,16 @@ fn parse_field(json: &Json) -> Result<FieldMappingBuilder, MappingParseError> {
 
         if boost_num < 0.0f64 {
             return Err(MappingParseError::BoostMustBePositive);
+        }
+    }
+
+    // "include_in_all" setting
+    if let Some(include_in_all_json) = field_object.get("include_in_all") {
+        let include_in_all = try!(parse_boolean(include_in_all_json));
+        mapping_builder.is_in_all = include_in_all;
+
+        if mapping_builder.field_type != FieldType::String {
+            return Err(MappingParseError::IncludeInAllOnlyAllowedOnStringType);
         }
     }
 
@@ -736,5 +749,64 @@ mod tests {
         ").unwrap());
 
         assert_eq!(mapping, Err(MappingParseError::BoostMustBePositive));
+    }
+
+    #[test]
+    fn test_include_in_all_default() {
+        let mapping = parse_field(&Json::from_str("
+        {
+            \"type\": \"string\"
+        }
+        ").unwrap());
+
+        assert_eq!(mapping, Ok(FieldMappingBuilder {
+            field_type: FieldType::String,
+            is_in_all: true,
+            ..FieldMappingBuilder::default()
+        }));
+    }
+
+    #[test]
+    fn test_include_in_all_no() {
+        let mapping = parse_field(&Json::from_str("
+        {
+            \"type\": \"string\",
+            \"include_in_all\": \"no\"
+        }
+        ").unwrap());
+
+        assert_eq!(mapping, Ok(FieldMappingBuilder {
+            field_type: FieldType::String,
+            is_in_all: false,
+            ..FieldMappingBuilder::default()
+        }));
+    }
+
+    #[test]
+    fn test_include_in_all_false() {
+        let mapping = parse_field(&Json::from_str("
+        {
+            \"type\": \"string\",
+            \"include_in_all\": false
+        }
+        ").unwrap());
+
+        assert_eq!(mapping, Ok(FieldMappingBuilder {
+            field_type: FieldType::String,
+            is_in_all: false,
+            ..FieldMappingBuilder::default()
+        }));
+    }
+
+    #[test]
+    fn test_include_in_all_non_string_type() {
+        let mapping = parse_field(&Json::from_str("
+        {
+            \"type\": \"integer\",
+            \"include_in_all\": \"no\"
+        }
+        ").unwrap());
+
+        assert_eq!(mapping, Err(MappingParseError::IncludeInAllOnlyAllowedOnStringType));
     }
 }
