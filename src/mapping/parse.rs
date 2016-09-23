@@ -28,9 +28,6 @@ pub enum MappingParseError {
     // "boost" setting
     BoostOnlyAllowedOnIndexedFields,
     BoostMustBePositive,
-
-    // "include_in_all" setting
-    IncludeInAllOnlyAllowedOnStringType,
 }
 
 
@@ -175,10 +172,6 @@ fn parse_field(json: &Json) -> Result<FieldMappingBuilder, MappingParseError> {
     if let Some(include_in_all_json) = field_object.get("include_in_all") {
         let include_in_all = try!(parse_boolean(include_in_all_json));
         mapping_builder.is_in_all = include_in_all;
-
-        if mapping_builder.field_type != FieldType::String {
-            return Err(MappingParseError::IncludeInAllOnlyAllowedOnStringType);
-        }
     }
 
     Ok(mapping_builder)
@@ -768,10 +761,15 @@ mod tests {
         let mapping = parse_field(&Json::from_str("
         {
             \"type\": \"integer\",
-            \"include_in_all\": \"no\"
+            \"include_in_all\": \"yes\"
         }
         ").unwrap());
 
-        assert_eq!(mapping, Err(MappingParseError::IncludeInAllOnlyAllowedOnStringType));
+        assert_eq!(mapping, Ok(FieldMappingBuilder {
+            field_type: FieldType::Integer,
+            is_analyzed: false,
+            is_in_all: true,
+            ..FieldMappingBuilder::default()
+        }));
     }
 }
