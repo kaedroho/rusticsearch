@@ -2,44 +2,8 @@ use std::collections::HashMap;
 
 use rustc_serialize::json::Json;
 
-use mapping::{Mapping, FieldType};
-
-
-#[derive(Debug, PartialEq)]
-pub struct FieldMappingBuilder {
-    field_type: FieldType,
-    is_indexed: bool,
-    is_analyzed: bool,
-    is_stored: bool,
-    is_in_all: bool,
-    boost: f64,
-    base_analyzer: String,
-    index_analyzer: Option<String>,
-    search_analyzer: Option<String>
-}
-
-
-impl Default for FieldMappingBuilder {
-    fn default() -> FieldMappingBuilder {
-        FieldMappingBuilder {
-            field_type: FieldType::String,
-            is_indexed: true,
-            is_analyzed: true,
-            is_stored: false,
-            is_in_all: true,
-            boost: 1.0f64,
-            base_analyzer: "default".to_string(),
-            index_analyzer: None,
-            search_analyzer: None,
-        }
-    }
-}
-
-
-#[derive(Debug, PartialEq)]
-pub struct MappingBuilder {
-    properties: HashMap<String, FieldMappingBuilder>,
-}
+use mapping::FieldType;
+use mapping::build::{MappingBuilder, FieldMappingBuilder};
 
 
 #[derive(Debug, PartialEq)]
@@ -245,8 +209,9 @@ mod tests {
     use rustc_serialize::json::Json;
 
     use mapping::FieldType;
+    use mapping::build::{FieldMappingBuilder, MappingBuilder};
 
-    use super::{FieldMappingBuilder, MappingBuilder, MappingParseError, parse, parse_field};
+    use super::{MappingParseError, parse, parse_field};
 
     #[test]
     fn test_parse() {
