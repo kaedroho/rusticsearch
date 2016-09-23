@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, BTreeSet};
 
 use rustc_serialize::json::Json;
 
@@ -13,6 +13,7 @@ pub enum MappingParseError {
     ExpectedBoolean,
     ExpectedNumber,
     ExpectedKey(String),
+    UnrecognisedKeys(Vec<String>),
 
     // Field type
     UnrecognisedFieldType(String),
@@ -70,6 +71,24 @@ fn parse_field_type(field_type_str: &str) -> Result<FieldType, MappingParseError
 fn parse_field(json: &Json) -> Result<FieldMappingBuilder, MappingParseError> {
     let field_object = try!(json.as_object().ok_or(MappingParseError::ExpectedObject));
     let mut mapping_builder = FieldMappingBuilder::default();
+
+    // Check for unrecognised keys
+    let provided_keys = field_object.keys().cloned().collect::<BTreeSet<String>>();
+    let allowed_keys = btreeset![
+        "type".to_string(),
+        "index".to_string(),
+        "store".to_string(),
+        "analyzer".to_string(),
+        "index_analyzer".to_string(),
+        "search_analyzer".to_string(),
+        "boost".to_string(),
+        "include_in_all".to_string(),
+    ];
+    let unrecognised_keys = provided_keys.difference(&allowed_keys).cloned().collect::<Vec<String>>();
+
+    if !unrecognised_keys.is_empty() {
+        return Err(MappingParseError::UnrecognisedKeys(unrecognised_keys));
+    }
 
     // Field type
     let field_type_json = try!(field_object.get("type").ok_or(MappingParseError::ExpectedKey("type".to_string())));
@@ -181,6 +200,17 @@ fn parse_field(json: &Json) -> Result<FieldMappingBuilder, MappingParseError> {
 pub fn parse(json: &Json) -> Result<MappingBuilder, MappingParseError> {
     let mapping_object = try!(json.as_object().ok_or(MappingParseError::ExpectedObject));
 
+    // Check for unrecognised keys
+    let provided_keys = mapping_object.keys().cloned().collect::<BTreeSet<String>>();
+    let allowed_keys = btreeset![
+        "properties".to_string(),
+    ];
+    let unrecognised_keys = provided_keys.difference(&allowed_keys).cloned().collect::<Vec<String>>();
+
+    if !unrecognised_keys.is_empty() {
+        return Err(MappingParseError::UnrecognisedKeys(unrecognised_keys));
+    }
+
     // Parse properties
     let properties_json = try!(mapping_object.get("properties").ok_or(MappingParseError::ExpectedKey("properties".to_string())));
     let properties_object = try!(properties_json.as_object().ok_or(MappingParseError::ExpectedObject));
@@ -272,6 +302,19 @@ mod tests {
         assert_eq!(mapping, Ok(MappingBuilder {
             properties: hashmap! {},
         }));
+    }
+
+    #[test]
+    fn test_parse_unrecognised_key() {
+        let mapping = parse(&Json::from_str("
+        {
+            \"properties\": {},
+            \"foo\": \"bar\",
+            \"baz\": \"quux\"
+        }
+        ").unwrap());
+
+        assert_eq!(mapping, Err(MappingParseError::UnrecognisedKeys(vec!["baz".to_string(), "foo".to_string()])));
     }
 
     #[test]
@@ -389,6 +432,19 @@ mod tests {
         ").unwrap());
 
         assert_eq!(mapping, Err(MappingParseError::ExpectedString));
+    }
+
+    #[test]
+    fn test_parse_field_unrecognised_key() {
+        let mapping = parse_field(&Json::from_str("
+        {
+            \"type\": \"string\",
+            \"foo\": \"bar\",
+            \"baz\": \"quux\"
+        }
+        ").unwrap());
+
+        assert_eq!(mapping, Err(MappingParseError::UnrecognisedKeys(vec!["baz".to_string(), "foo".to_string()])));
     }
 
     #[test]
