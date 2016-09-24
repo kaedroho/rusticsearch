@@ -1,6 +1,7 @@
 pub mod maintenance;
 pub mod registry;
 pub mod settings;
+pub mod settings_parser;
 
 use kite_rocksdb::RocksDBIndexStore;
 

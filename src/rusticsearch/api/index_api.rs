@@ -9,7 +9,7 @@ use analysis::tokenizers::TokenizerSpec;
 use analysis::filters::FilterSpec;
 use analysis::ngram_generator::Edge;
 use index::Index;
-use index::settings::parse as parse_index_settings;
+use index::settings_parser::parse as parse_index_settings;
 
 use api::persistent;
 use api::iron::prelude::*;
