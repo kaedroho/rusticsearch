@@ -15,6 +15,7 @@ extern crate maplit;
 pub mod query_parser;
 pub mod mapping;
 pub mod document;
+pub mod index;
 pub mod system;
 mod api;
 mod logger;

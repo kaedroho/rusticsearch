@@ -1,3 +1,5 @@
+pub mod registry;
+
 use std::collections::HashSet;
 
 use abra::analysis::registry::AnalyzerRegistry;
