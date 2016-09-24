@@ -3,7 +3,7 @@ use std::collections::{HashMap, BTreeSet};
 use serde_json;
 
 use mapping::FieldType;
-use mapping::build::{MappingBuilder, FieldMappingBuilder};
+use mapping::build::{MappingBuilder, MappingPropertyBuilder, FieldMappingBuilder};
 
 
 #[derive(Debug, PartialEq)]
@@ -234,7 +234,7 @@ pub fn parse(json: &serde_json::Value) -> Result<MappingBuilder, MappingParseErr
     for (field_name, field_json) in properties_object {
         match parse_field(field_json) {
             Ok(field) => {
-                properties.insert(field_name.to_string(), field);
+                properties.insert(field_name.to_string(), MappingPropertyBuilder::Field(field));
             }
             Err(e) => {
                 return Err(MappingParseError::FieldMappingParseError(field_name.to_string(), e));
@@ -253,7 +253,7 @@ mod tests {
     use serde_json;
 
     use mapping::FieldType;
-    use mapping::build::{FieldMappingBuilder, MappingBuilder};
+    use mapping::build::{FieldMappingBuilder, MappingPropertyBuilder, MappingBuilder};
 
     use super::{MappingParseError, FieldMappingParseError, parse, parse_field};
 
@@ -271,10 +271,12 @@ mod tests {
 
         assert_eq!(mapping, Ok(MappingBuilder {
             properties: hashmap! {
-                "myfield".to_string() => FieldMappingBuilder {
-                    field_type: FieldType::String,
-                    ..FieldMappingBuilder::default()
-                }
+                "myfield".to_string() => MappingPropertyBuilder::Field(
+                    FieldMappingBuilder {
+                        field_type: FieldType::String,
+                        ..FieldMappingBuilder::default()
+                    }
+                )
             }
         }));
     }

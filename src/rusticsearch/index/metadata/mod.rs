@@ -5,7 +5,7 @@ use std::collections::HashMap;
 use analysis::AnalyzerSpec;
 use analysis::tokenizers::TokenizerSpec;
 use analysis::filters::FilterSpec;
-use mapping::{Mapping, FieldMapping};
+use mapping::{Mapping, MappingProperty, FieldMapping};
 
 
 #[derive(Debug)]
@@ -106,7 +106,8 @@ impl IndexMetaData {
 
     pub fn get_field_mapping(&self, name: &str) -> Option<&FieldMapping> {
         for mapping in self.mappings.values() {
-            if let Some(ref field_mapping) = mapping.fields.get(name) {
+            if let Some(property) = mapping.properties.get(name) {
+                let MappingProperty::Field(ref field_mapping) = *property;
                 return Some(field_mapping);
             }
         }

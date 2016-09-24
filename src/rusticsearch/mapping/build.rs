@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use mapping::{Mapping, FieldMapping, FieldType, get_standard_analyzer};
+use mapping::{Mapping, MappingProperty, FieldMapping, FieldType, get_standard_analyzer};
 use index::metadata::IndexMetaData;
 
 
@@ -96,34 +96,46 @@ impl FieldMappingBuilder {
 
 
 #[derive(Debug, PartialEq)]
+pub enum MappingPropertyBuilder {
+    Field(FieldMappingBuilder),
+}
+
+
+#[derive(Debug, PartialEq)]
 pub struct MappingBuilder {
-    pub properties: HashMap<String, FieldMappingBuilder>,
+    pub properties: HashMap<String, MappingPropertyBuilder>,
 }
 
 
 impl MappingBuilder {
     pub fn build(&self, index_metadata: &IndexMetaData) -> Mapping {
         // Insert fields
-        let mut fields = HashMap::new();
-        for (field_name, field_builder) in self.properties.iter() {
-            fields.insert(field_name.to_string(), field_builder.build(index_metadata));
+        let mut properties = HashMap::new();
+        for (field_name, builder) in self.properties.iter() {
+            match *builder {
+                MappingPropertyBuilder::Field(ref field_builder) => {
+                     properties.insert(field_name.to_string(), MappingProperty::Field(field_builder.build(index_metadata)));
+                }
+            }
         }
 
         // Insert _all field
-        if !fields.contains_key("_all") {
+        if !properties.contains_key("_all") {
             // TODO: Support disabling the _all field
-            fields.insert("_all".to_string(), FieldMapping {
-                data_type: FieldType::String,
-                is_stored: false,
-                is_in_all: false,
-                index_analyzer: Some(get_standard_analyzer()),
-                search_analyzer: Some(get_standard_analyzer()),
-                .. FieldMapping::default()
-            });
+            properties.insert("_all".to_string(), MappingProperty::Field(
+                FieldMapping {
+                    data_type: FieldType::String,
+                    is_stored: false,
+                    is_in_all: false,
+                    index_analyzer: Some(get_standard_analyzer()),
+                    search_analyzer: Some(get_standard_analyzer()),
+                    .. FieldMapping::default()
+                }
+            ));
         }
 
         Mapping {
-            fields: fields,
+            properties: properties,
         }
     }
 }
@@ -134,44 +146,46 @@ mod tests {
     use analysis::AnalyzerSpec;
     use analysis::tokenizers::TokenizerSpec;
     use analysis::filters::FilterSpec;
-    use mapping::{Mapping, FieldMapping, FieldType, get_standard_analyzer};
+    use mapping::{Mapping, MappingProperty, FieldMapping, FieldType, get_standard_analyzer};
     use index::metadata::IndexMetaData;
 
-    use super::{MappingBuilder, FieldMappingBuilder};
+    use super::{MappingBuilder, MappingPropertyBuilder, FieldMappingBuilder};
 
     #[test]
     fn test_build() {
         let index_metadata = IndexMetaData::default();
         let builder = MappingBuilder {
             properties: hashmap! {
-                "title".to_string() => FieldMappingBuilder {
-                    field_type: FieldType::String,
-                    is_in_all: true,
-                    boost: 2.0f64,
-                    ..FieldMappingBuilder::default()
-                }
+                "title".to_string() => MappingPropertyBuilder::Field(
+                    FieldMappingBuilder {
+                        field_type: FieldType::String,
+                        is_in_all: true,
+                        boost: 2.0f64,
+                        ..FieldMappingBuilder::default()
+                    }
+                )
             },
         };
 
         let mapping = builder.build(&index_metadata);
 
         assert_eq!(mapping, Mapping {
-            fields: hashmap! {
-                "title".to_string() => FieldMapping {
+            properties: hashmap! {
+                "title".to_string() => MappingProperty::Field(FieldMapping {
                     data_type: FieldType::String,
                     is_in_all: true,
                     boost: 2.0f64,
                     index_analyzer: Some(get_standard_analyzer()),
                     search_analyzer: Some(get_standard_analyzer()),
                     ..FieldMapping::default()
-                },
-                "_all".to_string() => FieldMapping {
+                }),
+                "_all".to_string() => MappingProperty::Field(FieldMapping {
                     data_type: FieldType::String,
                     is_in_all: false,
                     index_analyzer: Some(get_standard_analyzer()),
                     search_analyzer: Some(get_standard_analyzer()),
                     ..FieldMapping::default()
-                }
+                })
             }
         });
     }
@@ -186,14 +200,14 @@ mod tests {
         let mapping = builder.build(&index_metadata);
 
         assert_eq!(mapping, Mapping {
-            fields: hashmap! {
-                "_all".to_string() => FieldMapping {
+            properties: hashmap! {
+                "_all".to_string() => MappingProperty::Field(FieldMapping {
                     data_type: FieldType::String,
                     is_in_all: false,
                     index_analyzer: Some(get_standard_analyzer()),
                     search_analyzer: Some(get_standard_analyzer()),
                     ..FieldMapping::default()
-                }
+                })
             }
         });
     }
@@ -203,25 +217,27 @@ mod tests {
         let index_metadata = IndexMetaData::default();
         let builder = MappingBuilder {
             properties: hashmap! {
-                "_all".to_string() => FieldMappingBuilder {
-                    field_type: FieldType::String,
-                    boost: 2.0f64,
-                    ..FieldMappingBuilder::default()
-                }
+                "_all".to_string() => MappingPropertyBuilder::Field(
+                    FieldMappingBuilder {
+                        field_type: FieldType::String,
+                        boost: 2.0f64,
+                        ..FieldMappingBuilder::default()
+                    }
+                )
             },
         };
 
         let mapping = builder.build(&index_metadata);
 
         assert_eq!(mapping, Mapping {
-            fields: hashmap! {
-                "_all".to_string() => FieldMapping {
+            properties: hashmap! {
+                "_all".to_string() => MappingProperty::Field(FieldMapping {
                     data_type: FieldType::String,
                     boost: 2.0f64,
                     index_analyzer: Some(get_standard_analyzer()),
                     search_analyzer: Some(get_standard_analyzer()),
                     ..FieldMapping::default()
-                }
+                })
             }
         });
     }

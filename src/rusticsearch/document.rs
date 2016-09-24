@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use serde_json;
 use kite::Document;
 
-use mapping::Mapping;
+use mapping::{Mapping, MappingProperty};
 
 
 #[derive(Debug)]
@@ -25,8 +25,8 @@ impl DocumentSource {
                 continue;
             }
 
-            match mapping.fields.get(field_name) {
-                Some(field_mapping) => {
+            match mapping.properties.get(field_name) {
+                Some(&MappingProperty::Field(ref field_mapping)) => {
                     if field_mapping.is_indexed {
                         let value = field_mapping.process_value_for_index(field_value.clone());
 
@@ -72,18 +72,22 @@ impl DocumentSource {
         }
 
         // Insert _all field
-        match mapping.fields.get("_all") {
-            Some(field_mapping) => {
-                let strings_json = serde_json::Value::String(all_field_strings.join(" "));
-                let value = field_mapping.process_value_for_index(strings_json.clone());
+        match mapping.properties.get("_all") {
+            Some(property) => {
+                match *property {
+                    MappingProperty::Field(ref field_mapping) => {
+                        let strings_json = serde_json::Value::String(all_field_strings.join(" "));
+                        let value = field_mapping.process_value_for_index(strings_json.clone());
 
-                match value {
-                    Some(value) => {
-                        indexed_fields.insert(field_mapping.index_ref.unwrap(), value);
-                    }
-                    None => {
-                        // TODO: Should probably be an error
-                        warn!("Unprocessable value: {}", strings_json);
+                        match value {
+                            Some(value) => {
+                                indexed_fields.insert(field_mapping.index_ref.unwrap(), value);
+                            }
+                            None => {
+                                // TODO: Should probably be an error
+                                warn!("Unprocessable value: {}", strings_json);
+                            }
+                        }
                     }
                 }
             }

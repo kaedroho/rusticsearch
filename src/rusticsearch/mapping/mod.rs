@@ -284,8 +284,14 @@ impl FieldMapping {
 
 
 #[derive(Debug, PartialEq)]
+pub enum MappingProperty {
+    Field(FieldMapping),
+}
+
+
+#[derive(Debug, PartialEq)]
 pub struct Mapping {
-    pub fields: HashMap<String, FieldMapping>,
+    pub properties: HashMap<String, MappingProperty>,
 }
 
 

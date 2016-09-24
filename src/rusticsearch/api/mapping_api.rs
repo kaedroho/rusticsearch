@@ -4,7 +4,7 @@ use std::collections::HashMap;
 use serde_json;
 use kite::schema::{FieldType, FieldFlags, FIELD_INDEXED, FIELD_STORED};
 
-use mapping;
+use mapping::{self, MappingProperty};
 use mapping::parse::parse as parse_mapping;
 
 use api::persistent;
@@ -56,7 +56,9 @@ pub fn view_put_mapping(req: &mut Request) -> IronResult<Response> {
         let index_reader = index.store.reader();
         let schema = index_reader.schema();
         let mut new_fields: HashMap<String, (FieldType, FieldFlags)>  = HashMap::new();
-        for (field_name, field_mapping) in mapping.fields.iter() {
+        for (name, property) in mapping.properties.iter() {
+            let MappingProperty::Field(ref field_mapping) = *property;
+
             let field_type = match field_mapping.data_type {
                 mapping::FieldType::String => FieldType::Text,
                 mapping::FieldType::Integer => FieldType::I64,
@@ -76,7 +78,7 @@ pub fn view_put_mapping(req: &mut Request) -> IronResult<Response> {
             }
 
             // Check if this field already exists
-            if let Some(field_ref) = schema.get_field_by_name(&field_name) {
+            if let Some(field_ref) = schema.get_field_by_name(&name) {
                 let field_info = schema.get(&field_ref).expect("get_field_by_name returned an invalid FieldRef");
 
                 // Field already exists. Check for conflicting type or flags, otherwise ignore.
@@ -89,7 +91,7 @@ pub fn view_put_mapping(req: &mut Request) -> IronResult<Response> {
                 }
             }
 
-            new_fields.insert(field_name.clone(), (field_type, field_flags));
+            new_fields.insert(name.clone(), (field_type, field_flags));
         }
 
         new_fields
@@ -109,8 +111,9 @@ pub fn view_put_mapping(req: &mut Request) -> IronResult<Response> {
         let index_reader = index.store.reader();
         let schema = index_reader.schema();
 
-        for (field_name, field_mapping) in mapping.fields.iter_mut() {
-            field_mapping.index_ref = schema.get_field_by_name(&field_name)
+        for (name, property) in mapping.properties.iter_mut() {
+            let MappingProperty::Field(ref mut field_mapping) = *property;
+            field_mapping.index_ref = schema.get_field_by_name(&name)
         }
     }
 
