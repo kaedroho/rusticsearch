@@ -11,7 +11,6 @@
 
 pub mod ngram_generator;
 pub mod lucene_asciifold;
-pub mod registry;
 pub mod tokenizers;
 pub mod filters;
 
