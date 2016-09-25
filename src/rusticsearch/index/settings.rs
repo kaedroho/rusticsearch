@@ -13,8 +13,8 @@ pub struct IndexSettings {
 }
 
 
-impl IndexSettings {
-    pub fn new() -> IndexSettings {
+impl Default for  IndexSettings {
+    fn default() -> IndexSettings {
         IndexSettings {
             tokenizers: HashMap::new(),
             filters: HashMap::new(),

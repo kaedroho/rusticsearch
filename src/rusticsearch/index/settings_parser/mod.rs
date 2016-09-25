@@ -20,15 +20,13 @@ pub enum IndexSettingsParseError {
 }
 
 
-pub fn parse(data: Json) -> Result<IndexSettings, IndexSettingsParseError> {
+pub fn parse(index_settings: &mut IndexSettings, data: Json) -> Result<(), IndexSettingsParseError> {
     let data = match data.as_object() {
         Some(object) => object,
         None => {
             return Err(IndexSettingsParseError::ExpectedObject);
         }
     };
-
-    let mut index_settings = IndexSettings::new();
 
     if let Some(settings) = data.get("settings") {
         let settings = match settings.as_object() {
@@ -95,8 +93,7 @@ pub fn parse(data: Json) -> Result<IndexSettings, IndexSettingsParseError> {
         }
     }
 
-
-    Ok(index_settings)
+    Ok(())
 }
 
 
@@ -107,6 +104,7 @@ mod tests {
     use analysis::ngram_generator::Edge;
     use analysis::tokenizers::TokenizerSpec;
     use analysis::filters::FilterSpec;
+    use index::settings::IndexSettings;
 
     use super::{parse, IndexSettingsParseError};
     use super::analysis_tokenizer::TokenizerParseError;
@@ -114,12 +112,11 @@ mod tests {
 
     #[test]
     fn test_empty() {
-        let settings = parse(Json::from_str("
+        let mut settings = IndexSettings::default();
+        parse(&mut settings, Json::from_str("
         {
         }
-        ").unwrap());
-
-        let settings = settings.expect("parse() returned an error");
+        ").unwrap()).expect("parse() returned an error");
 
         assert_eq!(settings.tokenizers.len(), 0);
         assert_eq!(settings.filters.len(), 0);
@@ -128,7 +125,8 @@ mod tests {
 
     #[test]
     fn test_custom_analyser() {
-        let settings = parse(Json::from_str("
+        let mut settings = IndexSettings::default();
+        parse(&mut settings, Json::from_str("
         {
             \"settings\": {
                 \"analysis\": {
@@ -183,9 +181,7 @@ mod tests {
                 }
             }
         }
-        ").unwrap());
-
-        let settings = settings.expect("parse() returned an error");
+        ").unwrap()).expect("parse() returned an error");
 
         assert_eq!(settings.tokenizers.len(), 4);
         assert_eq!(settings.filters.len(), 4);
@@ -252,7 +248,8 @@ mod tests {
 
     #[test]
     fn test_custom_analyser_bad_tokenizer_type() {
-        let settings = parse(Json::from_str("
+        let mut settings = IndexSettings::default();
+        let error = parse(&mut settings, Json::from_str("
         {
             \"settings\": {
                 \"analysis\": {
@@ -264,16 +261,15 @@ mod tests {
                 }
             }
         }
-        ").unwrap());
-
-        let error = settings.err().expect("parse() was supposed to return an error, but didn't");
+        ").unwrap()).err().expect("parse() was supposed to return an error, but didn't");
 
         assert_eq!(error, IndexSettingsParseError::TokenizerParseError("bad_tokenizer".to_string(), TokenizerParseError::UnrecognisedType("foo".to_string())));
     }
 
     #[test]
     fn test_custom_analyser_bad_filter_type() {
-        let settings = parse(Json::from_str("
+        let mut settings = IndexSettings::default();
+        let error = parse(&mut settings, Json::from_str("
         {
             \"settings\": {
                 \"analysis\": {
@@ -285,9 +281,7 @@ mod tests {
                 }
             }
         }
-        ").unwrap());
-
-        let error = settings.err().expect("parse() was supposed to return an error, but didn't");
+        ").unwrap()).err().expect("parse() was supposed to return an error, but didn't");
 
         assert_eq!(error, IndexSettingsParseError::FilterParseError("bad_filter".to_string(), FilterParseError::UnrecognisedType("foo".to_string())));
     }

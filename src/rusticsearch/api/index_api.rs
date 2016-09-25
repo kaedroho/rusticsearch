@@ -9,6 +9,7 @@ use analysis::tokenizers::TokenizerSpec;
 use analysis::filters::FilterSpec;
 use analysis::ngram_generator::Edge;
 use index::Index;
+use index::settings::IndexSettings;
 use index::settings_parser::parse as parse_index_settings;
 
 use api::persistent;
@@ -51,6 +52,16 @@ pub fn view_put_index(req: &mut Request) -> IronResult<Response> {
             system.log.info("[api] updated index", b!("index" => *index_name));
         }
         None => {
+            // Load settings
+            let mut index_settings = IndexSettings::default();
+            match json_from_request_body!(req).map(|data| parse_index_settings(&mut index_settings, data)) {
+                Some(Ok(())) | None => {}
+                Some(Err(_)) => {
+                    // TODO: better error
+                    return Ok(json_response(status::BadRequest, "{\"message\": \"Couldn't parse index settings\"}"));
+                }
+            }
+
             // Create index
             let mut indices_dir = system.get_indices_dir();
             indices_dir.push(index_name);
@@ -77,11 +88,6 @@ pub fn view_put_index(req: &mut Request) -> IronResult<Response> {
                     },
                 ]
             });
-
-            // Load settings
-            if let Some(data) = json_from_request_body!(req) {
-                parse_index_settings(data);
-            }
 
             let index_ref = indices.insert(index);
 
