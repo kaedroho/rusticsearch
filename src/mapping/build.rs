@@ -1,7 +1,6 @@
 use std::collections::HashMap;
 
-use abra::analysis::registry::AnalyzerRegistry;
-
+use analysis::registry::AnalyzerRegistry;
 use mapping::{Mapping, FieldMapping, FieldType, get_standard_analyzer};
 
 
@@ -113,11 +112,11 @@ impl MappingBuilder {
 mod tests {
     use std::collections::HashMap;
 
-    use abra::analysis::registry::AnalyzerRegistry;
     use abra::analysis::AnalyzerSpec;
     use abra::analysis::tokenizers::TokenizerSpec;
     use abra::analysis::filters::FilterSpec;
 
+    use analysis::registry::AnalyzerRegistry;
     use mapping::{Mapping, FieldMapping, FieldType, get_standard_analyzer};
 
     use super::{MappingBuilder, FieldMappingBuilder};

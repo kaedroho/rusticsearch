@@ -2,9 +2,9 @@ pub mod registry;
 
 use std::collections::HashSet;
 
-use abra::analysis::registry::AnalyzerRegistry;
 use abra::store::memory::MemoryIndexStore;
 
+use analysis::registry::AnalyzerRegistry;
 use mapping::{Mapping, FieldMapping, MappingRegistry};
 
 

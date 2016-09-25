@@ -12,6 +12,7 @@ extern crate slog_term;
 #[macro_use]
 extern crate maplit;
 
+pub mod analysis;
 pub mod query_parser;
 pub mod mapping;
 pub mod document;

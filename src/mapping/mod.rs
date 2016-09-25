@@ -8,11 +8,12 @@ use rustc_serialize::json::Json;
 use chrono::{DateTime, UTC};
 use abra::{Term, Token};
 use abra::analysis::AnalyzerSpec;
-use abra::analysis::registry::AnalyzerRegistry;
 use abra::analysis::tokenizers::TokenizerSpec;
 use abra::analysis::filters::FilterSpec;
 use abra::similarity::SimilarityModel;
 use abra::schema::FieldRef;
+
+use analysis::registry::AnalyzerRegistry;
 
 
 // TEMPORARY
