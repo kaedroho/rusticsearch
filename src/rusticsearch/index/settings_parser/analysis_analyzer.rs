@@ -6,24 +6,25 @@ use analysis::AnalyzerSpec;
 use analysis::tokenizers::TokenizerSpec;
 use analysis::filters::FilterSpec;
 
-use super::IndexSettingsParseError;
+
+#[derive(Debug, PartialEq)]
+pub enum AnalyzerParseError {
+    ExpectedObject,
+    ExpectedString,
+    ExpectedArray,
+    ExpectedKey(String),
+    UnrecognisedAnalyzerType(String),
+    UnrecognisedTokenizer(String),
+    UnrecognisedFilter(String),
+}
 
 
-pub fn parse(data: &Json, tokenizers: &HashMap<String, TokenizerSpec>, filters: &HashMap<String, FilterSpec>) -> Result<AnalyzerSpec, IndexSettingsParseError> {
-    let data = match data.as_object() {
-        Some(object) => object,
-        None => return Err(IndexSettingsParseError::SomethingWentWrong),
-    };
+pub fn parse(json: &Json, tokenizers: &HashMap<String, TokenizerSpec>, filters: &HashMap<String, FilterSpec>) -> Result<AnalyzerSpec, AnalyzerParseError> {
+    let data = try!(json.as_object().ok_or(AnalyzerParseError::ExpectedObject));
 
-    let analyzer_type = match data.get("type") {
-        Some(type_json) => {
-            match type_json.as_string() {
-                Some(analyzer_type) => analyzer_type,
-                None => return Err(IndexSettingsParseError::SomethingWentWrong),
-            }
-        }
-        None => return Err(IndexSettingsParseError::SomethingWentWrong),
-    };
+    // Get type
+    let analyzer_type_json = try!(data.get("type").ok_or(AnalyzerParseError::ExpectedKey("type".to_string())));
+    let analyzer_type = try!(analyzer_type_json.as_string().ok_or(AnalyzerParseError::ExpectedString));
 
     match analyzer_type {
         "custom" => {
@@ -32,15 +33,15 @@ pub fn parse(data: &Json, tokenizers: &HashMap<String, TokenizerSpec>, filters: 
                 Some(tokenizer_json) => {
                     match tokenizer_json.as_string() {
                         Some(tokenizer) => tokenizer,
-                        None => return Err(IndexSettingsParseError::SomethingWentWrong),
+                        None => return Err(AnalyzerParseError::ExpectedString),
                     }
                 }
-                None => return Err(IndexSettingsParseError::SomethingWentWrong),
+                None => return Err(AnalyzerParseError::ExpectedKey("tokenizer".to_string())),
             };
 
             let tokenizer_spec = match tokenizers.get(tokenizer_name) {
                 Some(tokenizer_spec) => tokenizer_spec,
-                None => return Err(IndexSettingsParseError::SomethingWentWrong),
+                None => return Err(AnalyzerParseError::UnrecognisedTokenizer(tokenizer_name.to_string())),
             };
 
             // Build analyzer
@@ -59,16 +60,16 @@ pub fn parse(data: &Json, tokenizers: &HashMap<String, TokenizerSpec>, filters: 
                                 Some(filter_name) => {
                                     let filter_spec = match filters.get(filter_name) {
                                         Some(filter_spec) => filter_spec,
-                                        None => return Err(IndexSettingsParseError::SomethingWentWrong),
+                                        None => return Err(AnalyzerParseError::UnrecognisedFilter(filter_name.to_string())),
                                     };
 
                                     analyzer_spec.filters.push(filter_spec.clone());
                                 }
-                                None => return Err(IndexSettingsParseError::SomethingWentWrong),
+                                None => return Err(AnalyzerParseError::ExpectedString),
                             }
                         }
                     },
-                    None => return Err(IndexSettingsParseError::SomethingWentWrong),
+                    None => return Err(AnalyzerParseError::ExpectedArray),
                 }
             }
 
@@ -117,6 +118,6 @@ pub fn parse(data: &Json, tokenizers: &HashMap<String, TokenizerSpec>, filters: 
         // turkish
         // thai
         // fingerprint
-        _ => Err(IndexSettingsParseError::SomethingWentWrong),
+        _ => Err(AnalyzerParseError::UnrecognisedAnalyzerType(analyzer_type.to_string())),
     }
 }

@@ -6,16 +6,17 @@ use rustc_serialize::json::Json;
 
 use index::settings::IndexSettings;
 
-use self::analysis_tokenizer::parse as parse_tokenizer;
-use self::analysis_filter::parse as parse_filter;
-use self::analysis_analyzer::parse as parse_analyzer;
+use self::analysis_tokenizer::{TokenizerParseError, parse as parse_tokenizer};
+use self::analysis_filter::{FilterParseError, parse as parse_filter};
+use self::analysis_analyzer::{AnalyzerParseError, parse as parse_analyzer};
 
 
 #[derive(Debug, PartialEq)]
 pub enum IndexSettingsParseError {
-    SomethingWentWrong,
-    UnrecognisedTokenizerType(String),
-    UnrecognisedFilterType(String),
+    ExpectedObject,
+    TokenizerParseError(String, TokenizerParseError),
+    FilterParseError(String, FilterParseError),
+    AnalyzerParseError(String, AnalyzerParseError),
 }
 
 
@@ -23,7 +24,7 @@ pub fn parse(data: Json) -> Result<IndexSettings, IndexSettingsParseError> {
     let data = match data.as_object() {
         Some(object) => object,
         None => {
-            return Err(IndexSettingsParseError::SomethingWentWrong);
+            return Err(IndexSettingsParseError::ExpectedObject);
         }
     };
 
@@ -32,24 +33,28 @@ pub fn parse(data: Json) -> Result<IndexSettings, IndexSettingsParseError> {
     if let Some(settings) = data.get("settings") {
         let settings = match settings.as_object() {
             Some(object) => object,
-            None => return Err(IndexSettingsParseError::SomethingWentWrong),
+            None => return Err(IndexSettingsParseError::ExpectedObject),
         };
 
         if let Some(analysis) = settings.get("analysis") {
             let analysis = match analysis.as_object() {
                 Some(object) => object,
-                None => return Err(IndexSettingsParseError::SomethingWentWrong),
+                None => return Err(IndexSettingsParseError::ExpectedObject),
             };
 
             // Tokenisers
             if let Some(tokenizer_data) = analysis.get("tokenizer") {
                 let tokenizer_data = match tokenizer_data.as_object() {
                     Some(object) => object,
-                    None => return Err(IndexSettingsParseError::SomethingWentWrong),
+                    None => return Err(IndexSettingsParseError::ExpectedObject),
                 };
 
                 for (name, data) in tokenizer_data {
-                    let tokenizer = try!(parse_tokenizer(data));
+                    let tokenizer = match parse_tokenizer(data) {
+                        Ok(tokenizer) => tokenizer,
+                        Err(e) => return Err(IndexSettingsParseError::TokenizerParseError(name.to_string(), e)),
+                    };
+
                     index_settings.tokenizers.insert(name.clone(), tokenizer);
                 }
             }
@@ -58,11 +63,15 @@ pub fn parse(data: Json) -> Result<IndexSettings, IndexSettingsParseError> {
             if let Some(filter_data) = analysis.get("filter") {
                 let filter_data = match filter_data.as_object() {
                     Some(object) => object,
-                    None => return Err(IndexSettingsParseError::SomethingWentWrong),
+                    None => return Err(IndexSettingsParseError::ExpectedObject),
                 };
 
                 for (name, data) in filter_data {
-                    let filter = try!(parse_filter(data));
+                    let filter = match parse_filter(data) {
+                        Ok(filter) => filter,
+                        Err(e) => return Err(IndexSettingsParseError::FilterParseError(name.to_string(), e)),
+                    };
+
                     index_settings.filters.insert(name.clone(), filter);
                 }
             }
@@ -71,11 +80,15 @@ pub fn parse(data: Json) -> Result<IndexSettings, IndexSettingsParseError> {
             if let Some(analyzer_data) = analysis.get("analyzer") {
                 let analyzer_data = match analyzer_data.as_object() {
                     Some(object) => object,
-                    None => return Err(IndexSettingsParseError::SomethingWentWrong),
+                    None => return Err(IndexSettingsParseError::ExpectedObject),
                 };
 
                 for (name, data) in analyzer_data {
-                    let analyzer = try!(parse_analyzer(data, &index_settings.tokenizers, &index_settings.filters));
+                    let analyzer = match parse_analyzer(data, &index_settings.tokenizers, &index_settings.filters) {
+                        Ok(analyzer) => analyzer,
+                        Err(e) => return Err(IndexSettingsParseError::AnalyzerParseError(name.to_string(), e)),
+                    };
+
                     index_settings.analyzers.insert(name.clone(), analyzer);
                 }
             }
@@ -96,6 +109,8 @@ mod tests {
     use analysis::filters::FilterSpec;
 
     use super::{parse, IndexSettingsParseError};
+    use super::analysis_tokenizer::TokenizerParseError;
+    use super::analysis_filter::FilterParseError;
 
     #[test]
     fn test_empty() {
@@ -253,7 +268,7 @@ mod tests {
 
         let error = settings.err().expect("parse() was supposed to return an error, but didn't");
 
-        assert_eq!(error, IndexSettingsParseError::UnrecognisedTokenizerType("foo".to_string()))
+        assert_eq!(error, IndexSettingsParseError::TokenizerParseError("bad_tokenizer".to_string(), TokenizerParseError::UnrecognisedType("foo".to_string())));
     }
 
     #[test]
@@ -274,6 +289,6 @@ mod tests {
 
         let error = settings.err().expect("parse() was supposed to return an error, but didn't");
 
-        assert_eq!(error, IndexSettingsParseError::UnrecognisedFilterType("foo".to_string()))
+        assert_eq!(error, IndexSettingsParseError::FilterParseError("bad_filter".to_string(), FilterParseError::UnrecognisedType("foo".to_string())));
     }
 }

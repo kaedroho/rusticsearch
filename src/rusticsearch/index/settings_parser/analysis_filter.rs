@@ -3,24 +3,24 @@ use rustc_serialize::json::Json;
 use analysis::ngram_generator::Edge;
 use analysis::filters::FilterSpec;
 
-use super::IndexSettingsParseError;
+
+#[derive(Debug, PartialEq)]
+pub enum FilterParseError {
+    ExpectedObject,
+    ExpectedString,
+    ExpectedPositiveInteger,
+    ExpectedKey(String),
+    UnrecognisedType(String),
+    InvalidSideValue,
+}
 
 
-pub fn parse(data: &Json) -> Result<FilterSpec, IndexSettingsParseError> {
-    let data = match data.as_object() {
-        Some(object) => object,
-        None => return Err(IndexSettingsParseError::SomethingWentWrong),
-    };
+pub fn parse(json: &Json) -> Result<FilterSpec, FilterParseError> {
+    let data = try!(json.as_object().ok_or(FilterParseError::ExpectedObject));
 
-    let filter_type = match data.get("type") {
-        Some(type_json) => {
-            match type_json.as_string() {
-                Some(filter_type) => filter_type,
-                None => return Err(IndexSettingsParseError::SomethingWentWrong),
-            }
-        }
-        None => return Err(IndexSettingsParseError::SomethingWentWrong),
-    };
+    // Get type
+    let filter_type_json = try!(data.get("type").ok_or(FilterParseError::ExpectedKey("type".to_string())));
+    let filter_type = try!(filter_type_json.as_string().ok_or(FilterParseError::ExpectedString));
 
     match filter_type {
         "asciifolding" => {
@@ -34,7 +34,7 @@ pub fn parse(data: &Json) -> Result<FilterSpec, IndexSettingsParseError> {
                 Some(min_gram_json) => {
                     match min_gram_json.as_u64() {
                         Some(min_gram) => min_gram as usize,
-                        None => return Err(IndexSettingsParseError::SomethingWentWrong),
+                        None => return Err(FilterParseError::ExpectedPositiveInteger),
                     }
                 }
                 None => 1 as usize,
@@ -44,7 +44,7 @@ pub fn parse(data: &Json) -> Result<FilterSpec, IndexSettingsParseError> {
                 Some(max_gram_json) => {
                     match max_gram_json.as_u64() {
                         Some(max_gram) => max_gram as usize,
-                        None => return Err(IndexSettingsParseError::SomethingWentWrong),
+                        None => return Err(FilterParseError::ExpectedPositiveInteger),
                     }
                 }
                 None => 2 as usize,
@@ -61,7 +61,7 @@ pub fn parse(data: &Json) -> Result<FilterSpec, IndexSettingsParseError> {
                 Some(min_gram_json) => {
                     match min_gram_json.as_u64() {
                         Some(min_gram) => min_gram as usize,
-                        None => return Err(IndexSettingsParseError::SomethingWentWrong),
+                        None => return Err(FilterParseError::ExpectedPositiveInteger),
                     }
                 }
                 None => 1 as usize,
@@ -71,7 +71,7 @@ pub fn parse(data: &Json) -> Result<FilterSpec, IndexSettingsParseError> {
                 Some(max_gram_json) => {
                     match max_gram_json.as_u64() {
                         Some(max_gram) => max_gram as usize,
-                        None => return Err(IndexSettingsParseError::SomethingWentWrong),
+                        None => return Err(FilterParseError::ExpectedPositiveInteger),
                     }
                 }
                 None => 2 as usize,
@@ -89,10 +89,10 @@ pub fn parse(data: &Json) -> Result<FilterSpec, IndexSettingsParseError> {
                                 "back" => {
                                     Edge::Right
                                 }
-                                _ => return Err(IndexSettingsParseError::SomethingWentWrong)
+                                _ => return Err(FilterParseError::InvalidSideValue)
                             }
                         },
-                        None => return Err(IndexSettingsParseError::SomethingWentWrong),
+                        None => return Err(FilterParseError::ExpectedString),
                     }
                 }
                 None => Edge::Left,
@@ -154,6 +154,6 @@ pub fn parse(data: &Json) -> Result<FilterSpec, IndexSettingsParseError> {
         // classic
         // decimal_digit
         // fingerprint
-        _ => Err(IndexSettingsParseError::UnrecognisedFilterType(filter_type.to_owned())),
+        _ => Err(FilterParseError::UnrecognisedType(filter_type.to_string())),
     }
 }
