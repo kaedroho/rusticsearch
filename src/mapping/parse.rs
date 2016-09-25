@@ -148,7 +148,7 @@ fn parse_field(json: &Json) -> Result<FieldMappingBuilder, FieldMappingParseErro
     // Analyzers
     if let Some(analyzer_json) = field_object.get("analyzer") {
         let analyzer_str = try!(analyzer_json.as_string().ok_or(FieldMappingParseError::ExpectedString));
-        mapping_builder.base_analyzer = analyzer_str.to_string();
+        mapping_builder.base_analyzer = Some(analyzer_str.to_string());
 
         if mapping_builder.field_type != FieldType::String {
             return Err(FieldMappingParseError::AnalyzersOnlyAllowedOnStringType);
@@ -639,7 +639,7 @@ mod tests {
 
         assert_eq!(mapping, Ok(FieldMappingBuilder {
             field_type: FieldType::String,
-            base_analyzer: "default".to_string(),
+            base_analyzer: None,
             index_analyzer: None,
             search_analyzer: None,
             ..FieldMappingBuilder::default()
@@ -657,7 +657,7 @@ mod tests {
 
         assert_eq!(mapping, Ok(FieldMappingBuilder {
             field_type: FieldType::String,
-            base_analyzer: "foo".to_string(),
+            base_analyzer: Some("foo".to_string()),
             index_analyzer: None,
             search_analyzer: None,
             ..FieldMappingBuilder::default()
@@ -675,7 +675,7 @@ mod tests {
 
         assert_eq!(mapping, Ok(FieldMappingBuilder {
             field_type: FieldType::String,
-            base_analyzer: "default".to_string(),
+            base_analyzer: None,
             index_analyzer: Some("foo".to_string()),
             search_analyzer: None,
             ..FieldMappingBuilder::default()
@@ -693,7 +693,7 @@ mod tests {
 
         assert_eq!(mapping, Ok(FieldMappingBuilder {
             field_type: FieldType::String,
-            base_analyzer: "default".to_string(),
+            base_analyzer: None,
             index_analyzer: None,
             search_analyzer: Some("foo".to_string()),
             ..FieldMappingBuilder::default()

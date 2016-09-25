@@ -12,7 +12,7 @@ pub struct FieldMappingBuilder {
     pub is_stored: bool,
     pub is_in_all: bool,
     pub boost: f64,
-    pub base_analyzer: String,
+    pub base_analyzer: Option<String>,
     pub index_analyzer: Option<String>,
     pub search_analyzer: Option<String>
 }
@@ -27,7 +27,7 @@ impl Default for FieldMappingBuilder {
             is_stored: false,
             is_in_all: true,
             boost: 1.0f64,
-            base_analyzer: "default".to_string(),
+            base_analyzer: None,
             index_analyzer: None,
             search_analyzer: None,
         }
@@ -37,8 +37,13 @@ impl Default for FieldMappingBuilder {
 
 impl FieldMappingBuilder {
     pub fn build(&self, analyzers: &AnalyzerRegistry) -> FieldMapping {
-        let base_analyzer = match analyzers.get(&self.base_analyzer) {
-            Some(analyzer) => analyzer.clone(),
+        let base_analyzer = match self.base_analyzer {
+            Some(ref base_analyzer) => {
+                match analyzers.get(base_analyzer) {
+                    Some(analyzer) => analyzer.clone(),
+                    None => get_standard_analyzer(),
+                }
+            }
             None => get_standard_analyzer(),
         };
 
@@ -321,7 +326,7 @@ mod tests {
 
         let builder = FieldMappingBuilder {
             field_type: FieldType::String,
-            base_analyzer: "my-analyzer".to_string(),
+            base_analyzer: Some("my-analyzer".to_string()),
             ..FieldMappingBuilder::default()
         };
 
