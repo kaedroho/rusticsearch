@@ -71,7 +71,6 @@ pub struct FieldMapping {
     is_stored: bool,
     pub is_in_all: bool,
     boost: f64,
-    base_analyzer: AnalyzerSpec,
     index_analyzer: Option<AnalyzerSpec>,
     search_analyzer: Option<AnalyzerSpec>,
 }
@@ -85,7 +84,6 @@ impl Default for FieldMapping {
             is_stored: false,
             is_in_all: true,
             boost: 1.0f64,
-            base_analyzer: get_standard_analyzer(),
             index_analyzer: None,
             search_analyzer: None,
         }
@@ -94,25 +92,25 @@ impl Default for FieldMapping {
 
 
 impl FieldMapping {
-    pub fn index_analyzer(&self) -> &AnalyzerSpec {
+    pub fn index_analyzer(&self) -> AnalyzerSpec {
         if let Some(ref index_analyzer) = self.index_analyzer {
-            index_analyzer
+            index_analyzer.clone()
         } else {
-            &self.base_analyzer
+            get_standard_analyzer()
         }
     }
 
-    pub fn search_analyzer(&self) -> &AnalyzerSpec {
+    pub fn search_analyzer(&self) -> AnalyzerSpec {
         if let Some(ref search_analyzer) = self.search_analyzer {
-            search_analyzer
+            search_analyzer.clone()
         } else {
-            &self.base_analyzer
+            get_standard_analyzer()
         }
     }
 
     pub fn get_search_options(&self) -> FieldSearchOptions {
         FieldSearchOptions {
-            analyzer: self.search_analyzer().clone(),
+            analyzer: self.search_analyzer(),
             .. FieldSearchOptions::default()
         }
     }

@@ -47,24 +47,38 @@ impl FieldMappingBuilder {
             None => get_standard_analyzer(),
         };
 
-        let index_analyzer = match self.index_analyzer {
-            Some(ref index_analyzer) => {
-                match analyzers.get(index_analyzer) {
-                    Some(analyzer) => Some(analyzer.clone()),
-                    None => None,
+        let index_analyzer = if self.is_analyzed {
+            match self.index_analyzer {
+                Some(ref index_analyzer) => {
+                    match analyzers.get(index_analyzer) {
+                        Some(analyzer) => Some(analyzer.clone()),
+                        None => {
+                            // TODO: error
+                            Some(base_analyzer.clone())
+                        },
+                    }
                 }
+                None => Some(base_analyzer.clone()),
             }
-            None => None,
+        } else {
+            None
         };
 
-        let search_analyzer = match self.search_analyzer {
-            Some(ref search_analyzer) => {
-                match analyzers.get(search_analyzer) {
-                    Some(analyzer) => Some(analyzer.clone()),
-                    None => None,
+        let search_analyzer = if self.is_analyzed {
+            match self.search_analyzer {
+                Some(ref search_analyzer) => {
+                    match analyzers.get(search_analyzer) {
+                        Some(analyzer) => Some(analyzer.clone()),
+                        None => {
+                            // TODO: error
+                            Some(base_analyzer.clone())
+                        },
+                    }
                 }
+                None => Some(base_analyzer.clone()),
             }
-            None => None,
+        } else {
+            None
         };
 
         FieldMapping {
@@ -73,7 +87,6 @@ impl FieldMappingBuilder {
             is_stored: self.is_stored,
             is_in_all: self.is_in_all,
             boost: self.boost,
-            base_analyzer: base_analyzer,
             index_analyzer: index_analyzer,
             search_analyzer: search_analyzer,
         }
@@ -102,6 +115,8 @@ impl MappingBuilder {
                 data_type: FieldType::String,
                 is_stored: false,
                 is_in_all: false,
+                index_analyzer: Some(get_standard_analyzer()),
+                search_analyzer: Some(get_standard_analyzer()),
                 .. FieldMapping::default()
             });
         }
@@ -148,11 +163,15 @@ mod tests {
                     data_type: FieldType::String,
                     is_in_all: true,
                     boost: 2.0f64,
+                    index_analyzer: Some(get_standard_analyzer()),
+                    search_analyzer: Some(get_standard_analyzer()),
                     ..FieldMapping::default()
                 },
                 "_all".to_string() => FieldMapping {
                     data_type: FieldType::String,
                     is_in_all: false,
+                    index_analyzer: Some(get_standard_analyzer()),
+                    search_analyzer: Some(get_standard_analyzer()),
                     ..FieldMapping::default()
                 }
             }
@@ -173,6 +192,8 @@ mod tests {
                 "_all".to_string() => FieldMapping {
                     data_type: FieldType::String,
                     is_in_all: false,
+                    index_analyzer: Some(get_standard_analyzer()),
+                    search_analyzer: Some(get_standard_analyzer()),
                     ..FieldMapping::default()
                 }
             }
@@ -199,6 +220,8 @@ mod tests {
                 "_all".to_string() => FieldMapping {
                     data_type: FieldType::String,
                     boost: 2.0f64,
+                    index_analyzer: Some(get_standard_analyzer()),
+                    search_analyzer: Some(get_standard_analyzer()),
                     ..FieldMapping::default()
                 }
             }
@@ -217,6 +240,8 @@ mod tests {
 
         assert_eq!(mapping, FieldMapping {
             data_type: FieldType::String,
+            index_analyzer: Some(get_standard_analyzer()),
+            search_analyzer: Some(get_standard_analyzer()),
             ..FieldMapping::default()
         });
     }
@@ -226,6 +251,7 @@ mod tests {
         let analyzers = AnalyzerRegistry::new();
         let builder = FieldMappingBuilder {
             field_type: FieldType::Integer,
+            is_analyzed: false,
             ..FieldMappingBuilder::default()
         };
 
@@ -233,6 +259,8 @@ mod tests {
 
         assert_eq!(mapping, FieldMapping {
             data_type: FieldType::Integer,
+            index_analyzer: None,
+            search_analyzer: None,
             ..FieldMapping::default()
         });
     }
@@ -251,6 +279,8 @@ mod tests {
         assert_eq!(mapping, FieldMapping {
             data_type: FieldType::String,
             is_stored: true,
+            index_analyzer: Some(get_standard_analyzer()),
+            search_analyzer: Some(get_standard_analyzer()),
             ..FieldMapping::default()
         });
     }
@@ -269,6 +299,8 @@ mod tests {
         assert_eq!(mapping, FieldMapping {
             data_type: FieldType::String,
             is_in_all: false,
+            index_analyzer: Some(get_standard_analyzer()),
+            search_analyzer: Some(get_standard_analyzer()),
             ..FieldMapping::default()
         });
     }
@@ -287,6 +319,8 @@ mod tests {
         assert_eq!(mapping, FieldMapping {
             data_type: FieldType::String,
             boost: 2.0f64,
+            index_analyzer: Some(get_standard_analyzer()),
+            search_analyzer: Some(get_standard_analyzer()),
             ..FieldMapping::default()
         });
     }
@@ -303,9 +337,8 @@ mod tests {
 
         assert_eq!(mapping, FieldMapping {
             data_type: FieldType::String,
-            base_analyzer: get_standard_analyzer(),
-            index_analyzer: None,
-            search_analyzer: None,
+            index_analyzer: Some(get_standard_analyzer()),
+            search_analyzer: Some(get_standard_analyzer()),
             ..FieldMapping::default()
         });
     }
@@ -334,9 +367,8 @@ mod tests {
 
         assert_eq!(mapping, FieldMapping {
             data_type: FieldType::String,
-            base_analyzer: build_test_analyzer(),
-            index_analyzer: None,
-            search_analyzer: None,
+            index_analyzer: Some(build_test_analyzer()),
+            search_analyzer: Some(build_test_analyzer()),
             ..FieldMapping::default()
         });
     }
@@ -356,9 +388,8 @@ mod tests {
 
         assert_eq!(mapping, FieldMapping {
             data_type: FieldType::String,
-            base_analyzer: get_standard_analyzer(),
             index_analyzer: Some(build_test_analyzer()),
-            search_analyzer: None,
+            search_analyzer: Some(get_standard_analyzer()),
             ..FieldMapping::default()
         });
     }
@@ -378,8 +409,7 @@ mod tests {
 
         assert_eq!(mapping, FieldMapping {
             data_type: FieldType::String,
-            base_analyzer: get_standard_analyzer(),
-            index_analyzer: None,
+            index_analyzer: Some(get_standard_analyzer()),
             search_analyzer: Some(build_test_analyzer()),
             ..FieldMapping::default()
         });
