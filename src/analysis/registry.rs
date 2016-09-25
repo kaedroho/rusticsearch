@@ -22,6 +22,30 @@ impl AnalyzerRegistry {
             filters: HashMap::new(),
         }
     }
+
+    fn get_default_analyzer(&self) -> AnalyzerSpec {
+        self.get("default").cloned().unwrap_or_else(|| {
+            AnalyzerSpec {
+                tokenizer: TokenizerSpec::Standard,
+                filters: vec![
+                    FilterSpec::Lowercase,
+                    FilterSpec::ASCIIFolding,
+                ]
+            }
+        })
+    }
+
+    pub fn get_default_index_analyzer(&self) -> AnalyzerSpec {
+        self.get("default_index").cloned().unwrap_or_else(|| {
+            self.get_default_analyzer()
+        })
+    }
+
+    pub fn get_default_search_analyzer(&self) -> AnalyzerSpec {
+        self.get("default_search").cloned().unwrap_or_else(|| {
+            self.get_default_analyzer()
+        })
+    }
 }
 
 

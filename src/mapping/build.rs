@@ -40,11 +40,11 @@ impl FieldMappingBuilder {
         let base_analyzer = match self.base_analyzer {
             Some(ref base_analyzer) => {
                 match analyzers.get(base_analyzer) {
-                    Some(analyzer) => analyzer.clone(),
-                    None => get_standard_analyzer(),
+                    Some(analyzer) => Some(analyzer),
+                    None => None,
                 }
             }
-            None => get_standard_analyzer(),
+            None => None,
         };
 
         let index_analyzer = if self.is_analyzed {
@@ -54,11 +54,11 @@ impl FieldMappingBuilder {
                         Some(analyzer) => Some(analyzer.clone()),
                         None => {
                             // TODO: error
-                            Some(base_analyzer.clone())
+                            Some(base_analyzer.cloned().unwrap_or_else(|| analyzers.get_default_index_analyzer()))
                         },
                     }
                 }
-                None => Some(base_analyzer.clone()),
+                None => Some(base_analyzer.cloned().unwrap_or_else(|| analyzers.get_default_index_analyzer())),
             }
         } else {
             None
@@ -71,11 +71,11 @@ impl FieldMappingBuilder {
                         Some(analyzer) => Some(analyzer.clone()),
                         None => {
                             // TODO: error
-                            Some(base_analyzer.clone())
+                            Some(base_analyzer.cloned().unwrap_or_else(|| analyzers.get_default_search_analyzer()))
                         },
                     }
                 }
-                None => Some(base_analyzer.clone()),
+                None => Some(base_analyzer.cloned().unwrap_or_else(|| analyzers.get_default_search_analyzer())),
             }
         } else {
             None
