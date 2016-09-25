@@ -46,7 +46,7 @@ impl Default for FieldType {
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct FieldSearchOptions {
-    pub analyzer: AnalyzerSpec,
+    pub analyzer: Option<AnalyzerSpec>,
     pub similarity_model: SimilarityModel,
 }
 
@@ -54,7 +54,7 @@ pub struct FieldSearchOptions {
 impl Default for FieldSearchOptions {
     fn default() -> FieldSearchOptions {
         FieldSearchOptions {
-            analyzer: get_standard_analyzer(),
+            analyzer: Some(get_standard_analyzer()),
             similarity_model: SimilarityModel::Bm25 {
                 k1: 1.2,
                 b: 0.75,
@@ -92,25 +92,25 @@ impl Default for FieldMapping {
 
 
 impl FieldMapping {
-    pub fn index_analyzer(&self) -> AnalyzerSpec {
+    pub fn index_analyzer(&self) -> Option<&AnalyzerSpec> {
         if let Some(ref index_analyzer) = self.index_analyzer {
-            index_analyzer.clone()
+            Some(index_analyzer)
         } else {
-            get_standard_analyzer()
+            None
         }
     }
 
-    pub fn search_analyzer(&self) -> AnalyzerSpec {
+    pub fn search_analyzer(&self) -> Option<&AnalyzerSpec> {
         if let Some(ref search_analyzer) = self.search_analyzer {
-            search_analyzer.clone()
+            Some(search_analyzer)
         } else {
-            get_standard_analyzer()
+            None
         }
     }
 
     pub fn get_search_options(&self) -> FieldSearchOptions {
         FieldSearchOptions {
-            analyzer: self.search_analyzer(),
+            analyzer: self.search_analyzer().cloned(),
             .. FieldSearchOptions::default()
         }
     }
@@ -125,8 +125,18 @@ impl FieldMapping {
                 match value {
                     Json::String(string) => {
                         // Analyze string
-                        let tokens = self.index_analyzer().initialise(&string);
-                        Some(tokens.collect::<Vec<Token>>())
+                        let tokens = match self.index_analyzer() {
+                            Some(index_analyzer) => {
+                                let token_stream = index_analyzer.initialise(&string);
+                                token_stream.collect::<Vec<Token>>()
+                            }
+                            None => {
+                                vec![
+                                    Token {term: Term::String(string.to_string()), position: 1}
+                                ]
+                            }
+                        };
+                        Some(tokens)
                     }
                     Json::I64(num) => self.process_value_for_index(Json::String(num.to_string())),
                     Json::U64(num) => self.process_value_for_index(Json::String(num.to_string())),

@@ -1,7 +1,7 @@
 //! Parses "multi_match" queries
 
 use rustc_serialize::json::Json;
-use abra::{Token, Query, TermMatcher, TermScorer};
+use abra::{Term, Token, Query, TermMatcher, TermScorer};
 use abra::schema::SchemaRead;
 
 use mapping::{FieldMapping, FieldSearchOptions};
@@ -73,8 +73,15 @@ pub fn parse(context: &QueryParseContext, json: &Json) -> Result<Query, QueryPar
         };
 
         // Tokenise query string
-        let analyzer = field_search_options.analyzer.initialise(&query);
-        let tokens = analyzer.collect::<Vec<Token>>();
+        let tokens = match field_search_options.analyzer {
+            Some(analyzer) => {
+                let token_stream = analyzer.initialise(&query);
+                token_stream.collect::<Vec<Token>>()
+            }
+            None => {
+                vec![Token {term: Term::String(query.clone()), position: 1}]
+            }
+        };
 
         let mut term_queries = Vec::new();
         for token in tokens {
