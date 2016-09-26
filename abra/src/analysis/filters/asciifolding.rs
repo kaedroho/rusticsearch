@@ -1,3 +1,8 @@
+//! Converts any non-ASCII character into ASCII if a reasonable equivilent exists
+//!
+//! For example, "Ĥéllø" is converted to "Hello" but non-latin scripts such as
+//! arabic or hiragana are not changed.
+
 use term::Term;
 use token::Token;
 use analysis::lucene_asciifold::fold_to_ascii;

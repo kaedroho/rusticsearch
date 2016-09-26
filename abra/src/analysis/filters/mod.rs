@@ -9,6 +9,31 @@ use analysis::filters::ngram::NGramFilter;
 use analysis::filters::asciifolding::ASCIIFoldingFilter;
 
 
+/// Defines a token filter
+///
+/// You can use this to define a token filter before having to bind it to any data
+///
+/// # Examples
+///
+/// ```
+/// use abra::{Term, Token};
+/// use abra::analysis::tokenizers::TokenizerSpec;
+/// use abra::analysis::filters::FilterSpec;
+///
+/// let standard_tokenizer = TokenizerSpec::Standard;
+/// let token_stream = standard_tokenizer.initialise("Hello, WORLD!");
+///
+/// // Lowercase filter
+/// let lowercase_filter = FilterSpec::Lowercase;
+/// let filtered_token_stream = lowercase_filter.initialise(token_stream);
+///
+/// let tokens = filtered_token_stream.collect::<Vec<Token>>();
+///
+/// assert_eq!(tokens, vec![
+///     Token { term: Term::String("hello".to_string()), position: 1 },
+///     Token { term: Term::String("world".to_string()), position: 2 },
+/// ]);
+/// ```
 #[derive(Debug, Clone, PartialEq)]
 pub enum FilterSpec {
     Lowercase,

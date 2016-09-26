@@ -2,8 +2,8 @@ pub mod term_matcher;
 pub mod term_scorer;
 
 use term::Term;
+use schema::SchemaRead;
 use document::Document;
-use schema::FieldRef;
 use store::IndexReader;
 use query::term_matcher::TermMatcher;
 use query::term_scorer::TermScorer;
@@ -16,7 +16,7 @@ pub enum Query {
     },
     MatchNone,
     MatchTerm {
-        field: FieldRef,
+        field: String,
         term: Term,
         matcher: TermMatcher,
         scorer: TermScorer,
@@ -223,16 +223,18 @@ impl Query {
             Query::MatchAll{score} => Some(score),
             Query::MatchNone => None,
             Query::MatchTerm{ref field, ref term, ref matcher, ref scorer} => {
-                if let Some(field_value) = doc.fields.get(field) {
-                    let mut term_freq: u32 = 0;
-                    for field_token in field_value.iter() {
-                        if matcher.matches(&field_token.term, term) {
-                            term_freq += 1;
+                if let Some(field_ref) = index_reader.schema().get_field_by_name(field) {
+                    if let Some(field_value) = doc.fields.get(field) {
+                        let mut term_freq: u32 = 0;
+                        for field_token in field_value.iter() {
+                            if matcher.matches(&field_token.term, term) {
+                                term_freq += 1;
+                            }
                         }
-                    }
 
-                    if term_freq > 0 {
-                        return Some(scorer.score(index_reader, field, term, term_freq, field_value.len() as u32));
+                        if term_freq > 0 {
+                            return Some(scorer.score(index_reader, &field_ref, term, term_freq, field_value.len() as u32));
+                        }
                     }
                 }
 
