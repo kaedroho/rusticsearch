@@ -1,6 +1,3 @@
-pub mod index;
-pub mod index_registry;
-
 use std::sync::RwLock;
 use std::path::{Path, PathBuf};
 use std::fs;
@@ -8,8 +5,8 @@ use std::fs;
 use slog::Logger;
 use abra::store::memory::MemoryIndexStore;
 
-use system::index::Index;
-use system::index_registry::IndexRegistry;
+use index::Index;
+use index::registry::IndexRegistry;
 
 
 pub struct System {

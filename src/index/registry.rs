@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::ops::{Deref, DerefMut};
 
-use system::index::Index;
+use index::Index;
 
 
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]

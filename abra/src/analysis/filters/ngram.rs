@@ -1,3 +1,5 @@
+//! Generates a set of "ngram" tokens for each source token
+
 use std::collections::VecDeque;
 
 use term::Term;

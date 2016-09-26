@@ -1,3 +1,6 @@
+pub mod build;
+pub mod parse;
+
 use std::collections::HashMap;
 use std::ops::{Deref, DerefMut};
 
@@ -5,11 +8,12 @@ use rustc_serialize::json::Json;
 use chrono::{DateTime, UTC};
 use abra::{Term, Token};
 use abra::analysis::AnalyzerSpec;
-use abra::analysis::registry::AnalyzerRegistry;
 use abra::analysis::tokenizers::TokenizerSpec;
 use abra::analysis::filters::FilterSpec;
 use abra::similarity::SimilarityModel;
 use abra::schema::FieldRef;
+
+use analysis::registry::AnalyzerRegistry;
 
 
 // TEMPORARY
@@ -24,7 +28,7 @@ fn get_standard_analyzer() -> AnalyzerSpec {
 }
 
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum FieldType {
     String,
     Integer,
@@ -42,7 +46,7 @@ impl Default for FieldType {
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct FieldSearchOptions {
-    pub analyzer: AnalyzerSpec,
+    pub analyzer: Option<AnalyzerSpec>,
     pub similarity_model: SimilarityModel,
 }
 
@@ -50,7 +54,7 @@ pub struct FieldSearchOptions {
 impl Default for FieldSearchOptions {
     fn default() -> FieldSearchOptions {
         FieldSearchOptions {
-            analyzer: get_standard_analyzer(),
+            analyzer: Some(get_standard_analyzer()),
             similarity_model: SimilarityModel::Bm25 {
                 k1: 1.2,
                 b: 0.75,
@@ -60,14 +64,13 @@ impl Default for FieldSearchOptions {
 }
 
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct FieldMapping {
     pub data_type: FieldType,
     pub index_ref: Option<FieldRef>,
     is_stored: bool,
     pub is_in_all: bool,
     boost: f64,
-    base_analyzer: AnalyzerSpec,
     index_analyzer: Option<AnalyzerSpec>,
     search_analyzer: Option<AnalyzerSpec>,
 }
@@ -81,7 +84,6 @@ impl Default for FieldMapping {
             is_stored: false,
             is_in_all: true,
             boost: 1.0f64,
-            base_analyzer: get_standard_analyzer(),
             index_analyzer: None,
             search_analyzer: None,
         }
@@ -90,25 +92,25 @@ impl Default for FieldMapping {
 
 
 impl FieldMapping {
-    pub fn index_analyzer(&self) -> &AnalyzerSpec {
+    pub fn index_analyzer(&self) -> Option<&AnalyzerSpec> {
         if let Some(ref index_analyzer) = self.index_analyzer {
-            index_analyzer
+            Some(index_analyzer)
         } else {
-            &self.base_analyzer
+            None
         }
     }
 
-    pub fn search_analyzer(&self) -> &AnalyzerSpec {
+    pub fn search_analyzer(&self) -> Option<&AnalyzerSpec> {
         if let Some(ref search_analyzer) = self.search_analyzer {
-            search_analyzer
+            Some(search_analyzer)
         } else {
-            &self.base_analyzer
+            None
         }
     }
 
     pub fn get_search_options(&self) -> FieldSearchOptions {
         FieldSearchOptions {
-            analyzer: self.search_analyzer().clone(),
+            analyzer: self.search_analyzer().cloned(),
             .. FieldSearchOptions::default()
         }
     }
@@ -123,8 +125,18 @@ impl FieldMapping {
                 match value {
                     Json::String(string) => {
                         // Analyze string
-                        let tokens = self.index_analyzer().initialise(&string);
-                        Some(tokens.collect::<Vec<Token>>())
+                        let tokens = match self.index_analyzer() {
+                            Some(index_analyzer) => {
+                                let token_stream = index_analyzer.initialise(&string);
+                                token_stream.collect::<Vec<Token>>()
+                            }
+                            None => {
+                                vec![
+                                    Token {term: Term::String(string.to_string()), position: 1}
+                                ]
+                            }
+                        };
+                        Some(tokens)
                     }
                     Json::I64(num) => self.process_value_for_index(Json::String(num.to_string())),
                     Json::U64(num) => self.process_value_for_index(Json::String(num.to_string())),
@@ -182,36 +194,15 @@ impl FieldMapping {
 }
 
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct Mapping {
     pub fields: HashMap<String, FieldMapping>,
 }
 
-impl Mapping {
-    pub fn from_json(analyzers: &AnalyzerRegistry, json: &Json) -> Mapping {
-        let json = json.as_object().unwrap();
-        let properties_json = json.get("properties").unwrap().as_object().unwrap();
 
-        // Parse fields
-        let mut fields = HashMap::new();
-        for (field_name, field_mapping_json) in properties_json.iter() {
-            fields.insert(field_name.clone(),
-                          FieldMapping::from_json(analyzers, field_mapping_json));
-        }
-
-        // Insert _all field
-        if !fields.contains_key("_all") {
-            // TODO: Support disabling the _all field
-            fields.insert("_all".to_string(), FieldMapping {
-                data_type: FieldType::String,
-                is_stored: false,
-                is_in_all: false,
-                .. FieldMapping::default()
-            });
-        }
-
-        Mapping { fields: fields }
-    }
+#[derive(Debug)]
+pub struct MappingRegistry {
+    mappings: HashMap<String, Mapping>,
 }
 
 
@@ -226,7 +217,7 @@ fn parse_boolean(json: &Json) -> bool {
                     warn!("bad boolean value {:?}", s);
                     false
                 }
-            }
+           }
         }
         _ => {
             // TODO: Raise error
@@ -236,92 +227,6 @@ fn parse_boolean(json: &Json) -> bool {
     }
 }
 
-
-impl FieldMapping {
-    pub fn from_json(analyzers: &AnalyzerRegistry, json: &Json) -> FieldMapping {
-        let json = json.as_object().unwrap();
-        let mut field_mapping = FieldMapping::default();
-
-        for (key, value) in json.iter() {
-            match key.as_ref() {
-                "type" => {
-                    let type_name = value.as_string().unwrap();
-
-                    field_mapping.data_type = match type_name.as_ref() {
-                        "string" => FieldType::String,
-                        "integer" => FieldType::Integer,
-                        "boolean" => FieldType::Boolean,
-                        "date" => FieldType::Date,
-                        _ => {
-                            // TODO; make this an error
-                            warn!("unimplemented type name! {}", type_name);
-                            FieldType::default()
-                        }
-                    };
-                }
-                "index" => {
-                    let index = value.as_string().unwrap();
-                    if index == "not_analyzed" {
-                        field_mapping.index_analyzer = None;
-                        field_mapping.search_analyzer = None;
-                    } else {
-                        // TODO: Implement other variants and make this an error
-                        warn!("unimplemented index setting! {}", index);
-                    }
-                }
-                "analyzer" => {
-                    if let Some(ref s) = value.as_string() {
-                        match analyzers.get(*s) {
-                            Some(analyzer) => {
-                                field_mapping.base_analyzer = analyzer.clone();
-                            }
-                            None => warn!("unknown analyzer! {}", s)
-                        }
-                    }
-                }
-                "index_analyzer" => {
-                    if let Some(ref s) = value.as_string() {
-                        match analyzers.get(*s) {
-                            Some(analyzer) => {
-                                field_mapping.index_analyzer = Some(analyzer.clone());
-                            }
-                            None => warn!("unknown analyzer! {}", s)
-                        }
-                    }
-                }
-                "search_analyzer" => {
-                    if let Some(ref s) = value.as_string() {
-                        match analyzers.get(*s) {
-                            Some(analyzer) => {
-                                field_mapping.search_analyzer = Some(analyzer.clone());
-                            }
-                            None => warn!("unknown analyzer! {}", s)
-                        }
-                    }
-                }
-                "boost" => {
-                    field_mapping.boost = value.as_f64().unwrap();
-                }
-                "store" => {
-                    field_mapping.is_stored = parse_boolean(value);
-                }
-                "include_in_all" => {
-                    field_mapping.is_in_all = parse_boolean(value);
-                }
-                _ => warn!("unimplemented field mapping key! {}", key),
-            }
-
-        }
-
-        field_mapping
-    }
-}
-
-
-#[derive(Debug)]
-pub struct MappingRegistry {
-    mappings: HashMap<String, Mapping>,
-}
 
 
 impl MappingRegistry {

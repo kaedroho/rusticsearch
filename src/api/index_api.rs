@@ -4,7 +4,7 @@ use abra::analysis::filters::FilterSpec;
 use abra::analysis::ngram_generator::Edge;
 use abra::store::memory::MemoryIndexStore;
 
-use system::index::Index;
+use index::Index;
 
 use api::persistent;
 use api::iron::prelude::*;

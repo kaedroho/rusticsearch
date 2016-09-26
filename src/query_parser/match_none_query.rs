@@ -25,7 +25,6 @@ mod tests {
     use rustc_serialize::json::Json;
 
     use abra::{Term, Query};
-    use abra::schema::Schema;
 
     use query_parser::{QueryParseContext, QueryParseError};
 
@@ -33,8 +32,7 @@ mod tests {
 
     #[test]
     fn test_match_none_query() {
-        let schema = Schema::new();
-        let query = parse(&QueryParseContext::new(&schema), &Json::from_str("
+        let query = parse(&QueryParseContext::new(), &Json::from_str("
         {
         }
         ").unwrap());
@@ -44,10 +42,8 @@ mod tests {
 
     #[test]
     fn test_gives_error_for_incorrect_type() {
-        let schema = Schema::new();
-
         // Array
-        let query = parse(&QueryParseContext::new(&schema), &Json::from_str("
+        let query = parse(&QueryParseContext::new(), &Json::from_str("
         [
             \"foo\"
         ]
@@ -56,14 +52,14 @@ mod tests {
         assert_eq!(query, Err(QueryParseError::ExpectedObject));
 
         // Integer
-        let query = parse(&QueryParseContext::new(&schema), &Json::from_str("
+        let query = parse(&QueryParseContext::new(), &Json::from_str("
         123
         ").unwrap());
 
         assert_eq!(query, Err(QueryParseError::ExpectedObject));
 
         // Float
-        let query = parse(&QueryParseContext::new(&schema), &Json::from_str("
+        let query = parse(&QueryParseContext::new(), &Json::from_str("
         123.1234
         ").unwrap());
 
@@ -72,8 +68,7 @@ mod tests {
 
     #[test]
     fn test_gives_error_for_unrecognised_key() {
-        let schema = Schema::new();
-        let query = parse(&QueryParseContext::new(&schema), &Json::from_str("
+        let query = parse(&QueryParseContext::new(), &Json::from_str("
         {
             \"hello\": \"world\"
         }

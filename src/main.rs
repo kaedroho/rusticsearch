@@ -9,10 +9,14 @@ extern crate log;
 #[macro_use(o, b)]
 extern crate slog;
 extern crate slog_term;
+#[macro_use]
+extern crate maplit;
 
+pub mod analysis;
 pub mod query_parser;
 pub mod mapping;
 pub mod document;
+pub mod index;
 pub mod system;
 mod api;
 mod logger;

@@ -4,7 +4,7 @@ use std::collections::{BTreeMap, HashMap};
 use std::collections::btree_map::Keys;
 
 use document::Document;
-use schema::{Schema, FieldType, FieldRef, AddFieldError};
+use schema::{Schema, SchemaRead, SchemaWrite, FieldType, FieldRef, AddFieldError};
 use store::{IndexStore, IndexReader, DocRefIterator};
 
 
@@ -95,22 +95,20 @@ impl<'a> IndexStore<'a> for MemoryIndexStore {
         self.next_doc_id += 1;
 
         // Put field contents in inverted index
-        for (field_ref, tokens) in doc.fields.iter() {
-            for token in tokens.iter() {
-                // Silently ignore unrecognised fields
-                // TODO: Review this
+        for (field_name, tokens) in doc.fields.iter() {
+            // Silently ignore unrecognised fields
+            // TODO: Review this
+            if let Some(ref field_ref) = self.reader().schema().get_field_by_name(field_name) {
                 if let Some(field) = self.fields.get_mut(field_ref) {
                     field.docs.insert(doc_id);
-                    field.num_tokens += 1;
 
-                    let term_bytes = token.term.to_bytes();
-                    if !field.terms.contains_key(&term_bytes) {
-                        // TODO: We shouldn't need to clone here
-                        field.terms.insert(term_bytes.clone(), MemoryIndexStoreFieldTerm::new());
+                    for token in tokens.iter() {
+                        field.num_tokens += 1;
+
+                        let term_bytes = token.term.to_bytes();
+                        let mut term = field.terms.entry(term_bytes).or_insert_with(|| MemoryIndexStoreFieldTerm::new());
+                        term.docs.insert(doc_id);
                     }
-
-                    let mut term = field.terms.get_mut(&term_bytes).unwrap();
-                    term.docs.insert(doc_id);
                 }
             }
         }
@@ -261,7 +259,7 @@ mod tests {
     use term::Term;
     use token::Token;
     use document::Document;
-    use schema::{Schema, FieldType, FieldRef};
+    use schema::{Schema, SchemaRead, FieldType, FieldRef};
     use store::{IndexStore, IndexReader};
 
     fn make_test_store() -> MemoryIndexStore {
@@ -272,11 +270,11 @@ mod tests {
         store.insert_or_update_document(Document {
             key: "test_doc".to_string(),
             fields: hashmap! {
-                title_field => vec![
+                "title".to_string() => vec![
                     Token { term: Term::String("hello".to_string()), position: 1 },
                     Token { term: Term::String("world".to_string()), position: 2 },
                 ],
-                body_field => vec![
+                "body".to_string() => vec![
                     Token { term: Term::String("lorem".to_string()), position: 1 },
                     Token { term: Term::String("ipsum".to_string()), position: 2 },
                     Token { term: Term::String("dolar".to_string()), position: 3 },
@@ -287,11 +285,11 @@ mod tests {
         store.insert_or_update_document(Document {
             key: "test_doc".to_string(),
             fields: hashmap! {
-                title_field => vec![
+                "title".to_string() => vec![
                     Token { term: Term::String("howdy".to_string()), position: 1 },
                     Token { term: Term::String("partner".to_string()), position: 2 },
                 ],
-                body_field => vec![
+                "body".to_string() => vec![
                     Token { term: Term::String("lorem".to_string()), position: 1 },
                     Token { term: Term::String("ipsum".to_string()), position: 2 },
                     Token { term: Term::String("dolar".to_string()), position: 3 },

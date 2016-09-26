@@ -17,7 +17,7 @@ use std::collections::BTreeMap;
 use rocksdb::{DB, WriteBatch, Writable, Options, MergeOperands};
 use rocksdb::rocksdb::Snapshot;
 use abra::{Term, Document};
-use abra::schema::{Schema, FieldType, FieldRef, AddFieldError};
+use abra::schema::{Schema, SchemaRead, SchemaWrite, FieldType, FieldRef, AddFieldError};
 use rustc_serialize::{json, Encodable};
 use byteorder::{ByteOrder, BigEndian};
 
@@ -258,7 +258,15 @@ impl RocksDBIndexStore {
 
         // Insert contents
         let mut token_count: i64 = 0;
-        for (field_ref, tokens) in doc.fields.iter() {
+        for (field_name, tokens) in doc.fields.iter() {
+            let field_ref = match self.schema.get_field_by_name(field_name) {
+                Some(field_ref) => field_ref,
+                None => {
+                    // TODO: error?
+                    continue;
+                }
+            };
+
             for token in tokens.iter() {
                 token_count += 1;
                 let term_ref = self.get_or_create_term(&token.term);
@@ -379,11 +387,11 @@ mod tests {
         store.insert_or_update_document(Document {
             key: "test_doc".to_string(),
             fields: hashmap! {
-                title_field => vec![
+                "title".to_string() => vec![
                     Token { term: Term::String("hello".to_string()), position: 1 },
                     Token { term: Term::String("world".to_string()), position: 2 },
                 ],
-                body_field => vec![
+                "body".to_string() => vec![
                     Token { term: Term::String("lorem".to_string()), position: 1 },
                     Token { term: Term::String("ipsum".to_string()), position: 2 },
                     Token { term: Term::String("dolar".to_string()), position: 3 },
@@ -394,11 +402,11 @@ mod tests {
         store.insert_or_update_document(Document {
             key: "another_test_doc".to_string(),
             fields: hashmap! {
-                title_field => vec![
+                "title".to_string() => vec![
                     Token { term: Term::String("howdy".to_string()), position: 1 },
                     Token { term: Term::String("partner".to_string()), position: 2 },
                 ],
-                body_field => vec![
+                "body".to_string() => vec![
                     Token { term: Term::String("lorem".to_string()), position: 1 },
                     Token { term: Term::String("ipsum".to_string()), position: 2 },
                     Token { term: Term::String("dolar".to_string()), position: 3 },

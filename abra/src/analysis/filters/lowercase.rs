@@ -1,3 +1,5 @@
+//! Converts each token into lowercase
+
 use term::Term;
 use token::Token;
 
