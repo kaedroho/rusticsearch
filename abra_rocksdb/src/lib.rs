@@ -9,6 +9,7 @@ extern crate byteorder;
 
 pub mod key_builder;
 pub mod chunk;
+pub mod search;
 
 use std::sync::{Arc, RwLock};
 use std::sync::atomic::{AtomicU32, Ordering};
@@ -352,6 +353,10 @@ mod tests {
     use rocksdb::{DB, Options, IteratorMode};
     use abra::{Term, Token, Document};
     use abra::schema::{Schema, FieldType, FieldRef};
+    use abra::query::Query;
+    use abra::query::term_matcher::TermMatcher;
+    use abra::query::term_scorer::TermScorer;
+    use abra::collectors::top_score::TopScoreCollector;
 
     use super::RocksDBIndexStore;
 
@@ -450,5 +455,27 @@ mod tests {
 
         print_keys(&store.db);
 
+
+        let query = Query::Disjunction {
+            queries: vec![
+                Query::MatchTerm {
+                    field: "body".to_string(),
+                    term: Term::String("lorem".to_string()),
+                    matcher: TermMatcher::Exact,
+                    scorer: TermScorer::default_with_boost(2.0f64),
+                },
+                Query::MatchTerm {
+                    field: "title".to_string(),
+                    term: Term::String("howdy".to_string()),
+                    matcher: TermMatcher::Exact,
+                    scorer: TermScorer::default_with_boost(2.0f64),
+                },
+            ]
+        };
+
+        let mut collector = TopScoreCollector::new(10);
+        index_reader.search(&mut collector, &query);
+
+        println!("{:?}", collector);
     }
 }
