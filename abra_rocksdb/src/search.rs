@@ -1,5 +1,6 @@
 use abra::schema::{FieldRef, SchemaRead};
 use abra::query::Query;
+use abra::query::term_scorer::TermScorer;
 use abra::collectors::Collector;
 
 use super::{RocksDBIndexReader, TermRef};
@@ -16,9 +17,25 @@ enum BooleanQueryOp {
 }
 
 
+#[derive(Debug, Clone)]
+enum CompoundScorer {
+    Avg,
+    Max,
+}
+
+
+#[derive(Debug, Clone)]
+enum ScoreFunctionOp {
+    Literal(f64),
+    TermScore(FieldRef, TermRef, TermScorer),
+    CompoundScorer(CompoundScorer),
+}
+
+
 #[derive(Debug)]
 struct SearchPlan {
     boolean_query: Vec<BooleanQueryOp>,
+    score_function: Vec<ScoreFunctionOp>,
 }
 
 
@@ -26,18 +43,17 @@ impl SearchPlan {
     fn new() -> SearchPlan {
         SearchPlan {
             boolean_query: Vec::new(),
+            score_function: Vec::new(),
         }
     }
 }
 
 
 impl<'a> RocksDBIndexReader<'a> {
-    fn plan_query_combinator(&self, mut plan: &mut SearchPlan, queries: &Vec<Query>, join_op: BooleanQueryOp) {
+    fn plan_query_combinator(&self, mut plan: &mut SearchPlan, queries: &Vec<Query>, join_op: BooleanQueryOp, scorer: CompoundScorer) {
         match queries.len() {
             0 => plan.boolean_query.push(BooleanQueryOp::Zero),
-            1 => {
-                self.plan_query(&mut plan, &queries[0]);
-            }
+            1 =>  self.plan_query(&mut plan, &queries[0]),
             _ => {
                 // TODO: organise queries into a binary tree structure
 
@@ -50,15 +66,19 @@ impl<'a> RocksDBIndexReader<'a> {
                 }
             }
         }
+
+        plan.score_function.push(ScoreFunctionOp::CompoundScorer(scorer));
     }
 
     fn plan_query(&self, mut plan: &mut SearchPlan, query: &Query) {
         match *query {
             Query::MatchAll{ref score} => {
                 plan.boolean_query.push(BooleanQueryOp::One);
+                plan.score_function.push(ScoreFunctionOp::Literal(*score));
             }
             Query::MatchNone => {
                 plan.boolean_query.push(BooleanQueryOp::Zero);
+                plan.score_function.push(ScoreFunctionOp::Literal(0.0f64));
             }
             Query::MatchTerm{ref field, ref term, ref matcher, ref scorer} => {
                 // Get term
@@ -83,18 +103,19 @@ impl<'a> RocksDBIndexReader<'a> {
                 };
 
                 plan.boolean_query.push(BooleanQueryOp::Load(field_ref, term_ref));
+                plan.score_function.push(ScoreFunctionOp::TermScore(field_ref, term_ref, scorer.clone()));
             }
             Query::Conjunction{ref queries} => {
-                self.plan_query_combinator(&mut plan, queries, BooleanQueryOp::And);
+                self.plan_query_combinator(&mut plan, queries, BooleanQueryOp::And, CompoundScorer::Avg);
             }
             Query::Disjunction{ref queries} => {
-                self.plan_query_combinator(&mut plan, queries, BooleanQueryOp::Or);
+                self.plan_query_combinator(&mut plan, queries, BooleanQueryOp::Or, CompoundScorer::Avg);
             }
             Query::NDisjunction{ref queries, minimum_should_match} => {
-                self.plan_query_combinator(&mut plan, queries, BooleanQueryOp::Or);
+                self.plan_query_combinator(&mut plan, queries, BooleanQueryOp::Or, CompoundScorer::Avg);  // FIXME
             }
             Query::DisjunctionMax{ref queries} => {
-                self.plan_query_combinator(&mut plan, queries, BooleanQueryOp::Or);
+                self.plan_query_combinator(&mut plan, queries, BooleanQueryOp::Or, CompoundScorer::Max);
             }
             Query::Filter{ref query, ref filter} => {
                 self.plan_query(&mut plan, query);
