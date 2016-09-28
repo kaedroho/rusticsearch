@@ -30,6 +30,13 @@ impl KeyBuilder {
         kb
     }
 
+    pub fn chunk_active(chunk: u32) -> KeyBuilder {
+        let mut kb = KeyBuilder::new();
+        kb.chunk(chunk);
+        kb.push_char(b'a');
+        kb
+    }
+
     pub fn chunk_dir_list(chunk: u32, field_ord: u32, term_ord: u32) -> KeyBuilder {
         let mut kb = KeyBuilder::new();
         kb.chunk(chunk);

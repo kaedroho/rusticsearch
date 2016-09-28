@@ -257,6 +257,10 @@ impl RocksDBIndexStore {
         // Start write batch
         let mut write_batch = WriteBatch::default();
 
+        // Set chunk active flag
+        let mut kb = KeyBuilder::chunk_active(doc_ref.chunk());
+        write_batch.merge(&kb.key(), &[0; 0]);
+
         // Insert contents
         let mut token_count: i64 = 0;
         for (field_name, tokens) in doc.fields.iter() {
