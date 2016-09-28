@@ -4,7 +4,7 @@ use similarity::SimilarityModel;
 use store::IndexReader;
 
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct TermScorer {
     similarity_model: SimilarityModel,
     pub boost: f64,
