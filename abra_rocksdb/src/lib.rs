@@ -6,7 +6,6 @@ extern crate rustc_serialize;
 #[macro_use]
 extern crate maplit;
 extern crate byteorder;
-extern crate itertools;
 
 pub mod key_builder;
 pub mod chunk;
@@ -470,15 +469,25 @@ mod tests {
                     scorer: TermScorer::default_with_boost(2.0f64),
                 },
                 Query::Exclude{
-                    query: Box::new(
-                        Query::MatchAll {
-                            score: 1.0f64
-                        }
-                    ),
+                    query: Box::new(Query::Exclude{
+                        query: Box::new(
+                            Query::MatchAll {
+                                score: 1.0f64
+                            }
+                        ),
+                        exclude: Box::new(
+                            Query::MatchTerm {
+                                field: "body".to_string(),
+                                term: Term::String("lorem".to_string()),
+                                matcher: TermMatcher::Exact,
+                                scorer: TermScorer::default_with_boost(2.0f64),
+                            }
+                        )
+                    }),
                     exclude: Box::new(
                         Query::MatchTerm {
                             field: "title".to_string(),
-                            term: Term::String("partner".to_string()),
+                            term: Term::String("hello".to_string()),
                             matcher: TermMatcher::Exact,
                             scorer: TermScorer::default_with_boost(2.0f64),
                         }
