@@ -1,6 +1,8 @@
+use std::str;
 use std::sync::atomic::{AtomicU32, Ordering};
 
-use rocksdb::{DB, Writable};
+use rocksdb::{DB, Writable, DBIterator, IteratorMode, Direction};
+use rocksdb::rocksdb::Snapshot;
 
 
 pub struct ChunkManager {
@@ -36,5 +38,44 @@ impl ChunkManager {
         let next_chunk = self.next_chunk.fetch_add(1, Ordering::SeqCst);
         db.put(b".next_chunk", (next_chunk + 1).to_string().as_bytes());
         next_chunk
+    }
+
+    pub fn iter_active<'a>(&self, snapshot: &'a Snapshot) -> ActiveChunksIterator {
+        ActiveChunksIterator {
+            iter: snapshot.iterator(IteratorMode::From(b"a", Direction::Forward)),
+            fused: false,
+        }
+    }
+}
+
+
+pub struct ActiveChunksIterator {
+    iter: DBIterator,
+    fused: bool,
+}
+
+
+impl Iterator for ActiveChunksIterator {
+    type Item = u32;
+
+    fn next(&mut self) -> Option<u32> {
+        if self.fused {
+            return None;
+        }
+
+        match self.iter.next() {
+            Some((k, v)) => {
+                if k[0] != b'a' {
+                    self.fused = true;
+                    return None;
+                }
+
+                Some(str::from_utf8(&k[1..]).unwrap().parse::<u32>().unwrap())
+            }
+            None => {
+                self.fused = true;
+                return None;
+            }
+        }
     }
 }

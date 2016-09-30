@@ -511,10 +511,7 @@ impl<'a> RocksDBIndexReader<'a> {
         }
     }
 
-    pub fn search<C: Collector>(&self, collector: &mut C, query: &Query) {
-        let mut plan = SearchPlan::new();
-        self.plan_query(&mut plan, query);
-
+    fn search_chunk_boolean_phase(&self, plan: &SearchPlan, chunk: u32) -> DirectoryListData {
         // Execute boolean query
         let mut stack = Vec::new();
         for op in plan.boolean_query.iter() {
@@ -526,7 +523,7 @@ impl<'a> RocksDBIndexReader<'a> {
                     stack.push(DirectoryList::Full);
                 }
                 BooleanQueryOp::LoadTermDirectory(field_ref, term_ref) => {
-                    let kb = KeyBuilder::chunk_dir_list(1 /* FIXME */, field_ref.ord(), term_ref.ord());
+                    let kb = KeyBuilder::chunk_dir_list(chunk, field_ref.ord(), term_ref.ord());
                     match self.snapshot.get(&kb.key()) {
                         Ok(Some(directory_list)) => {
                             stack.push(DirectoryList::Sparse(DirectoryListData::FromRDB(directory_list), false));
@@ -559,7 +556,7 @@ impl<'a> RocksDBIndexReader<'a> {
         let mut matches = stack.pop().unwrap();
 
         // Exclude deleted docs
-        let kb = KeyBuilder::chunk_del_list(1 /* FIXME */);
+        let kb = KeyBuilder::chunk_del_list(chunk);
         match self.snapshot.get(&kb.key()) {
             Ok(Some(deletion_list)) => {
                 let deletion_list = DirectoryList::Sparse(DirectoryListData::FromRDB(deletion_list), false);
@@ -575,7 +572,7 @@ impl<'a> RocksDBIndexReader<'a> {
             DirectoryList::Sparse(data, true) => {
                 // List is negated, get list of all docs and remove the ones currently
                 // in matches
-                let kb = KeyBuilder::chunk_stat(1 /* FIXME */, b"total_docs");
+                let kb = KeyBuilder::chunk_stat(chunk, b"total_docs");
                 let total_docs = match self.snapshot.get(&kb.key()) {
                     Ok(Some(total_docs)) => BigEndian::read_i64(&total_docs) as u16,
                     Ok(None) => 0,
@@ -587,7 +584,7 @@ impl<'a> RocksDBIndexReader<'a> {
             }
             DirectoryList::Empty => DirectoryListData::new_filled(0),
             DirectoryList::Full => {
-                let kb = KeyBuilder::chunk_stat(1 /* FIXME */, b"total_docs");
+                let kb = KeyBuilder::chunk_stat(chunk, b"total_docs");
                 let total_docs = match self.snapshot.get(&kb.key()) {
                     Ok(Some(total_docs)) => BigEndian::read_i64(&total_docs) as u16,
                     Ok(None) => 0,
@@ -598,6 +595,20 @@ impl<'a> RocksDBIndexReader<'a> {
             }
         };
 
+        matches
+    }
+
+    fn search_chunk<C: Collector>(&self, collector: &mut C, plan: &SearchPlan, chunk: u32) {
+        let matches = self.search_chunk_boolean_phase(plan, chunk);
         println!("{:?}", matches);
+    }
+
+    pub fn search<C: Collector>(&self, collector: &mut C, query: &Query) {
+        let mut plan = SearchPlan::new();
+        self.plan_query(&mut plan, query);
+
+        for chunk in self.store.chunks.iter_active(&self.snapshot) {
+            self.search_chunk(collector, &plan, chunk);
+        }
     }
 }
