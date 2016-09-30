@@ -424,8 +424,6 @@ impl<'a> RocksDBIndexReader<'a> {
             0 => plan.boolean_query.push(BooleanQueryOp::PushZero),
             1 =>  self.plan_query(&mut plan, &queries[0]),
             _ => {
-                // TODO: organise queries into a binary tree structure
-
                 let mut query_iter = queries.iter();
                 self.plan_query(&mut plan, query_iter.next().unwrap());
 
