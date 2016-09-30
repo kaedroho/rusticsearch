@@ -30,6 +30,20 @@ enum DirectoryListData {
 
 
 impl DirectoryListData {
+    fn new_filled(num_docs: u16) -> DirectoryListData {
+        let mut data: Vec<u8> = Vec::new();
+
+        for doc_id in 0..num_docs {
+            let mut doc_id_bytes = [0; 2];
+            BigEndian::write_u16(&mut doc_id_bytes, doc_id);
+
+            data.push(doc_id_bytes[0]);
+            data.push(doc_id_bytes[1]);
+        }
+
+        DirectoryListData::Owned(data)
+    }
+
     fn get_cursor(&self) -> Cursor<&[u8]> {
         match *self {
             DirectoryListData::Owned(ref data) => {
@@ -504,7 +518,6 @@ impl<'a> RocksDBIndexReader<'a> {
         // Execute boolean query
         let mut stack = Vec::new();
         for op in plan.boolean_query.iter() {
-            println!("{:?}", op);
             match *op {
                 BooleanQueryOp::PushZero => {
                     stack.push(DirectoryList::Empty);
@@ -538,8 +551,53 @@ impl<'a> RocksDBIndexReader<'a> {
                     stack.push(a.exclusion(b));
                 }
             }
-
-            println!("{:?}", stack);
         }
+
+        if !stack.len() == 1 {
+            // TODO: Error
+        }
+        let mut matches = stack.pop().unwrap();
+
+        // Exclude deleted docs
+        let kb = KeyBuilder::chunk_del_list(1 /* FIXME */);
+        match self.snapshot.get(&kb.key()) {
+            Ok(Some(deletion_list)) => {
+                let deletion_list = DirectoryList::Sparse(DirectoryListData::FromRDB(deletion_list), false);
+                matches = matches.exclusion(deletion_list);
+            }
+            Ok(None) => {},
+            Err(e) => {},  // FIXME
+        }
+
+        // Convert matches into a list of ids
+        let matches = match matches {
+            DirectoryList::Sparse(data, false) => data,
+            DirectoryList::Sparse(data, true) => {
+                // List is negated, get list of all docs and remove the ones currently
+                // in matches
+                let kb = KeyBuilder::chunk_stat(1 /* FIXME */, b"total_docs");
+                let total_docs = match self.snapshot.get(&kb.key()) {
+                    Ok(Some(total_docs)) => BigEndian::read_i64(&total_docs) as u16,
+                    Ok(None) => 0,
+                    Err(e) => 0,  // FIXME
+                };
+
+                let all_docs = DirectoryListData::new_filled(total_docs);
+                all_docs.exclusion(&data)
+            }
+            DirectoryList::Empty => DirectoryListData::new_filled(0),
+            DirectoryList::Full => {
+                let kb = KeyBuilder::chunk_stat(1 /* FIXME */, b"total_docs");
+                let total_docs = match self.snapshot.get(&kb.key()) {
+                    Ok(Some(total_docs)) => BigEndian::read_i64(&total_docs) as u16,
+                    Ok(None) => 0,
+                    Err(e) => 0,  // FIXME
+                };
+
+                DirectoryListData::new_filled(total_docs)
+            }
+        };
+
+        println!("{:?}", matches);
     }
 }
