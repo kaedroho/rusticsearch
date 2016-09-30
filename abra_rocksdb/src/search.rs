@@ -7,7 +7,6 @@ use abra::query::term_scorer::TermScorer;
 use abra::collectors::Collector;
 use rocksdb::DBVector;
 use byteorder::{ByteOrder, BigEndian};
-use itertools::merge;
 
 use key_builder::KeyBuilder;
 use super::{RocksDBIndexReader, TermRef};
@@ -52,12 +51,58 @@ impl DirectoryListData {
         // TODO: optimise
         let mut data: Vec<u8> = Vec::new();
 
-        for doc_id in merge(self.iter(), other.iter()) {
-            let mut doc_id_bytes = [0; 2];
-            BigEndian::write_u16(&mut doc_id_bytes, doc_id);
+        let mut a = self.iter().peekable();
+        let mut b = other.iter().peekable();
 
-            data.push(doc_id_bytes[0]);
-            data.push(doc_id_bytes[1]);
+        loop {
+            let mut next_a = false;
+            let mut next_b = false;
+
+            match (a.peek(), b.peek()) {
+                (Some(a_doc), Some(b_doc)) => {
+                    let mut doc_id_bytes = [0; 2];
+                    BigEndian::write_u16(&mut doc_id_bytes, *a_doc);
+
+                    data.push(doc_id_bytes[0]);
+                    data.push(doc_id_bytes[1]);
+
+                    if a_doc == b_doc {
+                        next_a = true;
+                        next_b = true;
+                    } else if a_doc > b_doc {
+                        next_b = true;
+                    } else if a_doc < b_doc {
+                        next_a = true;
+                    }
+                }
+                (Some(a_doc), None) => {
+                    let mut doc_id_bytes = [0; 2];
+                    BigEndian::write_u16(&mut doc_id_bytes, *a_doc);
+
+                    data.push(doc_id_bytes[0]);
+                    data.push(doc_id_bytes[1]);
+
+                    next_a = true;
+                }
+                (None, Some(b_doc)) => {
+                    let mut doc_id_bytes = [0; 2];
+                    BigEndian::write_u16(&mut doc_id_bytes, *b_doc);
+
+                    data.push(doc_id_bytes[0]);
+                    data.push(doc_id_bytes[1]);
+
+                    next_b = true;
+                }
+                (None, None) => break
+            }
+
+            if next_a {
+                a.next();
+            }
+
+            if next_b {
+                b.next();
+            }
         }
 
         DirectoryListData::Owned(data)
@@ -470,7 +515,7 @@ impl<'a> RocksDBIndexReader<'a> {
                     stack.push(DirectoryList::Full);
                 }
                 BooleanQueryOp::Load(field_ref, term_ref) => {
-                    let kb = KeyBuilder::chunk_dir_list(2 /* FIXME */, field_ref.ord(), term_ref.ord());
+                    let kb = KeyBuilder::chunk_dir_list(1 /* FIXME */, field_ref.ord(), term_ref.ord());
                     match self.snapshot.get(&kb.key()) {
                         Ok(Some(directory_list)) => {
                             stack.push(DirectoryList::Sparse(DirectoryListData::FromRDB(directory_list), false));
