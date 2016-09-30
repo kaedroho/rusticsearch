@@ -32,33 +32,35 @@ impl KeyBuilder {
 
     pub fn chunk_active(chunk: u32) -> KeyBuilder {
         let mut kb = KeyBuilder::new();
-        kb.chunk(chunk);
         kb.push_char(b'a');
+        kb.push_string(chunk.to_string().as_bytes());
         kb
     }
 
     pub fn chunk_dir_list(chunk: u32, field_ord: u32, term_ord: u32) -> KeyBuilder {
         let mut kb = KeyBuilder::new();
-        kb.chunk(chunk);
         kb.push_char(b'd');
         kb.push_string(field_ord.to_string().as_bytes());
         kb.separator();
         kb.push_string(term_ord.to_string().as_bytes());
+        kb.separator();
+        kb.push_string(chunk.to_string().as_bytes());
         kb
     }
 
     pub fn chunk_stat(chunk: u32, name: &[u8]) -> KeyBuilder {
         let mut kb = KeyBuilder::new();
-        kb.chunk(chunk);
         kb.push_char(b's');
         kb.push_string(name);
+        kb.separator();
+        kb.push_string(chunk.to_string().as_bytes());
         kb
     }
 
     pub fn chunk_del_list(chunk: u32) -> KeyBuilder {
         let mut kb = KeyBuilder::new();
-        kb.chunk(chunk);
         kb.push_char(b'x');
+        kb.push_string(chunk.to_string().as_bytes());
         kb
     }
 
@@ -83,10 +85,5 @@ impl KeyBuilder {
 
     pub fn separator(&mut self) {
         self.key.push(b'/');
-    }
-
-    pub fn chunk(&mut self, chunk: u32) {
-        self.key.push(b'c');
-        self.push_string(chunk.to_string().as_bytes());
     }
 }
