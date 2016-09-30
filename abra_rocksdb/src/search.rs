@@ -14,9 +14,9 @@ use super::{RocksDBIndexReader, TermRef};
 
 #[derive(Debug, Clone)]
 enum BooleanQueryOp {
-    Zero,
-    One,
-    Load(FieldRef, TermRef),
+    PushZero,
+    PushOne,
+    LoadTermDirectory(FieldRef, TermRef),
     And,
     Or,
     AndNot,
@@ -421,7 +421,7 @@ impl SearchPlan {
 impl<'a> RocksDBIndexReader<'a> {
     fn plan_query_combinator(&self, mut plan: &mut SearchPlan, queries: &Vec<Query>, join_op: BooleanQueryOp, scorer: CompoundScorer) {
         match queries.len() {
-            0 => plan.boolean_query.push(BooleanQueryOp::Zero),
+            0 => plan.boolean_query.push(BooleanQueryOp::PushZero),
             1 =>  self.plan_query(&mut plan, &queries[0]),
             _ => {
                 // TODO: organise queries into a binary tree structure
@@ -442,11 +442,11 @@ impl<'a> RocksDBIndexReader<'a> {
     fn plan_query(&self, mut plan: &mut SearchPlan, query: &Query) {
         match *query {
             Query::MatchAll{ref score} => {
-                plan.boolean_query.push(BooleanQueryOp::One);
+                plan.boolean_query.push(BooleanQueryOp::PushOne);
                 plan.score_function.push(ScoreFunctionOp::Literal(*score));
             }
             Query::MatchNone => {
-                plan.boolean_query.push(BooleanQueryOp::Zero);
+                plan.boolean_query.push(BooleanQueryOp::PushZero);
                 plan.score_function.push(ScoreFunctionOp::Literal(0.0f64));
             }
             Query::MatchTerm{ref field, ref term, ref matcher, ref scorer} => {
@@ -456,7 +456,7 @@ impl<'a> RocksDBIndexReader<'a> {
                     Some(term_ref) => *term_ref,
                     None => {
                         // Term doesn't exist, so will never match
-                        plan.boolean_query.push(BooleanQueryOp::Zero);
+                        plan.boolean_query.push(BooleanQueryOp::PushZero);
                         return
                     }
                 };
@@ -466,12 +466,12 @@ impl<'a> RocksDBIndexReader<'a> {
                     Some(field_ref) => field_ref,
                     None => {
                         // Field doesn't exist, so will never match
-                        plan.boolean_query.push(BooleanQueryOp::Zero);
+                        plan.boolean_query.push(BooleanQueryOp::PushZero);
                         return
                     }
                 };
 
-                plan.boolean_query.push(BooleanQueryOp::Load(field_ref, term_ref));
+                plan.boolean_query.push(BooleanQueryOp::LoadTermDirectory(field_ref, term_ref));
                 plan.score_function.push(ScoreFunctionOp::TermScore(field_ref, term_ref, scorer.clone()));
             }
             Query::Conjunction{ref queries} => {
@@ -508,13 +508,13 @@ impl<'a> RocksDBIndexReader<'a> {
         for op in plan.boolean_query.iter() {
             println!("{:?}", op);
             match *op {
-                BooleanQueryOp::Zero => {
+                BooleanQueryOp::PushZero => {
                     stack.push(DirectoryList::Empty);
                 }
-                BooleanQueryOp::One => {
+                BooleanQueryOp::PushOne => {
                     stack.push(DirectoryList::Full);
                 }
-                BooleanQueryOp::Load(field_ref, term_ref) => {
+                BooleanQueryOp::LoadTermDirectory(field_ref, term_ref) => {
                     let kb = KeyBuilder::chunk_dir_list(1 /* FIXME */, field_ref.ord(), term_ref.ord());
                     match self.snapshot.get(&kb.key()) {
                         Ok(Some(directory_list)) => {
