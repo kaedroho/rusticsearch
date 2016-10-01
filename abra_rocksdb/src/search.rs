@@ -1,5 +1,6 @@
 use std::fmt;
 use std::io::{Cursor, Read, Write};
+use std::collections::HashMap;
 
 use abra::schema::{FieldRef, SchemaRead};
 use abra::query::Query;
@@ -16,7 +17,7 @@ use super::{RocksDBIndexReader, TermRef};
 enum BooleanQueryOp {
     PushZero,
     PushOne,
-    LoadTermDirectory(FieldRef, TermRef),
+    LoadTermDirectory(FieldRef, TermRef, u8),
     And,
     Or,
     AndNot,
@@ -59,6 +60,17 @@ impl DirectoryListData {
         DirectoryListDataIterator {
             cursor: self.get_cursor(),
         }
+    }
+
+    fn contains_doc(&self, doc_id: u16) -> bool {
+        // TODO: optimise
+        for d in self.iter() {
+            if d == doc_id {
+                return true;
+            }
+        }
+
+        false
     }
 
     fn union(&self, other: &DirectoryListData) -> DirectoryListData {
@@ -410,7 +422,7 @@ enum CompoundScorer {
 #[derive(Debug, Clone)]
 enum ScoreFunctionOp {
     Literal(f64),
-    TermScore(FieldRef, TermRef, TermScorer),
+    TermScore(FieldRef, TermRef, TermScorer, u8),
     CompoundScorer(u32, CompoundScorer),
 }
 
@@ -419,6 +431,7 @@ enum ScoreFunctionOp {
 struct SearchPlan {
     boolean_query: Vec<BooleanQueryOp>,
     score_function: Vec<ScoreFunctionOp>,
+    current_tag: u8,
 }
 
 
@@ -427,22 +440,32 @@ impl SearchPlan {
         SearchPlan {
             boolean_query: Vec::new(),
             score_function: Vec::new(),
+            current_tag: 0,
+        }
+    }
+
+    fn allocate_tag(&mut self) -> Option<u8> {
+        if self.current_tag == 255 {
+            None
+        } else {
+            self.current_tag += 1;
+            Some(self.current_tag)
         }
     }
 }
 
 
 impl<'a> RocksDBIndexReader<'a> {
-    fn plan_query_combinator(&self, mut plan: &mut SearchPlan, queries: &Vec<Query>, join_op: BooleanQueryOp, scorer: CompoundScorer) {
+    fn plan_query_combinator(&self, mut plan: &mut SearchPlan, queries: &Vec<Query>, join_op: BooleanQueryOp, score: bool, scorer: CompoundScorer) {
         match queries.len() {
             0 => plan.boolean_query.push(BooleanQueryOp::PushZero),
-            1 =>  self.plan_query(&mut plan, &queries[0]),
+            1 =>  self.plan_query(&mut plan, &queries[0], score),
             _ => {
                 let mut query_iter = queries.iter();
-                self.plan_query(&mut plan, query_iter.next().unwrap());
+                self.plan_query(&mut plan, query_iter.next().unwrap(), score);
 
                 for query in query_iter {
-                    self.plan_query(&mut plan, query);
+                    self.plan_query(&mut plan, query, score);
                     plan.boolean_query.push(join_op.clone());
                 }
             }
@@ -451,7 +474,7 @@ impl<'a> RocksDBIndexReader<'a> {
         plan.score_function.push(ScoreFunctionOp::CompoundScorer(queries.len() as u32, scorer));
     }
 
-    fn plan_query(&self, mut plan: &mut SearchPlan, query: &Query) {
+    fn plan_query(&self, mut plan: &mut SearchPlan, query: &Query, score: bool) {
         match *query {
             Query::MatchAll{ref score} => {
                 plan.boolean_query.push(BooleanQueryOp::PushOne);
@@ -483,35 +506,38 @@ impl<'a> RocksDBIndexReader<'a> {
                     }
                 };
 
-                plan.boolean_query.push(BooleanQueryOp::LoadTermDirectory(field_ref, term_ref));
-                plan.score_function.push(ScoreFunctionOp::TermScore(field_ref, term_ref, scorer.clone()));
+                let tag = plan.allocate_tag().unwrap_or(0);
+                plan.boolean_query.push(BooleanQueryOp::LoadTermDirectory(field_ref, term_ref, tag));
+                plan.score_function.push(ScoreFunctionOp::TermScore(field_ref, term_ref, scorer.clone(), tag));
             }
             Query::Conjunction{ref queries} => {
-                self.plan_query_combinator(&mut plan, queries, BooleanQueryOp::And, CompoundScorer::Avg);
+                self.plan_query_combinator(&mut plan, queries, BooleanQueryOp::And, score, CompoundScorer::Avg);
             }
             Query::Disjunction{ref queries} => {
-                self.plan_query_combinator(&mut plan, queries, BooleanQueryOp::Or, CompoundScorer::Avg);
+                self.plan_query_combinator(&mut plan, queries, BooleanQueryOp::Or, score, CompoundScorer::Avg);
             }
             Query::NDisjunction{ref queries, minimum_should_match} => {
-                self.plan_query_combinator(&mut plan, queries, BooleanQueryOp::Or, CompoundScorer::Avg);  // FIXME
+                self.plan_query_combinator(&mut plan, queries, BooleanQueryOp::Or, score, CompoundScorer::Avg);  // FIXME
             }
             Query::DisjunctionMax{ref queries} => {
-                self.plan_query_combinator(&mut plan, queries, BooleanQueryOp::Or, CompoundScorer::Max);
+                self.plan_query_combinator(&mut plan, queries, BooleanQueryOp::Or, score, CompoundScorer::Max);
             }
             Query::Filter{ref query, ref filter} => {
-                self.plan_query(&mut plan, query);
-                self.plan_query(&mut plan, filter);
+                self.plan_query(&mut plan, query, score);
+                self.plan_query(&mut plan, filter, false);
                 plan.boolean_query.push(BooleanQueryOp::And);
             }
             Query::Exclude{ref query, ref exclude} => {
-                self.plan_query(&mut plan, query);
-                self.plan_query(&mut plan, exclude);
+                self.plan_query(&mut plan, query, score);
+                self.plan_query(&mut plan, exclude, false);
                 plan.boolean_query.push(BooleanQueryOp::AndNot);
             }
         }
     }
 
-    fn search_chunk_boolean_phase(&self, plan: &SearchPlan, chunk: u32) -> DirectoryListData {
+    fn search_chunk_boolean_phase(&self, plan: &SearchPlan, chunk: u32) -> (DirectoryListData, HashMap<u8, DirectoryListData>) {
+        let mut tagged_directory_lists = HashMap::new();
+
         // Execute boolean query
         let mut stack = Vec::new();
         for op in plan.boolean_query.iter() {
@@ -522,11 +548,13 @@ impl<'a> RocksDBIndexReader<'a> {
                 BooleanQueryOp::PushOne => {
                     stack.push(DirectoryList::Full);
                 }
-                BooleanQueryOp::LoadTermDirectory(field_ref, term_ref) => {
+                BooleanQueryOp::LoadTermDirectory(field_ref, term_ref, tag) => {
                     let kb = KeyBuilder::chunk_dir_list(chunk, field_ref.ord(), term_ref.ord());
                     match self.snapshot.get(&kb.key()) {
                         Ok(Some(directory_list)) => {
-                            stack.push(DirectoryList::Sparse(DirectoryListData::FromRDB(directory_list), false));
+                            let data = DirectoryListData::FromRDB(directory_list);
+                            tagged_directory_lists.insert(tag, data.clone());
+                            stack.push(DirectoryList::Sparse(data, false));
                         }
                         Ok(None) => stack.push(DirectoryList::Empty),
                         Err(e) => {},  // FIXME
@@ -595,17 +623,73 @@ impl<'a> RocksDBIndexReader<'a> {
             }
         };
 
-        matches
+        (matches, tagged_directory_lists)
+    }
+
+    fn score_doc(&self, doc_id: u16, tagged_directory_lists: &HashMap<u8, DirectoryListData>, plan: &SearchPlan) -> f64 {
+        // Execute score function
+        let mut stack = Vec::new();
+        for op in plan.score_function.iter() {
+            match *op {
+                ScoreFunctionOp::Literal(val) => stack.push(val),
+                ScoreFunctionOp::TermScore(field_ref, term_ref, ref scorer, tag) => {
+                    match tagged_directory_lists.get(&tag) {
+                        Some(directory_list) => {
+                            if directory_list.contains_doc(doc_id) {
+                                stack.push(1.0f64);
+                            } else {
+                                stack.push(0.0f64);
+                            }
+                        }
+                        None => stack.push(0.0f64)
+                    }
+                }
+                ScoreFunctionOp::CompoundScorer(num_vals, ref scorer) => {
+                    let score = match *scorer {
+                        CompoundScorer::Avg => {
+                            let mut total_score = 0.0f64;
+
+                            for i in 0..num_vals {
+                                total_score += stack.pop().expect("stack underflow");
+                            }
+
+                            total_score / num_vals as f64
+                        }
+                        CompoundScorer::Max => {
+                            let mut max_score = 0.0f64;
+
+                            for i in 0..num_vals {
+                                let score = stack.pop().expect("stack underflow");
+                                if score > max_score {
+                                    max_score = score
+                                }
+                            }
+
+                            max_score
+                        }
+                    };
+
+                    stack.push(score);
+                }
+            }
+        }
+
+        stack.pop().expect("stack underflow")
     }
 
     fn search_chunk<C: Collector>(&self, collector: &mut C, plan: &SearchPlan, chunk: u32) {
-        let matches = self.search_chunk_boolean_phase(plan, chunk);
-        println!("{:?}", matches);
+        let (matches, tagged_directory_lists) = self.search_chunk_boolean_phase(plan, chunk);
+
+        // Score documents
+        for doc in matches.iter() {
+            let score = self.score_doc(doc, &tagged_directory_lists, plan);
+            println!("{} {} ", doc, score);
+        }
     }
 
     pub fn search<C: Collector>(&self, collector: &mut C, query: &Query) {
         let mut plan = SearchPlan::new();
-        self.plan_query(&mut plan, query);
+        self.plan_query(&mut plan, query, true);
 
         for chunk in self.store.chunks.iter_active(&self.snapshot) {
             self.search_chunk(collector, &plan, chunk);

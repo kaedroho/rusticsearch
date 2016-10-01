@@ -468,37 +468,22 @@ mod tests {
                     matcher: TermMatcher::Exact,
                     scorer: TermScorer::default_with_boost(2.0f64),
                 },
-                Query::Exclude{
-                    query: Box::new(Query::Exclude{
-                        query: Box::new(
-                            Query::MatchAll {
-                                score: 1.0f64
-                            }
-                        ),
-                        exclude: Box::new(
-                            Query::MatchTerm {
-                                field: "body".to_string(),
-                                term: Term::String("lorem".to_string()),
-                                matcher: TermMatcher::Exact,
-                                scorer: TermScorer::default_with_boost(2.0f64),
-                            }
-                        )
-                    }),
-                    exclude: Box::new(
-                        Query::MatchTerm {
-                            field: "title".to_string(),
-                            term: Term::String("hello".to_string()),
-                            matcher: TermMatcher::Exact,
-                            scorer: TermScorer::default_with_boost(2.0f64),
-                        }
-                    )
+                Query::MatchTerm {
+                    field: "title".to_string(),
+                    term: Term::String("partner".to_string()),
+                    matcher: TermMatcher::Exact,
+                    scorer: TermScorer::default_with_boost(2.0f64),
+                },
+                Query::MatchTerm {
+                    field: "title".to_string(),
+                    term: Term::String("hello".to_string()),
+                    matcher: TermMatcher::Exact,
+                    scorer: TermScorer::default_with_boost(2.0f64),
                 }
             ]
         };
 
         let mut collector = TopScoreCollector::new(10);
         index_reader.search(&mut collector, &query);
-
-        println!("{:?}", collector);
     }
 }
