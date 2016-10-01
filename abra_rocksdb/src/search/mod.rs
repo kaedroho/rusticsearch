@@ -19,14 +19,14 @@ use search::boolean_retrieval::BooleanQueryOp;
 use search::scorer::{CombinatorScorer, ScoreFunctionOp};
 
 
-enum DirectoryListData {
+enum DocIdSet {
     Owned(Vec<u8>),
     FromRDB(DBVector),
 }
 
 
-impl DirectoryListData {
-    fn new_filled(num_docs: u16) -> DirectoryListData {
+impl DocIdSet {
+    fn new_filled(num_docs: u16) -> DocIdSet {
         let mut data: Vec<u8> = Vec::new();
 
         for doc_id in 0..num_docs {
@@ -37,22 +37,22 @@ impl DirectoryListData {
             data.push(doc_id_bytes[1]);
         }
 
-        DirectoryListData::Owned(data)
+        DocIdSet::Owned(data)
     }
 
     fn get_cursor(&self) -> Cursor<&[u8]> {
         match *self {
-            DirectoryListData::Owned(ref data) => {
+            DocIdSet::Owned(ref data) => {
                 Cursor::new(&data[..])
             }
-            DirectoryListData::FromRDB(ref data) => {
+            DocIdSet::FromRDB(ref data) => {
                 Cursor::new(&data[..])
             }
         }
     }
 
-    fn iter<'a>(&'a self) -> DirectoryListDataIterator<'a> {
-        DirectoryListDataIterator {
+    fn iter<'a>(&'a self) -> DocIdSetIterator<'a> {
+        DocIdSetIterator {
             cursor: self.get_cursor(),
         }
     }
@@ -68,7 +68,7 @@ impl DirectoryListData {
         false
     }
 
-    fn union(&self, other: &DirectoryListData) -> DirectoryListData {
+    fn union(&self, other: &DocIdSet) -> DocIdSet {
         // TODO: optimise
         let mut data: Vec<u8> = Vec::new();
 
@@ -126,10 +126,10 @@ impl DirectoryListData {
             }
         }
 
-        DirectoryListData::Owned(data)
+        DocIdSet::Owned(data)
     }
 
-    fn intersection(&self, other: &DirectoryListData) -> DirectoryListData {
+    fn intersection(&self, other: &DocIdSet) -> DocIdSet {
         // TODO: optimise
         let mut data: Vec<u8> = Vec::new();
 
@@ -162,10 +162,10 @@ impl DirectoryListData {
             }
         }
 
-        DirectoryListData::Owned(data)
+        DocIdSet::Owned(data)
     }
 
-    fn exclusion(&self, other: &DirectoryListData) -> DirectoryListData {
+    fn exclusion(&self, other: &DocIdSet) -> DocIdSet {
         // TODO: optimise
         let mut data: Vec<u8> = Vec::new();
 
@@ -208,28 +208,28 @@ impl DirectoryListData {
             }
         }
 
-        DirectoryListData::Owned(data)
+        DocIdSet::Owned(data)
     }
 }
 
 
-impl Clone for DirectoryListData {
-    fn clone(&self) -> DirectoryListData {
+impl Clone for DocIdSet {
+    fn clone(&self) -> DocIdSet {
         match *self {
-            DirectoryListData::Owned(ref data) => {
-                DirectoryListData::Owned(data.clone())
+            DocIdSet::Owned(ref data) => {
+                DocIdSet::Owned(data.clone())
             }
-            DirectoryListData::FromRDB(ref data) => {
+            DocIdSet::FromRDB(ref data) => {
                 let mut new_data = Vec::with_capacity(data.len());
                 new_data.write_all(data);
-                DirectoryListData::Owned(new_data)
+                DocIdSet::Owned(new_data)
             }
         }
     }
 }
 
 
-impl fmt::Debug for DirectoryListData {
+impl fmt::Debug for DocIdSet {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let mut iterator = self.iter();
 
@@ -249,11 +249,11 @@ impl fmt::Debug for DirectoryListData {
 }
 
 
-struct DirectoryListDataIterator<'a> {
+struct DocIdSetIterator<'a> {
     cursor: Cursor<&'a [u8]>,
 }
 
-impl<'a> Iterator for DirectoryListDataIterator<'a> {
+impl<'a> Iterator for DocIdSetIterator<'a> {
     type Item = u16;
 
     fn next(&mut self) -> Option<u16> {
@@ -263,145 +263,6 @@ impl<'a> Iterator for DirectoryListDataIterator<'a> {
                 Some(BigEndian::read_u16(&buf))
             }
             Err(_) => None
-        }
-    }
-}
-
-
-#[derive(Debug, Clone)]
-enum DirectoryList {
-    Empty,
-    Full,
-    Sparse(DirectoryListData, bool),
-    //Packed(Bitmap),
-}
-
-
-impl DirectoryList {
-    fn intersection(self, other: DirectoryList) -> DirectoryList {
-        match self {
-            DirectoryList::Empty => DirectoryList::Empty,
-            DirectoryList::Full => other,
-            DirectoryList::Sparse(data, false) => {
-                match other {
-                    DirectoryList::Empty => DirectoryList::Empty,
-                    DirectoryList::Full => DirectoryList::Sparse(data, false),
-                    DirectoryList::Sparse(other_data, false) => {
-                        // Intersection (data AND other_data)
-                        DirectoryList::Sparse(data.intersection(&other_data), false)
-                    }
-                    DirectoryList::Sparse(other_data, true) => {
-                        // Exclusion (data AND NOT other_data)
-                        DirectoryList::Sparse(data.exclusion(&other_data), false)
-                    }
-                }
-            }
-            DirectoryList::Sparse(data, true) => {
-                match other {
-                    DirectoryList::Empty => DirectoryList::Empty,
-                    DirectoryList::Full => DirectoryList::Sparse(data, true),
-                    DirectoryList::Sparse(other_data, false) => {
-                        // Exclusion (other_data AND NOT data)
-                        DirectoryList::Sparse(other_data.exclusion(&data), false)
-                    }
-                    DirectoryList::Sparse(other_data, true) => {
-                        // Negated union (NOT (data OR other_data))
-                        // Equivilent to (NOT data AND NOT other_data)
-                        DirectoryList::Sparse(data.union(&other_data), true)
-                    }
-                }
-            }
-        }
-    }
-
-    fn union(self, other: DirectoryList) -> DirectoryList {
-        match self {
-            DirectoryList::Empty => other,
-            DirectoryList::Full => DirectoryList::Full,
-            DirectoryList::Sparse(data, false) => {
-                match other {
-                    DirectoryList::Empty => DirectoryList::Sparse(data, false),
-                    DirectoryList::Full => DirectoryList::Full,
-                    DirectoryList::Sparse(other_data, false) => {
-                        // Union (data OR other_data)
-                        DirectoryList::Sparse(data.union(&other_data), false)
-                    }
-                    DirectoryList::Sparse(other_data, true) => {
-                        // Negated exclusion (NOT (other_data AND NOT data))
-                        // Equivilant to (data OR NOT other_data)
-                        DirectoryList::Sparse(other_data.exclusion(&data), true)
-                    }
-                }
-            }
-            DirectoryList::Sparse(data, true) => {
-                match other {
-                    DirectoryList::Empty => DirectoryList::Sparse(data, true),
-                    DirectoryList::Full => DirectoryList::Full,
-                    DirectoryList::Sparse(other_data, false) => {
-                        // Negated exclusion (NOT (data AND NOT other_data))
-                        // Equivilant to (other_data OR NOT data)
-                        DirectoryList::Sparse(data.exclusion(&other_data), true)
-                    }
-                    DirectoryList::Sparse(other_data, true) => {
-                        // Negated intersection (NOT (data AND other_data))
-                        // Equivilent to (NOT data OR NOT other_data)
-                        DirectoryList::Sparse(data.intersection(&other_data), true)
-                    }
-                }
-            }
-        }
-    }
-
-    fn exclusion(self, other: DirectoryList) -> DirectoryList {
-        match self {
-            DirectoryList::Empty => DirectoryList::Empty,
-            DirectoryList::Full => {
-                match other {
-                    DirectoryList::Empty => DirectoryList::Full,
-                    DirectoryList::Full => DirectoryList::Empty,
-                    DirectoryList::Sparse(other_data, false) => {
-                        // Negation (NOT other_data)
-                        // Equivilent to (ALL AND NOT other_data)
-                        DirectoryList::Sparse(other_data, true)
-                    }
-                    DirectoryList::Sparse(other_data, true) => {
-                        // De-negation (NOT (NOT other_data))
-                        // Equivilent to (ALL AND NOT (NOT other_data))
-                        DirectoryList::Sparse(other_data, false)
-                    }
-                }
-            },
-            DirectoryList::Sparse(data, false) => {
-                match other {
-                    DirectoryList::Empty => DirectoryList::Sparse(data, false),
-                    DirectoryList::Full => DirectoryList::Full,
-                    DirectoryList::Sparse(other_data, false) => {
-                        // Exclusion (data AND NOT other_data)
-                        DirectoryList::Sparse(data.exclusion(&other_data), false)
-                    }
-                    DirectoryList::Sparse(other_data, true) => {
-                        // Intersection (data AND other_data)
-                        // Equivilent to (data AND NOT (NOT other_data))
-                        DirectoryList::Sparse(data.intersection(&other_data), false)
-                    }
-                }
-            }
-            DirectoryList::Sparse(data, true) => {
-                match other {
-                    DirectoryList::Empty => DirectoryList::Sparse(data, true),
-                    DirectoryList::Full => DirectoryList::Full,
-                    DirectoryList::Sparse(other_data, false) => {
-                        // Negated union (NOT (data OR other_data))
-                        // Equivilant to (NOT data AND NOT other_data)
-                        DirectoryList::Sparse(data.union(&other_data), true)
-                    }
-                    DirectoryList::Sparse(other_data, true) => {
-                        // Exclusion (other_data AND NOT data)
-                        // Equivilant to (NOT data AND NOT (NOT other_data))
-                        DirectoryList::Sparse(other_data.exclusion(&data), false)
-                    }
-                }
-            }
         }
     }
 }
@@ -515,28 +376,28 @@ impl<'a> RocksDBIndexReader<'a> {
         }
     }
 
-    fn search_chunk_boolean_phase(&self, plan: &SearchPlan, chunk: u32) -> (DirectoryListData, HashMap<u8, DirectoryListData>) {
-        let mut tagged_directory_lists = HashMap::new();
+    fn search_chunk_boolean_phase(&self, plan: &SearchPlan, chunk: u32) -> (DocIdSet, HashMap<u8, DocIdSet>) {
+        let mut tagged_docid_sets = HashMap::new();
 
         // Execute boolean query
         let mut stack = Vec::new();
         for op in plan.boolean_query.iter() {
             match *op {
                 BooleanQueryOp::PushEmpty => {
-                    stack.push(DirectoryList::Empty);
+                    stack.push(DocIdSet::new_filled(0));
                 }
                 BooleanQueryOp::PushFull => {
-                    stack.push(DirectoryList::Full);
+                    stack.push(DocIdSet::new_filled(65536));
                 }
                 BooleanQueryOp::PushTermDirectory(field_ref, term_ref, tag) => {
                     let kb = KeyBuilder::chunk_dir_list(chunk, field_ref.ord(), term_ref.ord());
                     match self.snapshot.get(&kb.key()) {
-                        Ok(Some(directory_list)) => {
-                            let data = DirectoryListData::FromRDB(directory_list);
-                            tagged_directory_lists.insert(tag, data.clone());
-                            stack.push(DirectoryList::Sparse(data, false));
+                        Ok(Some(docid_set)) => {
+                            let data = DocIdSet::FromRDB(docid_set);
+                            tagged_docid_sets.insert(tag, data.clone());
+                            stack.push(data);
                         }
-                        Ok(None) => stack.push(DirectoryList::Empty),
+                        Ok(None) => stack.push(DocIdSet::new_filled(0)),
                         Err(e) => {},  // FIXME
                     }
                 }
@@ -544,27 +405,27 @@ impl<'a> RocksDBIndexReader<'a> {
                     let kb = KeyBuilder::chunk_del_list(chunk);
                     match self.snapshot.get(&kb.key()) {
                         Ok(Some(deletion_list)) => {
-                            let data = DirectoryListData::FromRDB(deletion_list);
-                            stack.push(DirectoryList::Sparse(data, false));
+                            let data = DocIdSet::FromRDB(deletion_list);
+                            stack.push(data);
                         }
-                        Ok(None) => stack.push(DirectoryList::Empty),
+                        Ok(None) => stack.push(DocIdSet::new_filled(0)),
                         Err(e) => {},  // FIXME
                     }
                 }
                 BooleanQueryOp::And => {
                     let b = stack.pop().expect("stack underflow");
                     let a = stack.pop().expect("stack underflow");
-                    stack.push(a.intersection(b));
+                    stack.push(a.intersection(&b));
                 }
                 BooleanQueryOp::Or => {
                     let b = stack.pop().expect("stack underflow");
                     let a = stack.pop().expect("stack underflow");
-                    stack.push(a.union(b));
+                    stack.push(a.union(&b));
                 }
                 BooleanQueryOp::AndNot => {
                     let b = stack.pop().expect("stack underflow");
                     let a = stack.pop().expect("stack underflow");
-                    stack.push(a.exclusion(b));
+                    stack.push(a.exclusion(&b));
                 }
             }
         }
@@ -574,48 +435,19 @@ impl<'a> RocksDBIndexReader<'a> {
         }
         let mut matches = stack.pop().unwrap();
 
-        // Convert matches into a list of ids
-        let matches = match matches {
-            DirectoryList::Sparse(data, false) => data,
-            DirectoryList::Sparse(data, true) => {
-                // List is negated, get list of all docs and remove the ones currently
-                // in matches
-                let kb = KeyBuilder::chunk_stat(chunk, b"total_docs");
-                let total_docs = match self.snapshot.get(&kb.key()) {
-                    Ok(Some(total_docs)) => BigEndian::read_i64(&total_docs) as u16,
-                    Ok(None) => 0,
-                    Err(e) => 0,  // FIXME
-                };
-
-                let all_docs = DirectoryListData::new_filled(total_docs);
-                all_docs.exclusion(&data)
-            }
-            DirectoryList::Empty => DirectoryListData::new_filled(0),
-            DirectoryList::Full => {
-                let kb = KeyBuilder::chunk_stat(chunk, b"total_docs");
-                let total_docs = match self.snapshot.get(&kb.key()) {
-                    Ok(Some(total_docs)) => BigEndian::read_i64(&total_docs) as u16,
-                    Ok(None) => 0,
-                    Err(e) => 0,  // FIXME
-                };
-
-                DirectoryListData::new_filled(total_docs)
-            }
-        };
-
-        (matches, tagged_directory_lists)
+        (matches, tagged_docid_sets)
     }
 
-    fn score_doc(&self, doc_id: u16, tagged_directory_lists: &HashMap<u8, DirectoryListData>, plan: &SearchPlan) -> f64 {
+    fn score_doc(&self, doc_id: u16, tagged_docid_sets: &HashMap<u8, DocIdSet>, plan: &SearchPlan) -> f64 {
         // Execute score function
         let mut stack = Vec::new();
         for op in plan.score_function.iter() {
             match *op {
                 ScoreFunctionOp::Literal(val) => stack.push(val),
                 ScoreFunctionOp::TermScorer(field_ref, term_ref, ref scorer, tag) => {
-                    match tagged_directory_lists.get(&tag) {
-                        Some(directory_list) => {
-                            if directory_list.contains_doc(doc_id) {
+                    match tagged_docid_sets.get(&tag) {
+                        Some(docid_set) => {
+                            if docid_set.contains_doc(doc_id) {
                                 stack.push(1.0f64);
                             } else {
                                 stack.push(0.0f64);
@@ -658,11 +490,11 @@ impl<'a> RocksDBIndexReader<'a> {
     }
 
     fn search_chunk<C: Collector>(&self, collector: &mut C, plan: &SearchPlan, chunk: u32) {
-        let (matches, tagged_directory_lists) = self.search_chunk_boolean_phase(plan, chunk);
+        let (matches, tagged_docid_sets) = self.search_chunk_boolean_phase(plan, chunk);
 
         // Score documents and pass to collector
         for doc in matches.iter() {
-            let score = self.score_doc(doc, &tagged_directory_lists, plan);
+            let score = self.score_doc(doc, &tagged_docid_sets, plan);
 
             let doc_ref = DocRef(chunk, doc);
             let doc_match = DocumentMatch::new_scored(doc_ref.as_u64(), score);
