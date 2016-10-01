@@ -49,6 +49,10 @@ impl DocRef {
     pub fn ord(&self) -> u16 {
         self.1
     }
+
+    pub fn as_u64(&self) -> u64 {
+        (self.0 as u64) << 16 | (self.1 as u64)
+    }
 }
 
 
@@ -485,5 +489,8 @@ mod tests {
 
         let mut collector = TopScoreCollector::new(10);
         index_reader.search(&mut collector, &query);
+
+        let docs = collector.iter().collect::<Vec<_>>();
+        println!("{:?}", docs);
     }
 }
