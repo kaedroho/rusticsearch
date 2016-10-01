@@ -15,7 +15,7 @@ use byteorder::{ByteOrder, BigEndian};
 
 use key_builder::KeyBuilder;
 use super::{RocksDBIndexReader, TermRef, DocRef};
-use search::boolean_retrieval::BooleanQueryOp;
+use search::boolean_retrieval::{BooleanQueryOp, BooleanQueryBuilder};
 use search::scorer::{CombinatorScorer, ScoreFunctionOp};
 
 
@@ -271,6 +271,7 @@ impl<'a> Iterator for DocIdSetIterator<'a> {
 #[derive(Debug)]
 struct SearchPlan {
     boolean_query: Vec<BooleanQueryOp>,
+    boolean_query_is_negated: bool,
     score_function: Vec<ScoreFunctionOp>,
     current_tag: u8,
 }
@@ -280,6 +281,7 @@ impl SearchPlan {
     fn new() -> SearchPlan {
         SearchPlan {
             boolean_query: Vec::new(),
+            boolean_query_is_negated: false,
             score_function: Vec::new(),
             current_tag: 0,
         }
@@ -510,6 +512,16 @@ impl<'a> RocksDBIndexReader<'a> {
         plan.boolean_query.push(BooleanQueryOp::PushDeletionList);
         plan.boolean_query.push(BooleanQueryOp::AndNot);
 
+        // Optimise boolean query
+        let mut optimiser = BooleanQueryBuilder::new();
+        for op in plan.boolean_query.iter() {
+            optimiser.push_op(op);
+        }
+        let (boolean_query, boolean_query_is_negated) = optimiser.build();
+        plan.boolean_query = boolean_query;
+        plan.boolean_query_is_negated = boolean_query_is_negated;
+
+        // Run query on each chunk
         for chunk in self.store.chunks.iter_active(&self.snapshot) {
             self.search_chunk(collector, &plan, chunk);
         }
