@@ -77,33 +77,33 @@ impl BooleanQueryBlock {
 }
 
 
-struct BooleanQueryBuilder {
+pub struct BooleanQueryBuilder {
     stack: Vec<Rc<BooleanQueryBlock>>,
 }
 
 
 impl BooleanQueryBuilder {
-    fn new() -> BooleanQueryBuilder {
+    pub fn new() -> BooleanQueryBuilder {
         BooleanQueryBuilder {
             stack: Vec::new(),
         }
     }
 
-    fn push_zero(&mut self) {
+    pub fn push_zero(&mut self) {
         self.stack.push(Rc::new(BooleanQueryBlock::Leaf{
             op: BooleanQueryOp::PushEmpty,
             return_type: BooleanQueryBlockReturnType::Empty,
         }));
     }
 
-    fn push_one(&mut self) {
+    pub fn push_one(&mut self) {
         self.stack.push(Rc::new(BooleanQueryBlock::Leaf{
             op: BooleanQueryOp::PushFull,
             return_type: BooleanQueryBlockReturnType::Full,
         }));
     }
 
-    fn push_op(&mut self, op: &BooleanQueryOp) {
+    pub fn push_op(&mut self, op: &BooleanQueryOp) {
         use search::boolean_retrieval::BooleanQueryOp::*;
         use self::BooleanQueryBlock::*;
         use self::BooleanQueryBlockReturnType::*;
@@ -307,7 +307,7 @@ impl BooleanQueryBuilder {
         }
     }
 
-    fn build(&self) -> (Vec<BooleanQueryOp>, bool) {
+    pub fn build(&self) -> (Vec<BooleanQueryOp>, bool) {
         use self::BooleanQueryBlockReturnType::*;
 
         let mut boolean_query = Vec::new();
