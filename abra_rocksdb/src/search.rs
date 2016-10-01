@@ -5,12 +5,12 @@ use std::collections::HashMap;
 use abra::schema::{FieldRef, SchemaRead};
 use abra::query::Query;
 use abra::query::term_scorer::TermScorer;
-use abra::collectors::Collector;
+use abra::collectors::{Collector, DocumentMatch};
 use rocksdb::DBVector;
 use byteorder::{ByteOrder, BigEndian};
 
 use key_builder::KeyBuilder;
-use super::{RocksDBIndexReader, TermRef};
+use super::{RocksDBIndexReader, TermRef, DocRef};
 
 
 #[derive(Debug, Clone)]
@@ -680,10 +680,13 @@ impl<'a> RocksDBIndexReader<'a> {
     fn search_chunk<C: Collector>(&self, collector: &mut C, plan: &SearchPlan, chunk: u32) {
         let (matches, tagged_directory_lists) = self.search_chunk_boolean_phase(plan, chunk);
 
-        // Score documents
+        // Score documents and pass to collector
         for doc in matches.iter() {
             let score = self.score_doc(doc, &tagged_directory_lists, plan);
-            println!("{} {} ", doc, score);
+
+            let doc_ref = DocRef(chunk, doc);
+            let doc_match = DocumentMatch::new_scored(doc_ref.as_u64(), score);
+            collector.collect(doc_match);
         }
     }
 
