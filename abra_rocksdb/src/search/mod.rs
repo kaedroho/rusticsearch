@@ -16,7 +16,7 @@ use byteorder::{ByteOrder, BigEndian};
 use key_builder::KeyBuilder;
 use super::{RocksDBIndexReader, TermRef, DocRef};
 use search::boolean_retrieval::BooleanQueryOp;
-use search::scorer::{CompoundScorer, ScoreFunctionOp};
+use search::scorer::{CombinatorScorer, ScoreFunctionOp};
 
 
 enum DirectoryListData {
@@ -436,7 +436,7 @@ impl SearchPlan {
 
 
 impl<'a> RocksDBIndexReader<'a> {
-    fn plan_query_combinator(&self, mut plan: &mut SearchPlan, queries: &Vec<Query>, join_op: BooleanQueryOp, score: bool, scorer: CompoundScorer) {
+    fn plan_query_combinator(&self, mut plan: &mut SearchPlan, queries: &Vec<Query>, join_op: BooleanQueryOp, score: bool, scorer: CombinatorScorer) {
         match queries.len() {
             0 => plan.boolean_query.push(BooleanQueryOp::PushEmpty),
             1 =>  self.plan_query(&mut plan, &queries[0], score),
@@ -451,7 +451,7 @@ impl<'a> RocksDBIndexReader<'a> {
             }
         }
 
-        plan.score_function.push(ScoreFunctionOp::CompoundScorer(queries.len() as u32, scorer));
+        plan.score_function.push(ScoreFunctionOp::CombinatorScorer(queries.len() as u32, scorer));
     }
 
     fn plan_query(&self, mut plan: &mut SearchPlan, query: &Query, score: bool) {
@@ -488,19 +488,19 @@ impl<'a> RocksDBIndexReader<'a> {
 
                 let tag = plan.allocate_tag().unwrap_or(0);
                 plan.boolean_query.push(BooleanQueryOp::PushTermDirectory(field_ref, term_ref, tag));
-                plan.score_function.push(ScoreFunctionOp::TermScore(field_ref, term_ref, scorer.clone(), tag));
+                plan.score_function.push(ScoreFunctionOp::TermScorer(field_ref, term_ref, scorer.clone(), tag));
             }
             Query::Conjunction{ref queries} => {
-                self.plan_query_combinator(&mut plan, queries, BooleanQueryOp::And, score, CompoundScorer::Avg);
+                self.plan_query_combinator(&mut plan, queries, BooleanQueryOp::And, score, CombinatorScorer::Avg);
             }
             Query::Disjunction{ref queries} => {
-                self.plan_query_combinator(&mut plan, queries, BooleanQueryOp::Or, score, CompoundScorer::Avg);
+                self.plan_query_combinator(&mut plan, queries, BooleanQueryOp::Or, score, CombinatorScorer::Avg);
             }
             Query::NDisjunction{ref queries, minimum_should_match} => {
-                self.plan_query_combinator(&mut plan, queries, BooleanQueryOp::Or, score, CompoundScorer::Avg);  // FIXME
+                self.plan_query_combinator(&mut plan, queries, BooleanQueryOp::Or, score, CombinatorScorer::Avg);  // FIXME
             }
             Query::DisjunctionMax{ref queries} => {
-                self.plan_query_combinator(&mut plan, queries, BooleanQueryOp::Or, score, CompoundScorer::Max);
+                self.plan_query_combinator(&mut plan, queries, BooleanQueryOp::Or, score, CombinatorScorer::Max);
             }
             Query::Filter{ref query, ref filter} => {
                 self.plan_query(&mut plan, query, score);
@@ -612,7 +612,7 @@ impl<'a> RocksDBIndexReader<'a> {
         for op in plan.score_function.iter() {
             match *op {
                 ScoreFunctionOp::Literal(val) => stack.push(val),
-                ScoreFunctionOp::TermScore(field_ref, term_ref, ref scorer, tag) => {
+                ScoreFunctionOp::TermScorer(field_ref, term_ref, ref scorer, tag) => {
                     match tagged_directory_lists.get(&tag) {
                         Some(directory_list) => {
                             if directory_list.contains_doc(doc_id) {
@@ -624,9 +624,9 @@ impl<'a> RocksDBIndexReader<'a> {
                         None => stack.push(0.0f64)
                     }
                 }
-                ScoreFunctionOp::CompoundScorer(num_vals, ref scorer) => {
+                ScoreFunctionOp::CombinatorScorer(num_vals, ref scorer) => {
                     let score = match *scorer {
-                        CompoundScorer::Avg => {
+                        CombinatorScorer::Avg => {
                             let mut total_score = 0.0f64;
 
                             for i in 0..num_vals {
@@ -635,7 +635,7 @@ impl<'a> RocksDBIndexReader<'a> {
 
                             total_score / num_vals as f64
                         }
-                        CompoundScorer::Max => {
+                        CombinatorScorer::Max => {
                             let mut max_score = 0.0f64;
 
                             for i in 0..num_vals {
