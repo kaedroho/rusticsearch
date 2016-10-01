@@ -438,7 +438,7 @@ impl SearchPlan {
 impl<'a> RocksDBIndexReader<'a> {
     fn plan_query_combinator(&self, mut plan: &mut SearchPlan, queries: &Vec<Query>, join_op: BooleanQueryOp, score: bool, scorer: CompoundScorer) {
         match queries.len() {
-            0 => plan.boolean_query.push(BooleanQueryOp::PushZero),
+            0 => plan.boolean_query.push(BooleanQueryOp::PushEmpty),
             1 =>  self.plan_query(&mut plan, &queries[0], score),
             _ => {
                 let mut query_iter = queries.iter();
@@ -457,11 +457,11 @@ impl<'a> RocksDBIndexReader<'a> {
     fn plan_query(&self, mut plan: &mut SearchPlan, query: &Query, score: bool) {
         match *query {
             Query::MatchAll{ref score} => {
-                plan.boolean_query.push(BooleanQueryOp::PushOne);
+                plan.boolean_query.push(BooleanQueryOp::PushFull);
                 plan.score_function.push(ScoreFunctionOp::Literal(*score));
             }
             Query::MatchNone => {
-                plan.boolean_query.push(BooleanQueryOp::PushZero);
+                plan.boolean_query.push(BooleanQueryOp::PushEmpty);
                 plan.score_function.push(ScoreFunctionOp::Literal(0.0f64));
             }
             Query::MatchTerm{ref field, ref term, ref matcher, ref scorer} => {
@@ -471,7 +471,7 @@ impl<'a> RocksDBIndexReader<'a> {
                     Some(term_ref) => *term_ref,
                     None => {
                         // Term doesn't exist, so will never match
-                        plan.boolean_query.push(BooleanQueryOp::PushZero);
+                        plan.boolean_query.push(BooleanQueryOp::PushEmpty);
                         return
                     }
                 };
@@ -481,13 +481,13 @@ impl<'a> RocksDBIndexReader<'a> {
                     Some(field_ref) => field_ref,
                     None => {
                         // Field doesn't exist, so will never match
-                        plan.boolean_query.push(BooleanQueryOp::PushZero);
+                        plan.boolean_query.push(BooleanQueryOp::PushEmpty);
                         return
                     }
                 };
 
                 let tag = plan.allocate_tag().unwrap_or(0);
-                plan.boolean_query.push(BooleanQueryOp::LoadTermDirectory(field_ref, term_ref, tag));
+                plan.boolean_query.push(BooleanQueryOp::PushTermDirectory(field_ref, term_ref, tag));
                 plan.score_function.push(ScoreFunctionOp::TermScore(field_ref, term_ref, scorer.clone(), tag));
             }
             Query::Conjunction{ref queries} => {
@@ -522,13 +522,13 @@ impl<'a> RocksDBIndexReader<'a> {
         let mut stack = Vec::new();
         for op in plan.boolean_query.iter() {
             match *op {
-                BooleanQueryOp::PushZero => {
+                BooleanQueryOp::PushEmpty => {
                     stack.push(DirectoryList::Empty);
                 }
-                BooleanQueryOp::PushOne => {
+                BooleanQueryOp::PushFull => {
                     stack.push(DirectoryList::Full);
                 }
-                BooleanQueryOp::LoadTermDirectory(field_ref, term_ref, tag) => {
+                BooleanQueryOp::PushTermDirectory(field_ref, term_ref, tag) => {
                     let kb = KeyBuilder::chunk_dir_list(chunk, field_ref.ord(), term_ref.ord());
                     match self.snapshot.get(&kb.key()) {
                         Ok(Some(directory_list)) => {
@@ -540,7 +540,7 @@ impl<'a> RocksDBIndexReader<'a> {
                         Err(e) => {},  // FIXME
                     }
                 }
-                BooleanQueryOp::LoadDeletionList => {
+                BooleanQueryOp::PushDeletionList => {
                     let kb = KeyBuilder::chunk_del_list(chunk);
                     match self.snapshot.get(&kb.key()) {
                         Ok(Some(deletion_list)) => {
@@ -675,7 +675,7 @@ impl<'a> RocksDBIndexReader<'a> {
         self.plan_query(&mut plan, query, true);
 
         // Add operations to exclude deleted documents to boolean query
-        plan.boolean_query.push(BooleanQueryOp::LoadDeletionList);
+        plan.boolean_query.push(BooleanQueryOp::PushDeletionList);
         plan.boolean_query.push(BooleanQueryOp::AndNot);
 
         for chunk in self.store.chunks.iter_active(&self.snapshot) {

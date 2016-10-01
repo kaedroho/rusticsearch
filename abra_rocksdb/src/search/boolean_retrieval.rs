@@ -7,10 +7,10 @@ use TermRef;
 
 #[derive(Debug, Clone)]
 pub enum BooleanQueryOp {
-    PushZero,
-    PushOne,
-    LoadTermDirectory(FieldRef, TermRef, u8),
-    LoadDeletionList,
+    PushEmpty,
+    PushFull,
+    PushTermDirectory(FieldRef, TermRef, u8),
+    PushDeletionList,
     And,
     Or,
     AndNot,
@@ -91,14 +91,14 @@ impl BooleanQueryBuilder {
 
     fn push_zero(&mut self) {
         self.stack.push(Rc::new(BooleanQueryBlock::Leaf{
-            op: BooleanQueryOp::PushZero,
+            op: BooleanQueryOp::PushEmpty,
             return_type: BooleanQueryBlockReturnType::Empty,
         }));
     }
 
     fn push_one(&mut self) {
         self.stack.push(Rc::new(BooleanQueryBlock::Leaf{
-            op: BooleanQueryOp::PushOne,
+            op: BooleanQueryOp::PushFull,
             return_type: BooleanQueryBlockReturnType::Full,
         }));
     }
@@ -109,21 +109,21 @@ impl BooleanQueryBuilder {
         use self::BooleanQueryBlockReturnType::*;
 
         match *op {
-            PushZero => {
+            PushEmpty => {
                 self.push_zero();
             }
-            PushOne => {
+            PushFull => {
                 self.push_one();
             }
-            LoadTermDirectory(field_ref, term_ref, tag) => {
+            PushTermDirectory(field_ref, term_ref, tag) => {
                 self.stack.push(Rc::new(Leaf{
-                    op: LoadTermDirectory(field_ref, term_ref, tag),
+                    op: PushTermDirectory(field_ref, term_ref, tag),
                     return_type: Sparse,
                 }));
             }
-            LoadDeletionList => {
+            PushDeletionList => {
                 self.stack.push(Rc::new(Leaf{
-                    op: LoadDeletionList,
+                    op: PushDeletionList,
                     return_type: Sparse,
                 }));
             }
