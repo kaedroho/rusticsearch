@@ -27,7 +27,7 @@ use chunk::ChunkManager;
 
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Hash)]
-struct TermRef(u32);
+pub struct TermRef(u32);
 
 
 impl TermRef {
