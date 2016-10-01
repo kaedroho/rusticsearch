@@ -89,14 +89,14 @@ impl BooleanQueryBuilder {
         }
     }
 
-    pub fn push_zero(&mut self) {
+    pub fn push_empty(&mut self) {
         self.stack.push(Rc::new(BooleanQueryBlock::Leaf{
             op: BooleanQueryOp::PushEmpty,
             return_type: BooleanQueryBlockReturnType::Empty,
         }));
     }
 
-    pub fn push_one(&mut self) {
+    pub fn push_full(&mut self) {
         self.stack.push(Rc::new(BooleanQueryBlock::Leaf{
             op: BooleanQueryOp::PushFull,
             return_type: BooleanQueryBlockReturnType::Full,
@@ -110,10 +110,10 @@ impl BooleanQueryBuilder {
 
         match *op {
             PushEmpty => {
-                self.push_zero();
+                self.push_empty();
             }
             PushFull => {
-                self.push_one();
+                self.push_full();
             }
             PushTermDirectory(field_ref, term_ref, tag) => {
                 self.stack.push(Rc::new(Leaf{
@@ -137,8 +137,8 @@ impl BooleanQueryBuilder {
                     (_, Full) => self.stack.push(a),
 
                     // If either block is "empty", this block will be empty too
-                    (Empty, _) => self.push_zero(),
-                    (_, Empty) => self.push_zero(),
+                    (Empty, _) => self.push_empty(),
+                    (_, Empty) => self.push_empty(),
 
                     (Sparse, Sparse) => {  // (a AND b)
                         // Intersection
@@ -187,8 +187,8 @@ impl BooleanQueryBuilder {
 
                 match (a.return_type(), b.return_type()) {
                     // If either block is "full", this block will be full too
-                    (Full, _) => self.push_one(),
-                    (_, Full) => self.push_one(),
+                    (Full, _) => self.push_full(),
+                    (_, Full) => self.push_full(),
 
                     // If either block is "empty", replace this block with the other block
                     (Empty, _) => self.stack.push(b),
@@ -241,10 +241,10 @@ impl BooleanQueryBuilder {
 
                 match (a.return_type(), b.return_type()) {
                     // If the right block is full, this block will be empty
-                    (_, Full) => self.push_zero(),
+                    (_, Full) => self.push_empty(),
 
                     // If the left block is empty, this block will be empty too
-                    (Empty, _) => self.push_zero(),
+                    (Empty, _) => self.push_empty(),
 
                     // If the right block is empty, replace this block with the left block
                     (_, Empty) => self.stack.push(a),
