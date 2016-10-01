@@ -19,6 +19,7 @@ enum BooleanQueryOp {
     PushZero,
     PushOne,
     LoadTermDirectory(FieldRef, TermRef, u8),
+    LoadDeletionList,
     And,
     Or,
     AndNot,
@@ -517,6 +518,12 @@ impl BooleanQueryBuilder {
                     return_type: Sparse,
                 }));
             }
+            LoadDeletionList => {
+                self.stack.push(Rc::new(Leaf{
+                    op: LoadDeletionList,
+                    return_type: Sparse,
+                }));
+            }
             And => {
                 let b = self.stack.pop().expect("stack underflow");
                 let a = self.stack.pop().expect("stack underflow");
@@ -859,6 +866,17 @@ impl<'a> RocksDBIndexReader<'a> {
                         Err(e) => {},  // FIXME
                     }
                 }
+                BooleanQueryOp::LoadDeletionList => {
+                    let kb = KeyBuilder::chunk_del_list(chunk);
+                    match self.snapshot.get(&kb.key()) {
+                        Ok(Some(deletion_list)) => {
+                            let data = DirectoryListData::FromRDB(deletion_list);
+                            stack.push(DirectoryList::Sparse(data, false));
+                        }
+                        Ok(None) => stack.push(DirectoryList::Empty),
+                        Err(e) => {},  // FIXME
+                    }
+                }
                 BooleanQueryOp::And => {
                     let b = stack.pop().expect("stack underflow");
                     let a = stack.pop().expect("stack underflow");
@@ -881,17 +899,6 @@ impl<'a> RocksDBIndexReader<'a> {
             // TODO: Error
         }
         let mut matches = stack.pop().unwrap();
-
-        // Exclude deleted docs
-        let kb = KeyBuilder::chunk_del_list(chunk);
-        match self.snapshot.get(&kb.key()) {
-            Ok(Some(deletion_list)) => {
-                let deletion_list = DirectoryList::Sparse(DirectoryListData::FromRDB(deletion_list), false);
-                matches = matches.exclusion(deletion_list);
-            }
-            Ok(None) => {},
-            Err(e) => {},  // FIXME
-        }
 
         // Convert matches into a list of ids
         let matches = match matches {
@@ -992,6 +999,10 @@ impl<'a> RocksDBIndexReader<'a> {
     pub fn search<C: Collector>(&self, collector: &mut C, query: &Query) {
         let mut plan = SearchPlan::new();
         self.plan_query(&mut plan, query, true);
+
+        // Add operations to exclude deleted documents to boolean query
+        plan.boolean_query.push(BooleanQueryOp::LoadDeletionList);
+        plan.boolean_query.push(BooleanQueryOp::AndNot);
 
         for chunk in self.store.chunks.iter_active(&self.snapshot) {
             self.search_chunk(collector, &plan, chunk);
