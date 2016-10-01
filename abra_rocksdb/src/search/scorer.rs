@@ -5,7 +5,7 @@ use TermRef;
 
 
 #[derive(Debug, Clone)]
-pub enum CompoundScorer {
+pub enum CombinatorScorer {
     Avg,
     Max,
 }
@@ -14,6 +14,6 @@ pub enum CompoundScorer {
 #[derive(Debug, Clone)]
 pub enum ScoreFunctionOp {
     Literal(f64),
-    TermScore(FieldRef, TermRef, TermScorer, u8),
-    CompoundScorer(u32, CompoundScorer),
+    TermScorer(FieldRef, TermRef, TermScorer, u8),
+    CombinatorScorer(u32, CombinatorScorer),
 }
