@@ -5,13 +5,20 @@ use rocksdb::{DB, Writable, DBIterator, IteratorMode, Direction};
 use rocksdb::rocksdb::Snapshot;
 
 
+/// Manages "chunks" within the index
+///
+/// The index is partitioned into immutable chunks. This manager is responsible
+/// for allocating chunks keeping track of which chunks are active and
+/// controlling routine tasks such as merging and vacuuming
 pub struct ChunkManager {
     next_chunk: AtomicU32,
 }
 
 
 impl ChunkManager {
+    /// Generates a new chunk manager
     pub fn new(db: &DB) -> ChunkManager {
+        // TODO: Raise error if .next_chunk already exists
         // Next chunk
         db.put(b".next_chunk", b"1");
 
@@ -20,6 +27,7 @@ impl ChunkManager {
         }
     }
 
+    /// Loads the chunk manager from an index
     pub fn open(db: &DB) -> ChunkManager {
         let next_chunk = match db.get(b".next_chunk") {
             Ok(Some(next_chunk)) => {
@@ -34,12 +42,14 @@ impl ChunkManager {
         }
     }
 
+    /// Allocates a new (inactive) chunk
     pub fn new_chunk(&mut self, db: &DB) -> u32 {
         let next_chunk = self.next_chunk.fetch_add(1, Ordering::SeqCst);
         db.put(b".next_chunk", (next_chunk + 1).to_string().as_bytes());
         next_chunk
     }
 
+    /// Iterates currently active chunks
     pub fn iter_active<'a>(&self, snapshot: &'a Snapshot) -> ActiveChunksIterator {
         ActiveChunksIterator {
             iter: snapshot.iterator(IteratorMode::From(b"a", Direction::Forward)),

@@ -193,13 +193,11 @@ impl RocksDBIndexStore {
 
     pub fn insert_or_update_document(&mut self, doc: Document) {
         // Allocate a new chunk for the document
-
         // Chunk merges are very slow so we should avoid doing them at runtime
         // which is why each new document is created in a fresh chunk.
         // Later on, a background process will come and merge any small chunks
-        // together.
-
-        // For best performance, documents should be inserted in batches.
+        // together. (For best performance, documents should be
+        // inserted/updated in batches)
         let chunk = self.chunks.new_chunk(&self.db);
 
         // Create doc ref
@@ -208,7 +206,8 @@ impl RocksDBIndexStore {
         // Start write batch
         let mut write_batch = WriteBatch::default();
 
-        // Set chunk active flag
+        // Set chunk active flag, this will activate the chunk as soon as the
+        // write batch is written
         let mut kb = KeyBuilder::chunk_active(doc_ref.chunk());
         write_batch.merge(&kb.key(), &[0; 0]);
 
