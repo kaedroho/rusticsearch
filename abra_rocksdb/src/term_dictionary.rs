@@ -20,24 +20,24 @@ impl TermRef {
 }
 
 
-pub struct TermDictionary {
+pub struct TermDictionaryManager {
     next_term_ref: AtomicU32,
     terms: RwLock<BTreeMap<Vec<u8>, TermRef>>,
 }
 
 
-impl TermDictionary {
-    pub fn new(db: &DB) -> TermDictionary {
+impl TermDictionaryManager {
+    pub fn new(db: &DB) -> TermDictionaryManager {
         // Next term ref
         db.put(b".next_term_ref", b"1");
 
-        TermDictionary {
+        TermDictionaryManager {
             next_term_ref: AtomicU32::new(1),
             terms: RwLock::new(BTreeMap::new()),
         }
     }
 
-    pub fn open(db: &DB) -> TermDictionary {
+    pub fn open(db: &DB) -> TermDictionaryManager {
         let next_term_ref = match db.get(b".next_term_ref") {
             Ok(Some(next_term_ref)) => {
                 next_term_ref.to_utf8().unwrap().parse::<u32>().unwrap()
@@ -57,7 +57,7 @@ impl TermDictionary {
             terms.insert(k[1..].to_vec(), term_ref);
         }
 
-        TermDictionary {
+        TermDictionaryManager {
             next_term_ref: AtomicU32::new(next_term_ref),
             terms: RwLock::new(terms),
         }
