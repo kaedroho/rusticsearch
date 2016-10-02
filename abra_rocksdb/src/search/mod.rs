@@ -164,6 +164,19 @@ impl<'a> RocksDBIndexReader<'a> {
         }
         let mut matches = stack.pop().unwrap();
 
+        // Invert the list if the query is negated
+        if plan.boolean_query_is_negated {
+            let kb = KeyBuilder::chunk_stat(chunk, b"total_docs");
+            let total_docs = match self.snapshot.get(&kb.key()) {
+                Ok(Some(total_docs)) => BigEndian::read_i64(&total_docs) as u16,
+                Ok(None) => 0,
+                Err(e) => 0,  // FIXME
+            };
+
+            let all_docs = DocIdSet::new_filled(total_docs);
+            matches = all_docs.exclusion(&matches);
+        }
+
         (matches, tagged_docid_sets)
     }
 
