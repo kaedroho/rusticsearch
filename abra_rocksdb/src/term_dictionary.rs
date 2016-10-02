@@ -20,6 +20,13 @@ impl TermRef {
 }
 
 
+/// Manages the index's "term dictionary"
+///
+/// Because terms can be very long, we don't use their byte-representations as
+/// keys. We generate a unique number for each one to use instead.
+///
+/// The term dictionary is a mapping between terms and their internal IDs
+/// (aka. TermRef). It is entirely held in memory and persisted to the disk.
 pub struct TermDictionaryManager {
     next_term_ref: AtomicU32,
     terms: RwLock<BTreeMap<Vec<u8>, TermRef>>,
@@ -27,7 +34,9 @@ pub struct TermDictionaryManager {
 
 
 impl TermDictionaryManager {
+    /// Generates a new term dictionary
     pub fn new(db: &DB) -> TermDictionaryManager {
+        // TODO: Raise error if .next_term_ref already exists
         // Next term ref
         db.put(b".next_term_ref", b"1");
 
@@ -37,6 +46,7 @@ impl TermDictionaryManager {
         }
     }
 
+    /// Loads the term dictionary from an index
     pub fn open(db: &DB) -> TermDictionaryManager {
         let next_term_ref = match db.get(b".next_term_ref") {
             Ok(Some(next_term_ref)) => {
@@ -63,10 +73,13 @@ impl TermDictionaryManager {
         }
     }
 
+    /// Retrieves the TermRef for the given term
     pub fn get(&self, term_bytes: &Vec<u8>) -> Option<TermRef> {
         self.terms.read().unwrap().get(term_bytes).cloned()
     }
 
+    /// Retrieves the TermRef for the given term, adding the term to the
+    /// dictionary if it doesn't exist
     pub fn get_or_create(&mut self, db: &DB, term: &Term) -> TermRef {
         let term_bytes = term.to_bytes();
 
