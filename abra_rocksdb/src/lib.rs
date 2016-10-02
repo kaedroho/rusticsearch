@@ -25,7 +25,7 @@ use byteorder::{ByteOrder, BigEndian};
 
 use key_builder::KeyBuilder;
 use chunk::ChunkManager;
-use term_dictionary::{TermDictionary, TermRef};
+use term_dictionary::{TermDictionaryManager, TermRef};
 
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Hash)]
@@ -105,7 +105,7 @@ fn merge_keys(key: &[u8], existing_val: Option<&[u8]>, operands: &mut MergeOpera
 pub struct RocksDBIndexStore {
     schema: Arc<Schema>,
     db: DB,
-    term_dictionary: TermDictionary,
+    term_dictionary: TermDictionaryManager,
     chunks: ChunkManager,
     doc_key_mapping: RwLock<BTreeMap<Vec<u8>, DocRef>>,
     deleted_docs: RwLock<Vec<DocRef>>,
@@ -126,8 +126,8 @@ impl RocksDBIndexStore {
         // Chunk manager
         let chunks = ChunkManager::new(&db);
 
-        // Term dictionary
-        let term_dictionary = TermDictionary::new(&db);
+        // Term dictionary manager
+        let term_dictionary = TermDictionaryManager::new(&db);
 
         Ok(RocksDBIndexStore {
             schema: Arc::new(schema),
@@ -156,8 +156,8 @@ impl RocksDBIndexStore {
         // Chunk manager
         let chunks = ChunkManager::open(&db);
 
-        // Term dictionary
-        let term_dictionary = TermDictionary::open(&db);
+        // Term dictionary manager
+        let term_dictionary = TermDictionaryManager::open(&db);
 
         Ok(RocksDBIndexStore {
             schema: Arc::new(schema),
