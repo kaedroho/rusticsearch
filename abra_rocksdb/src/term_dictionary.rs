@@ -1,9 +1,10 @@
+use std::str;
 use std::sync::RwLock;
 use std::sync::atomic::{AtomicU32, Ordering};
 use std::collections::BTreeMap;
 
-use rocksdb::{DB, Writable};
-use abra::{Term};
+use rocksdb::{DB, Writable, IteratorMode, Direction};
+use abra::Term;
 
 use key_builder::KeyBuilder;
 
@@ -45,9 +46,20 @@ impl TermDictionary {
             Err(_) => 1,  // TODO: error
         };
 
+        // Read dictionary
+        let mut terms = BTreeMap::new();
+        for (k, v) in db.iterator(IteratorMode::From(b"t", Direction::Forward)) {
+            if k[0] != b't' {
+                break;
+            }
+
+            let term_ref = TermRef(str::from_utf8(&v).unwrap().parse::<u32>().unwrap());
+            terms.insert(k[1..].to_vec(), term_ref);
+        }
+
         TermDictionary {
             next_term_ref: AtomicU32::new(next_term_ref),
-            terms: RwLock::new(BTreeMap::new()),  // TODO read this
+            terms: RwLock::new(terms),
         }
     }
 
