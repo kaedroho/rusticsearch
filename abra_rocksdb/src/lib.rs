@@ -9,6 +9,7 @@ extern crate byteorder;
 
 pub mod key_builder;
 pub mod chunk;
+pub mod term_dictionary;
 pub mod search;
 
 use std::sync::{Arc, RwLock};
@@ -24,17 +25,7 @@ use byteorder::{ByteOrder, BigEndian};
 
 use key_builder::KeyBuilder;
 use chunk::ChunkManager;
-
-
-#[derive(Debug, Clone, Copy, Eq, PartialEq, Hash)]
-pub struct TermRef(u32);
-
-
-impl TermRef {
-    pub fn ord(&self) -> u32 {
-        self.0
-    }
-}
+use term_dictionary::{TermDictionary, TermRef};
 
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Hash)]
@@ -114,8 +105,7 @@ fn merge_keys(key: &[u8], existing_val: Option<&[u8]>, operands: &mut MergeOpera
 pub struct RocksDBIndexStore {
     schema: Arc<Schema>,
     db: DB,
-    next_term_ref: AtomicU32,
-    term_dictionary: RwLock<BTreeMap<Vec<u8>, TermRef>>,
+    term_dictionary: TermDictionary,
     chunks: ChunkManager,
     doc_key_mapping: RwLock<BTreeMap<Vec<u8>, DocRef>>,
     deleted_docs: RwLock<Vec<DocRef>>,
@@ -133,17 +123,16 @@ impl RocksDBIndexStore {
         let schema = Schema::new();
         db.put(b".schema", json::encode(&schema).unwrap().as_bytes());
 
-        // Next term ref
-        db.put(b".next_term_ref", b"1");
-
         // Chunk manager
         let chunks = ChunkManager::new(&db);
+
+        // Term dictionary
+        let term_dictionary = TermDictionary::new(&db);
 
         Ok(RocksDBIndexStore {
             schema: Arc::new(schema),
             db: db,
-            next_term_ref: AtomicU32::new(1),
-            term_dictionary: RwLock::new(BTreeMap::new()),
+            term_dictionary: term_dictionary,
             chunks: chunks,
             doc_key_mapping: RwLock::new(BTreeMap::new()),
             deleted_docs: RwLock::new(Vec::new()),
@@ -164,22 +153,16 @@ impl RocksDBIndexStore {
             Err(_) => Schema::new(),  // TODO: error
         };
 
-        let next_term_ref = match db.get(b".next_term_ref") {
-            Ok(Some(next_term_ref)) => {
-                next_term_ref.to_utf8().unwrap().parse::<u32>().unwrap()
-            }
-            Ok(None) => 1,  // TODO: error
-            Err(_) => 1,  // TODO: error
-        };
-
         // Chunk manager
         let chunks = ChunkManager::open(&db);
+
+        // Term dictionary
+        let term_dictionary = TermDictionary::open(&db);
 
         Ok(RocksDBIndexStore {
             schema: Arc::new(schema),
             db: db,
-            next_term_ref: AtomicU32::new(next_term_ref),
-            term_dictionary: RwLock::new(BTreeMap::new()),
+            term_dictionary: term_dictionary,
             chunks: chunks,
             doc_key_mapping: RwLock::new(BTreeMap::new()),
             deleted_docs: RwLock::new(Vec::new()),
@@ -206,42 +189,6 @@ impl RocksDBIndexStore {
         }
 
         field_removed
-    }
-
-    fn get_or_create_term(&mut self, term: &Term) -> TermRef {
-        let term_bytes = term.to_bytes();
-
-        if let Some(term_ref) = self.term_dictionary.read().unwrap().get(&term_bytes) {
-            return *term_ref;
-        }
-
-        // Term doesn't exist in the term dictionary
-
-        // Increment next_term_ref
-        let next_term_ref = self.next_term_ref.fetch_add(1, Ordering::SeqCst);
-        self.db.put(b".next_term_ref", (next_term_ref + 1).to_string().as_bytes());
-
-        // Create term ref
-        let term_ref = TermRef(next_term_ref);
-
-        // Get exclusive lock to term dictionary
-        let mut term_dictionary = self.term_dictionary.write().unwrap();
-
-        // It's possible that another thread has written the term to the dictionary
-        // since we checked earlier. If this is the case, We should forget about
-        // writing our TermRef and use the one that has been inserted already.
-        if let Some(term_ref) = term_dictionary.get(&term_bytes) {
-            return *term_ref;
-        }
-
-        // Write it to the on-disk term dictionary
-        let mut kb = KeyBuilder::term_dict_mapping(&term_bytes);
-        self.db.put(kb.key(), next_term_ref.to_string().as_bytes());
-
-        // Write it to the term dictionary
-        term_dictionary.insert(term_bytes, term_ref);
-
-        term_ref
     }
 
     pub fn insert_or_update_document(&mut self, doc: Document) {
@@ -278,7 +225,7 @@ impl RocksDBIndexStore {
 
             for token in tokens.iter() {
                 token_count += 1;
-                let term_ref = self.get_or_create_term(&token.term);
+                let term_ref = self.term_dictionary.get_or_create(&self.db, &token.term);
 
                 let mut kb = KeyBuilder::chunk_dir_list(doc_ref.chunk(), field_ref.ord(), term_ref.ord());
                 let mut doc_id_bytes = [0; 2];

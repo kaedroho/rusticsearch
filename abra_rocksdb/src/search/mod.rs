@@ -16,7 +16,8 @@ use rocksdb::DBVector;
 use byteorder::{ByteOrder, BigEndian};
 
 use key_builder::KeyBuilder;
-use super::{RocksDBIndexReader, TermRef, DocRef};
+use term_dictionary::TermRef;
+use super::{RocksDBIndexReader, DocRef};
 use search::doc_id_set::DocIdSet;
 use search::boolean_retrieval::BooleanQueryOp;
 use search::scoring::{CombinatorScorer, ScoreFunctionOp};
@@ -56,8 +57,8 @@ impl<'a> RocksDBIndexReader<'a> {
             Query::MatchTerm{ref field, ref term, ref matcher, ref scorer} => {
                 // Get term
                 let term_bytes = term.to_bytes();
-                let term_ref = match self.store.term_dictionary.read().unwrap().get(&term_bytes) {
-                    Some(term_ref) => *term_ref,
+                let term_ref = match self.store.term_dictionary.get(&term_bytes) {
+                    Some(term_ref) => term_ref,
                     None => {
                         // Term doesn't exist, so will never match
                         plan.boolean_query.push(BooleanQueryOp::PushEmpty);

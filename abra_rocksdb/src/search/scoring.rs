@@ -1,7 +1,7 @@
 use abra::schema::FieldRef;
 use abra::query::term_scorer::TermScorer;
 
-use TermRef;
+use term_dictionary::TermRef;
 
 
 #[derive(Debug, Clone)]

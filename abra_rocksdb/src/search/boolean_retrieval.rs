@@ -2,7 +2,7 @@ use std::rc::Rc;
 
 use abra::schema::FieldRef;
 
-use TermRef;
+use term_dictionary::TermRef;
 
 
 #[derive(Debug, Clone)]
