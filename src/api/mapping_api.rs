@@ -1,8 +1,8 @@
 use std::io::Read;
 use std::collections::HashMap;
 
-use abra::schema::{SchemaRead, FieldType};
-use abra::store::{IndexStore, IndexReader};
+use kite::schema::{SchemaRead, FieldType};
+use kite::store::{IndexStore, IndexReader};
 use rustc_serialize::json::Json;
 
 use mapping;

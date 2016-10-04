@@ -3,17 +3,17 @@
 #[macro_use]
 extern crate maplit;
 extern crate test;
-extern crate abra;
+extern crate kite;
 
 use test::Bencher;
 
-use abra::term::Term;
-use abra::token::Token;
-use abra::schema::{SchemaRead, FieldType};
-use abra::document::Document;
-use abra::store::{IndexStore, IndexReader};
-use abra::store::memory::{MemoryIndexStore, MemoryIndexStoreReader};
-use abra::query_set::QuerySetIterator;
+use kite::term::Term;
+use kite::token::Token;
+use kite::schema::{SchemaRead, FieldType};
+use kite::document::Document;
+use kite::store::{IndexStore, IndexReader};
+use kite::store::memory::{MemoryIndexStore, MemoryIndexStoreReader};
+use kite::query_set::QuerySetIterator;
 
 
 fn make_test_store() -> MemoryIndexStore {

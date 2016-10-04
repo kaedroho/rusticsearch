@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use rustc_serialize::json::Json;
-use abra::{Term, Token, Document};
+use kite::{Term, Token, Document};
 
 use mapping::{Mapping, FieldMapping};
 

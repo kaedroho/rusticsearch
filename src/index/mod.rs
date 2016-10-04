@@ -2,7 +2,7 @@ pub mod registry;
 
 use std::collections::HashSet;
 
-use abra::store::memory::MemoryIndexStore;
+use kite::store::memory::MemoryIndexStore;
 
 use analysis::registry::AnalyzerRegistry;
 use mapping::{Mapping, FieldMapping, MappingRegistry};

@@ -1,8 +1,8 @@
 //! Parses "multi_match" queries
 
 use rustc_serialize::json::Json;
-use abra::{Term, Token, Query, TermMatcher, TermScorer};
-use abra::schema::SchemaRead;
+use kite::{Term, Token, Query, TermMatcher, TermScorer};
+use kite::schema::SchemaRead;
 
 use mapping::{FieldMapping, FieldSearchOptions};
 
@@ -121,7 +121,7 @@ pub fn parse(context: &QueryParseContext, json: &Json) -> Result<Query, QueryPar
 mod tests {
     use rustc_serialize::json::Json;
 
-    use abra::{Term, Query, TermMatcher, TermScorer};
+    use kite::{Term, Query, TermMatcher, TermScorer};
 
     use query_parser::{QueryParseContext, QueryParseError};
 

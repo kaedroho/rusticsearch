@@ -19,6 +19,6 @@ byteorder = "0.5"
 slog = "0.6"
 slog-term = "0.6"
 
-[dependencies.abra]
-path = "abra"
+[dependencies.kite]
+path = "kite"
 version = "0.0.1"

@@ -1,8 +1,8 @@
-use abra::analysis::AnalyzerSpec;
-use abra::analysis::tokenizers::TokenizerSpec;
-use abra::analysis::filters::FilterSpec;
-use abra::analysis::ngram_generator::Edge;
-use abra::store::memory::MemoryIndexStore;
+use kite::analysis::AnalyzerSpec;
+use kite::analysis::tokenizers::TokenizerSpec;
+use kite::analysis::filters::FilterSpec;
+use kite::analysis::ngram_generator::Edge;
+use kite::store::memory::MemoryIndexStore;
 
 use index::Index;
 

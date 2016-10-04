@@ -1,8 +1,8 @@
 //! Parses "term" queries
 
 use rustc_serialize::json::Json;
-use abra::{Term, Query, TermMatcher, TermScorer};
-use abra::schema::SchemaRead;
+use kite::{Term, Query, TermMatcher, TermScorer};
+use kite::schema::SchemaRead;
 
 use query_parser::{QueryParseContext, QueryParseError};
 use query_parser::utils::parse_float;
@@ -73,7 +73,7 @@ pub fn parse(context: &QueryParseContext, json: &Json) -> Result<Query, QueryPar
 mod tests {
     use rustc_serialize::json::Json;
 
-    use abra::{Term, Query, TermMatcher, TermScorer};
+    use kite::{Term, Query, TermMatcher, TermScorer};
 
     use query_parser::{QueryParseContext, QueryParseError};
 
