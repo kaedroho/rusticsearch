@@ -28,10 +28,10 @@ use analysis::ngram_generator::Edge;
 /// # Examples
 ///
 /// ```
-/// use abra::{Term, Token};
-/// use abra::analysis::tokenizers::TokenizerSpec;
-/// use abra::analysis::filters::FilterSpec;
-/// use abra::analysis::AnalyzerSpec;
+/// use kite::{Term, Token};
+/// use kite::analysis::tokenizers::TokenizerSpec;
+/// use kite::analysis::filters::FilterSpec;
+/// use kite::analysis::AnalyzerSpec;
 ///
 /// // Define an analyzer that splits words and converts them into lowercase
 /// let analyzer = AnalyzerSpec {

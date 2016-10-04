@@ -14,8 +14,8 @@ use analysis::tokenizers::ngram::NGramTokenizer;
 /// # Examples
 ///
 /// ```
-/// use abra::{Term, Token};
-/// use abra::analysis::tokenizers::TokenizerSpec;
+/// use kite::{Term, Token};
+/// use kite::analysis::tokenizers::TokenizerSpec;
 ///
 /// let standard_tokenizer = TokenizerSpec::Standard;
 /// let token_stream = standard_tokenizer.initialise("Hello, world!");
