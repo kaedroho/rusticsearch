@@ -308,7 +308,6 @@ mod tests {
     use kite::{Term, Token, Document};
     use kite::schema::{Schema, FieldType, FieldRef};
     use kite::query::Query;
-    use kite::query::term_matcher::TermMatcher;
     use kite::query::term_scorer::TermScorer;
     use kite::collectors::top_score::TopScoreCollector;
 
@@ -415,19 +414,16 @@ mod tests {
                 Query::MatchTerm {
                     field: "title".to_string(),
                     term: Term::String("howdy".to_string()),
-                    matcher: TermMatcher::Exact,
                     scorer: TermScorer::default_with_boost(2.0f64),
                 },
                 Query::MatchTerm {
                     field: "title".to_string(),
                     term: Term::String("partner".to_string()),
-                    matcher: TermMatcher::Exact,
                     scorer: TermScorer::default_with_boost(2.0f64),
                 },
                 Query::MatchTerm {
                     field: "title".to_string(),
                     term: Term::String("hello".to_string()),
-                    matcher: TermMatcher::Exact,
                     scorer: TermScorer::default_with_boost(2.0f64),
                 }
             ]
