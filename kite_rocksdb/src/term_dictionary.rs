@@ -5,6 +5,7 @@ use std::collections::BTreeMap;
 
 use rocksdb::{DB, Writable, IteratorMode, Direction};
 use kite::Term;
+use kite::query::term_selector::TermSelector;
 
 use key_builder::KeyBuilder;
 
@@ -76,6 +77,16 @@ impl TermDictionaryManager {
     /// Retrieves the TermRef for the given term
     pub fn get(&self, term_bytes: &Vec<u8>) -> Option<TermRef> {
         self.terms.read().unwrap().get(term_bytes).cloned()
+    }
+
+    /// Iterates over terms in the dictionary which match the selector
+    pub fn select(&self, term_selector: &TermSelector) -> Vec<TermRef> {
+        self.terms.read().unwrap().iter()
+            .filter(|&(term, term_ref)| {
+                term_selector.matches_bytes(term)
+            })
+            .map(|(term, term_ref)| *term_ref)
+            .collect()
     }
 
     /// Retrieves the TermRef for the given term, adding the term to the
