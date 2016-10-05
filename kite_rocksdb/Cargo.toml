@@ -1,5 +1,5 @@
 [package]
-name = "abra_rocksdb"
+name = "kite_rocksdb"
 version = "0.0.1"
 authors = ["Karl Hobley <karlhobley10@gmail.com>"]
 
@@ -9,6 +9,6 @@ rustc-serialize = "0.3"
 maplit = "0.1.3"
 byteorder = "0.5"
 
-[dependencies.abra]
-path = "../abra"
+[dependencies.kite]
+path = "../kite"
 version = "0.0.1"

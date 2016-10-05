@@ -4,7 +4,7 @@ use std::sync::atomic::{AtomicU32, Ordering};
 use std::collections::BTreeMap;
 
 use rocksdb::{DB, Writable, IteratorMode, Direction};
-use abra::Term;
+use kite::Term;
 
 use key_builder::KeyBuilder;
 

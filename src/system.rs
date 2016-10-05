@@ -3,7 +3,7 @@ use std::path::{Path, PathBuf};
 use std::fs;
 
 use slog::Logger;
-use abra::store::memory::MemoryIndexStore;
+use kite::store::memory::MemoryIndexStore;
 
 use index::Index;
 use index::registry::IndexRegistry;

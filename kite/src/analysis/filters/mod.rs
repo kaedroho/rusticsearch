@@ -16,9 +16,9 @@ use analysis::filters::asciifolding::ASCIIFoldingFilter;
 /// # Examples
 ///
 /// ```
-/// use abra::{Term, Token};
-/// use abra::analysis::tokenizers::TokenizerSpec;
-/// use abra::analysis::filters::FilterSpec;
+/// use kite::{Term, Token};
+/// use kite::analysis::tokenizers::TokenizerSpec;
+/// use kite::analysis::filters::FilterSpec;
 ///
 /// let standard_tokenizer = TokenizerSpec::Standard;
 /// let token_stream = standard_tokenizer.initialise("Hello, WORLD!");

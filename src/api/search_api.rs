@@ -2,8 +2,8 @@ use std::io::Read;
 
 use rustc_serialize::json::{self, Json};
 use url::form_urlencoded;
-use abra::store::{IndexStore, IndexReader};
-use abra::request::SearchRequest;
+use kite::store::{IndexStore, IndexReader};
+use kite::request::SearchRequest;
 
 use query_parser::{QueryParseContext, parse as parse_query};
 

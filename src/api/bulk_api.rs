@@ -2,7 +2,7 @@ use std::io::Read;
 use std::collections::HashMap;
 
 use rustc_serialize::json::{self, Json};
-use abra::store::IndexStore;
+use kite::store::IndexStore;
 
 use document::DocumentSource;
 

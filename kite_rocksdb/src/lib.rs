@@ -1,6 +1,6 @@
 #![feature(integer_atomics)]
 
-extern crate abra;
+extern crate kite;
 extern crate rocksdb;
 extern crate rustc_serialize;
 #[macro_use]
@@ -18,8 +18,8 @@ use std::collections::BTreeMap;
 
 use rocksdb::{DB, WriteBatch, Writable, Options, MergeOperands};
 use rocksdb::rocksdb::Snapshot;
-use abra::{Term, Document};
-use abra::schema::{Schema, SchemaRead, SchemaWrite, FieldType, FieldRef, AddFieldError};
+use kite::{Term, Document};
+use kite::schema::{Schema, SchemaRead, SchemaWrite, FieldType, FieldRef, AddFieldError};
 use rustc_serialize::{json, Encodable};
 use byteorder::{ByteOrder, BigEndian};
 
@@ -305,12 +305,12 @@ mod tests {
     use std::fs::remove_dir_all;
 
     use rocksdb::{DB, Options, IteratorMode};
-    use abra::{Term, Token, Document};
-    use abra::schema::{Schema, FieldType, FieldRef};
-    use abra::query::Query;
-    use abra::query::term_matcher::TermMatcher;
-    use abra::query::term_scorer::TermScorer;
-    use abra::collectors::top_score::TopScoreCollector;
+    use kite::{Term, Token, Document};
+    use kite::schema::{Schema, FieldType, FieldRef};
+    use kite::query::Query;
+    use kite::query::term_matcher::TermMatcher;
+    use kite::query::term_scorer::TermScorer;
+    use kite::collectors::top_score::TopScoreCollector;
 
     use super::RocksDBIndexStore;
 

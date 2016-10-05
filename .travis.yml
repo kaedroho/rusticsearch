@@ -8,4 +8,4 @@ sudo: false
 
 script:
   - cargo test
-  - cd abra && cargo test
+  - cd kite && cargo test

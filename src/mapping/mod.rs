@@ -6,12 +6,12 @@ use std::ops::{Deref, DerefMut};
 
 use rustc_serialize::json::Json;
 use chrono::{DateTime, UTC};
-use abra::{Term, Token};
-use abra::analysis::AnalyzerSpec;
-use abra::analysis::tokenizers::TokenizerSpec;
-use abra::analysis::filters::FilterSpec;
-use abra::similarity::SimilarityModel;
-use abra::schema::FieldRef;
+use kite::{Term, Token};
+use kite::analysis::AnalyzerSpec;
+use kite::analysis::tokenizers::TokenizerSpec;
+use kite::analysis::filters::FilterSpec;
+use kite::similarity::SimilarityModel;
+use kite::schema::FieldRef;
 
 use analysis::registry::AnalyzerRegistry;
 

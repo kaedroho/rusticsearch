@@ -1,7 +1,7 @@
 //! Parses "filtered" queries
 
 use rustc_serialize::json::Json;
-use abra::Query;
+use kite::Query;
 
 use query_parser::{QueryParseContext, QueryParseError};
 use query_parser::{parse as parse_query};
@@ -43,7 +43,7 @@ pub fn parse(context: &QueryParseContext, json: &Json) -> Result<Query, QueryPar
 mod tests {
     use rustc_serialize::json::Json;
 
-    use abra::{Term, Query, TermMatcher, TermScorer};
+    use kite::{Term, Query, TermMatcher, TermScorer};
 
     use query_parser::{QueryParseContext, QueryParseError};
 
