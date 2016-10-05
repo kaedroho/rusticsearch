@@ -54,7 +54,7 @@ impl<'a> RocksDBIndexReader<'a> {
                 plan.boolean_query.push(BooleanQueryOp::PushEmpty);
                 plan.score_function.push(ScoreFunctionOp::Literal(0.0f64));
             }
-            Query::MatchTerm{ref field, ref term, ref matcher, ref scorer} => {
+            Query::MatchTerm{ref field, ref term, ref scorer} => {
                 // Get term
                 let term_bytes = term.to_bytes();
                 let term_ref = match self.store.term_dictionary.get(&term_bytes) {
@@ -79,6 +79,11 @@ impl<'a> RocksDBIndexReader<'a> {
                 let tag = plan.allocate_tag().unwrap_or(0);
                 plan.boolean_query.push(BooleanQueryOp::PushTermDirectory(field_ref, term_ref, tag));
                 plan.score_function.push(ScoreFunctionOp::TermScorer(field_ref, term_ref, scorer.clone(), tag));
+            }
+            Query::MatchMultiTerm{ref field, ref term_selector, ref scorer} => {
+                // TODO
+                plan.boolean_query.push(BooleanQueryOp::PushEmpty);
+                plan.score_function.push(ScoreFunctionOp::Literal(0.0f64));
             }
             Query::Conjunction{ref queries} => {
                 self.plan_query_combinator(&mut plan, queries, BooleanQueryOp::And, score, CombinatorScorer::Avg);
