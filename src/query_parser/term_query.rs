@@ -1,7 +1,7 @@
 //! Parses "term" queries
 
 use rustc_serialize::json::Json;
-use kite::{Term, Query, TermMatcher, TermScorer};
+use kite::{Term, Query, TermScorer};
 use kite::schema::SchemaRead;
 
 use query_parser::{QueryParseContext, QueryParseError};
@@ -55,7 +55,6 @@ pub fn parse(context: &QueryParseContext, json: &Json) -> Result<Query, QueryPar
             let mut query = Query::MatchTerm {
                 field: field_name.clone(),
                 term: term,
-                matcher: TermMatcher::Exact,
                 scorer: TermScorer::default(),
             };
 
@@ -73,7 +72,7 @@ pub fn parse(context: &QueryParseContext, json: &Json) -> Result<Query, QueryPar
 mod tests {
     use rustc_serialize::json::Json;
 
-    use kite::{Term, Query, TermMatcher, TermScorer};
+    use kite::{Term, Query, TermScorer};
 
     use query_parser::{QueryParseContext, QueryParseError};
 
@@ -92,7 +91,6 @@ mod tests {
         assert_eq!(query, Ok(Query::MatchTerm {
             field: "foo".to_string(),
             term: Term::String("bar".to_string()),
-            matcher: TermMatcher::Exact,
             scorer: TermScorer::default(),
         }));
     }
@@ -110,7 +108,6 @@ mod tests {
         assert_eq!(query, Ok(Query::MatchTerm {
             field: "foo".to_string(),
             term: Term::U64(123),
-            matcher: TermMatcher::Exact,
             scorer: TermScorer::default(),
         }));
     }
@@ -126,7 +123,6 @@ mod tests {
         assert_eq!(query, Ok(Query::MatchTerm {
             field: "foo".to_string(),
             term: Term::String("bar".to_string()),
-            matcher: TermMatcher::Exact,
             scorer: TermScorer::default(),
         }));
     }
@@ -145,7 +141,6 @@ mod tests {
         assert_eq!(query, Ok(Query::MatchTerm {
             field: "foo".to_string(),
             term: Term::String("bar".to_string()),
-            matcher: TermMatcher::Exact,
             scorer: TermScorer::default_with_boost(2.0f64),
         }));
     }
@@ -164,7 +159,6 @@ mod tests {
         assert_eq!(query, Ok(Query::MatchTerm {
             field: "foo".to_string(),
             term: Term::String("bar".to_string()),
-            matcher: TermMatcher::Exact,
             scorer: TermScorer::default_with_boost(2.0f64),
         }));
     }

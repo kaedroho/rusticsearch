@@ -1,7 +1,7 @@
 //! Parses "prefix" queries
 
 use rustc_serialize::json::Json;
-use kite::{Term, Query, TermMatcher, TermScorer};
+use kite::{Term, Query, TermSelector, TermScorer};
 use kite::schema::SchemaRead;
 
 use query_parser::{QueryParseContext, QueryParseError};
@@ -53,10 +53,9 @@ pub fn parse(context: &QueryParseContext, json: &Json) -> Result<Query, QueryPar
     match value {
         Some(value) => {
             if let Json::String(ref string) = *value {
-                let mut query = Query::MatchTerm {
+                let mut query = Query::MatchMultiTerm {
                     field: field_name.clone(),
-                    term: Term::String(string.clone()),
-                    matcher: TermMatcher::Prefix,
+                    term_selector: TermSelector::Prefix(string.clone()),
                     scorer: TermScorer::default(),
                 };
 
@@ -77,7 +76,7 @@ pub fn parse(context: &QueryParseContext, json: &Json) -> Result<Query, QueryPar
 mod tests {
     use rustc_serialize::json::Json;
 
-    use kite::{Term, Query, TermMatcher, TermScorer};
+    use kite::{Term, Query, TermSelector, TermScorer};
 
     use query_parser::{QueryParseContext, QueryParseError};
 
@@ -93,10 +92,9 @@ mod tests {
         }
         ").unwrap());
 
-        assert_eq!(query, Ok(Query::MatchTerm {
+        assert_eq!(query, Ok(Query::MatchMultiTerm {
             field: "foo".to_string(),
-            term: Term::String("bar".to_string()),
-            matcher: TermMatcher::Prefix,
+            term_selector: TermSelector::Prefix("bar".to_string()),
             scorer: TermScorer::default(),
         }));
     }
@@ -109,10 +107,9 @@ mod tests {
         }
         ").unwrap());
 
-        assert_eq!(query, Ok(Query::MatchTerm {
+        assert_eq!(query, Ok(Query::MatchMultiTerm {
             field: "foo".to_string(),
-            term: Term::String("bar".to_string()),
-            matcher: TermMatcher::Prefix,
+            term_selector: TermSelector::Prefix("bar".to_string()),
             scorer: TermScorer::default(),
         }));
     }
@@ -127,10 +124,9 @@ mod tests {
         }
         ").unwrap());
 
-        assert_eq!(query, Ok(Query::MatchTerm {
+        assert_eq!(query, Ok(Query::MatchMultiTerm {
             field: "foo".to_string(),
-            term: Term::String("bar".to_string()),
-            matcher: TermMatcher::Prefix,
+            term_selector: TermSelector::Prefix("bar".to_string()),
             scorer: TermScorer::default(),
         }));
     }
@@ -146,10 +142,9 @@ mod tests {
         }
         ").unwrap());
 
-        assert_eq!(query, Ok(Query::MatchTerm {
+        assert_eq!(query, Ok(Query::MatchMultiTerm {
             field: "foo".to_string(),
-            term: Term::String("bar".to_string()),
-            matcher: TermMatcher::Prefix,
+            term_selector: TermSelector::Prefix("bar".to_string()),
             scorer: TermScorer::default_with_boost(2.0f64),
         }));
     }
@@ -165,10 +160,9 @@ mod tests {
         }
         ").unwrap());
 
-        assert_eq!(query, Ok(Query::MatchTerm {
+        assert_eq!(query, Ok(Query::MatchMultiTerm {
             field: "foo".to_string(),
-            term: Term::String("bar".to_string()),
-            matcher: TermMatcher::Prefix,
+            term_selector: TermSelector::Prefix("bar".to_string()),
             scorer: TermScorer::default_with_boost(2.0f64),
         }));
     }

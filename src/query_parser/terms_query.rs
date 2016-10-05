@@ -1,7 +1,7 @@
 //! Parses "match" queries
 
 use rustc_serialize::json::Json;
-use kite::{Term, Query, TermMatcher, TermScorer};
+use kite::{Term, Query, TermScorer};
 use kite::schema::SchemaRead;
 
 use query_parser::{QueryParseContext, QueryParseError};
@@ -37,7 +37,6 @@ pub fn parse(context: &QueryParseContext, json: &Json) -> Result<Query, QueryPar
                 sub_queries.push(Query::MatchTerm {
                     field: field_name.clone(),
                     term: term,
-                    matcher: TermMatcher::Exact,
                     scorer: TermScorer::default(),
                 });
             }
@@ -53,7 +52,7 @@ pub fn parse(context: &QueryParseContext, json: &Json) -> Result<Query, QueryPar
 mod tests {
     use rustc_serialize::json::Json;
 
-    use kite::{Term, Query, TermMatcher, TermScorer};
+    use kite::{Term, Query, TermScorer};
 
     use query_parser::{QueryParseContext, QueryParseError};
 
@@ -72,13 +71,11 @@ mod tests {
                 Query::MatchTerm {
                     field: "foo".to_string(),
                     term: Term::String("bar".to_string()),
-                    matcher: TermMatcher::Exact,
                     scorer: TermScorer::default(),
                 },
                 Query::MatchTerm {
                     field: "foo".to_string(),
                     term: Term::String("baz".to_string()),
-                    matcher: TermMatcher::Exact,
                     scorer: TermScorer::default(),
                 }
             ],

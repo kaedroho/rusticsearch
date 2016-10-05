@@ -24,6 +24,6 @@ pub mod response;
 pub use term::Term;
 pub use token::Token;
 pub use document::Document;
-pub use query::term_matcher::TermMatcher;
+pub use query::term_selector::TermSelector;
 pub use query::term_scorer::TermScorer;
 pub use query::Query;
