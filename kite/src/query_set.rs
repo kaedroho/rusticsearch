@@ -4,7 +4,7 @@ use term::Term;
 use schema::SchemaRead;
 use store::IndexReader;
 use query::Query;
-use query::term_matcher::TermMatcher;
+use query::term_selector::TermSelector;
 
 
 pub enum QuerySetIterator<'a, T: IndexReader<'a>> {
@@ -225,48 +225,48 @@ pub fn build_iterator_from_query<'a, T: IndexReader<'a>>(reader: &'a T, query: &
         Query::MatchNone => {
             QuerySetIterator::None
         }
-        Query::MatchTerm{ref field, ref term, ref matcher, ref scorer} => {
+        Query::MatchTerm{ref field, ref term, ref scorer} => {
             if let Some(field_ref) = reader.schema().get_field_by_name(field) {
-                match *matcher {
-                    TermMatcher::Exact => {
-                        match reader.iter_docs_with_term(&term.to_bytes(), &field_ref) {
-                            Some(iter) => {
-                                QuerySetIterator::Term {
-                                    iter: iter,
-                                }
-                            }
-                            None => {
-                                // Term/field doesn't exist
-                                QuerySetIterator::None
-                            }
+                match reader.iter_docs_with_term(&term.to_bytes(), &field_ref) {
+                    Some(iter) => {
+                        QuerySetIterator::Term {
+                            iter: iter,
                         }
                     }
-                    TermMatcher::Prefix => {
-                        let term_bytes = term.to_bytes();
+                    None => {
+                        // Term/field doesn't exist
+                        QuerySetIterator::None
+                    }
+                }
+            } else {
+                // Field doesn't exist
+                QuerySetIterator::None
+            }
+        }
+        Query::MatchMultiTerm{ref field, ref term_selector, ref scorer} => {
+            if let Some(field_ref) = reader.schema().get_field_by_name(field) {
+                match *term_selector {
+                    TermSelector::Prefix(ref prefix) => {
+                        let prefix_bytes = prefix.as_bytes();
 
                         // Find all terms in the index that match the prefix
-                        let terms = match *term {
-                            Term::String(_) => {
-                                match reader.iter_all_terms(&field_ref) {
-                                    Some(terms) => {
-                                        terms.filter_map(|k| {
-                                            if k.starts_with(&term_bytes) {
-                                                return Some(k.clone());
-                                            }
-
-                                            None
-                                        }).collect::<Vec<&[u8]>>()
+                        let terms = match reader.iter_all_terms(&field_ref) {
+                            Some(terms) => {
+                                terms.filter_map(|k| {
+                                    if k.starts_with(&prefix_bytes) {
+                                        return Some(k.clone());
                                     }
-                                    None => return QuerySetIterator::None,
-                                }
+
+                                    None
+                                }).collect::<Vec<&[u8]>>()
                             }
-                            _ => return QuerySetIterator::None,
+                            None => return QuerySetIterator::None,
                         };
 
                         match terms.len() {
                             0 => QuerySetIterator::None,
                             1 => {
-                                match reader.iter_docs_with_term(&term_bytes, &field_ref) {
+                                match reader.iter_docs_with_term(&terms[0], &field_ref) {
                                     Some(iter) => {
                                         QuerySetIterator::Term {
                                             iter: iter,

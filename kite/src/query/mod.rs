@@ -1,11 +1,13 @@
-pub mod term_matcher;
+pub mod term_selector;
 pub mod term_scorer;
+
+use std::collections::HashMap;
 
 use term::Term;
 use schema::SchemaRead;
 use document::Document;
 use store::IndexReader;
-use query::term_matcher::TermMatcher;
+use query::term_selector::TermSelector;
 use query::term_scorer::TermScorer;
 
 
@@ -18,7 +20,11 @@ pub enum Query {
     MatchTerm {
         field: String,
         term: Term,
-        matcher: TermMatcher,
+        scorer: TermScorer,
+    },
+    MatchMultiTerm {
+        field: String,
+        term_selector: TermSelector,
         scorer: TermScorer,
     },
     Conjunction {
@@ -120,7 +126,10 @@ impl Query {
                 *score *= add_boost;
             },
             Query::MatchNone => (),
-            Query::MatchTerm{ref field, ref term, ref matcher, ref mut scorer} => {
+            Query::MatchTerm{ref field, ref term, ref mut scorer} => {
+                scorer.boost *= add_boost;
+            }
+            Query::MatchMultiTerm{ref field, ref term_selector, ref mut scorer} => {
                 scorer.boost *= add_boost;
             }
             Query::Conjunction{ref mut queries} => {
@@ -156,10 +165,21 @@ impl Query {
         match *self {
             Query::MatchAll{score} => true,
             Query::MatchNone => false,
-            Query::MatchTerm{ref field, ref term, ref matcher, ref scorer} => {
+            Query::MatchTerm{ref field, ref term, ref scorer} => {
                 if let Some(field_value) = doc.fields.get(field) {
                     for field_token in field_value.iter() {
-                        if matcher.matches(&field_token.term, term) {
+                        if &field_token.term == term {
+                            return true;
+                        }
+                    }
+                }
+
+                false
+            }
+            Query::MatchMultiTerm{ref field, ref term_selector, ref scorer} => {
+                if let Some(field_value) = doc.fields.get(field) {
+                    for field_token in field_value.iter() {
+                        if term_selector.matches(&field_token.term) {
                             return true;
                         }
                     }
@@ -222,18 +242,43 @@ impl Query {
         match *self {
             Query::MatchAll{score} => Some(score),
             Query::MatchNone => None,
-            Query::MatchTerm{ref field, ref term, ref matcher, ref scorer} => {
+            Query::MatchTerm{ref field, ref term, ref scorer} => {
                 if let Some(field_ref) = index_reader.schema().get_field_by_name(field) {
                     if let Some(field_value) = doc.fields.get(field) {
                         let mut term_freq: u32 = 0;
                         for field_token in field_value.iter() {
-                            if matcher.matches(&field_token.term, term) {
+                            if &field_token.term == term {
                                 term_freq += 1;
                             }
                         }
 
                         if term_freq > 0 {
                             return Some(scorer.score(index_reader, &field_ref, term, term_freq, field_value.len() as u32));
+                        }
+                    }
+                }
+
+                None
+            }
+            Query::MatchMultiTerm{ref field, ref term_selector, ref scorer} => {
+                if let Some(field_ref) = index_reader.schema().get_field_by_name(field) {
+                    if let Some(field_value) = doc.fields.get(field) {
+                        let mut term_frequencies = HashMap::new();
+                        for field_token in field_value.iter() {
+                            if term_selector.matches(&field_token.term) {
+                                let freq = term_frequencies.entry(field_token.term.clone()).or_insert(0);
+                                *freq += 1;
+                            }
+                        }
+
+                        if !term_frequencies.is_empty() {
+                            let mut score = 0.0f64;
+
+                            for (term, term_freq) in term_frequencies.iter() {
+                                score += scorer.score(index_reader, &field_ref, term, *term_freq, field_value.len() as u32);
+                            }
+
+                            return Some(score);
                         }
                     }
                 }
