@@ -28,7 +28,10 @@ use search::plan::boolean_query_builder::BooleanQueryBuilder;
 impl<'a> RocksDBIndexReader<'a> {
     fn plan_query_combinator(&self, mut plan: &mut SearchPlan, queries: &Vec<Query>, join_op: BooleanQueryOp, score: bool, scorer: CombinatorScorer) {
         match queries.len() {
-            0 => plan.boolean_query.push(BooleanQueryOp::PushEmpty),
+            0 => {
+                plan.boolean_query.push(BooleanQueryOp::PushEmpty);
+                plan.score_function.push(ScoreFunctionOp::Literal(0.0f64));
+            }
             1 =>  self.plan_query(&mut plan, &queries[0], score),
             _ => {
                 let mut query_iter = queries.iter();
@@ -62,6 +65,7 @@ impl<'a> RocksDBIndexReader<'a> {
                     None => {
                         // Term doesn't exist, so will never match
                         plan.boolean_query.push(BooleanQueryOp::PushEmpty);
+                        plan.score_function.push(ScoreFunctionOp::Literal(0.0f64));
                         return
                     }
                 };
@@ -72,6 +76,7 @@ impl<'a> RocksDBIndexReader<'a> {
                     None => {
                         // Field doesn't exist, so will never match
                         plan.boolean_query.push(BooleanQueryOp::PushEmpty);
+                        plan.score_function.push(ScoreFunctionOp::Literal(0.0f64));
                         return
                     }
                 };
