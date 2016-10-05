@@ -1,6 +1,6 @@
 use std::rc::Rc;
 
-use abra::schema::FieldRef;
+use kite::schema::FieldRef;
 
 use term_dictionary::TermRef;
 

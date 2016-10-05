@@ -1,5 +1,5 @@
-use abra::schema::FieldRef;
-use abra::query::term_scorer::TermScorer;
+use kite::schema::FieldRef;
+use kite::query::term_scorer::TermScorer;
 
 use term_dictionary::TermRef;
 

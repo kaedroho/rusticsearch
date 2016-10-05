@@ -8,10 +8,10 @@ use std::io::{Cursor, Read, Write};
 use std::collections::HashMap;
 use std::rc::Rc;
 
-use abra::schema::{FieldRef, SchemaRead};
-use abra::query::Query;
-use abra::query::term_scorer::TermScorer;
-use abra::collectors::{Collector, DocumentMatch};
+use kite::schema::{FieldRef, SchemaRead};
+use kite::query::Query;
+use kite::query::term_scorer::TermScorer;
+use kite::collectors::{Collector, DocumentMatch};
 use rocksdb::DBVector;
 use byteorder::{ByteOrder, BigEndian};
 
