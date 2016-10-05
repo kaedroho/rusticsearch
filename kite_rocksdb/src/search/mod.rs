@@ -81,9 +81,8 @@ impl<'a> RocksDBIndexReader<'a> {
                     }
                 };
 
-                let tag = plan.allocate_tag().unwrap_or(0);
-                plan.boolean_query.push(BooleanQueryOp::PushTermDirectory(field_ref, term_ref, tag));
-                plan.score_function.push(ScoreFunctionOp::TermScorer(field_ref, term_ref, scorer.clone(), tag));
+                plan.boolean_query.push(BooleanQueryOp::PushTermDirectory(field_ref, term_ref));
+                plan.score_function.push(ScoreFunctionOp::TermScorer(field_ref, term_ref, scorer.clone()));
             }
             Query::MatchMultiTerm{ref field, ref term_selector, ref scorer} => {
                 // TODO
@@ -115,9 +114,7 @@ impl<'a> RocksDBIndexReader<'a> {
         }
     }
 
-    fn search_chunk_boolean_phase(&self, plan: &SearchPlan, chunk: u32) -> (DocIdSet, HashMap<u8, DocIdSet>) {
-        let mut tagged_docid_sets = HashMap::new();
-
+    fn search_chunk_boolean_phase(&self, plan: &SearchPlan, chunk: u32) -> DocIdSet {
         // Execute boolean query
         let mut stack = Vec::new();
         for op in plan.boolean_query.iter() {
@@ -128,12 +125,11 @@ impl<'a> RocksDBIndexReader<'a> {
                 BooleanQueryOp::PushFull => {
                     stack.push(DocIdSet::new_filled(65536));
                 }
-                BooleanQueryOp::PushTermDirectory(field_ref, term_ref, tag) => {
+                BooleanQueryOp::PushTermDirectory(field_ref, term_ref) => {
                     let kb = KeyBuilder::chunk_dir_list(chunk, field_ref.ord(), term_ref.ord());
                     match self.snapshot.get(&kb.key()) {
                         Ok(Some(docid_set)) => {
                             let data = DocIdSet::FromRDB(docid_set);
-                            tagged_docid_sets.insert(tag, data.clone());
                             stack.push(data);
                         }
                         Ok(None) => stack.push(DocIdSet::new_filled(0)),
@@ -187,25 +183,29 @@ impl<'a> RocksDBIndexReader<'a> {
             matches = all_docs.exclusion(&matches);
         }
 
-        (matches, tagged_docid_sets)
+        matches
     }
 
-    fn score_doc(&self, doc_id: u16, tagged_docid_sets: &HashMap<u8, DocIdSet>, plan: &SearchPlan) -> f64 {
+    fn score_doc(&self, doc_id: u16, plan: &SearchPlan, chunk: u32) -> f64 {
         // Execute score function
         let mut stack = Vec::new();
         for op in plan.score_function.iter() {
             match *op {
                 ScoreFunctionOp::Literal(val) => stack.push(val),
-                ScoreFunctionOp::TermScorer(field_ref, term_ref, ref scorer, tag) => {
-                    match tagged_docid_sets.get(&tag) {
-                        Some(docid_set) => {
+                ScoreFunctionOp::TermScorer(field_ref, term_ref, ref scorer) => {
+                    let kb = KeyBuilder::chunk_dir_list(chunk, field_ref.ord(), term_ref.ord());
+                    match self.snapshot.get(&kb.key()) {
+                        Ok(Some(data)) => {
+                            let docid_set = DocIdSet::FromRDB(data);
+
                             if docid_set.contains_doc(doc_id) {
                                 stack.push(1.0f64);
                             } else {
                                 stack.push(0.0f64);
                             }
                         }
-                        None => stack.push(0.0f64)
+                        Ok(None) => stack.push(0.0f64),
+                        Err(e) => {},  // FIXME
                     }
                 }
                 ScoreFunctionOp::CombinatorScorer(num_vals, ref scorer) => {
@@ -242,11 +242,11 @@ impl<'a> RocksDBIndexReader<'a> {
     }
 
     fn search_chunk<C: Collector>(&self, collector: &mut C, plan: &SearchPlan, chunk: u32) {
-        let (matches, tagged_docid_sets) = self.search_chunk_boolean_phase(plan, chunk);
+        let matches = self.search_chunk_boolean_phase(plan, chunk);
 
         // Score documents and pass to collector
         for doc in matches.iter() {
-            let score = self.score_doc(doc, &tagged_docid_sets, plan);
+            let score = self.score_doc(doc, plan, chunk);
 
             let doc_ref = DocRef(chunk, doc);
             let doc_match = DocumentMatch::new_scored(doc_ref.as_u64(), score);

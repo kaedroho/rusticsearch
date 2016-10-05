@@ -101,9 +101,9 @@ impl BooleanQueryBuilder {
             PushFull => {
                 self.push_full();
             }
-            PushTermDirectory(field_ref, term_ref, tag) => {
+            PushTermDirectory(field_ref, term_ref) => {
                 self.stack.push(Rc::new(Leaf{
-                    op: PushTermDirectory(field_ref, term_ref, tag),
+                    op: PushTermDirectory(field_ref, term_ref),
                     return_type: Sparse,
                 }));
             }
