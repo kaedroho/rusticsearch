@@ -58,6 +58,17 @@ impl<'a> RocksDBIndexReader<'a> {
                 plan.score_function.push(ScoreFunctionOp::Literal(0.0f64));
             }
             Query::MatchTerm{ref field, ref term, ref scorer} => {
+                // Get field
+                let field_ref = match self.schema().get_field_by_name(field) {
+                    Some(field_ref) => field_ref,
+                    None => {
+                        // Field doesn't exist, so will never match
+                        plan.boolean_query.push(BooleanQueryOp::PushEmpty);
+                        plan.score_function.push(ScoreFunctionOp::Literal(0.0f64));
+                        return
+                    }
+                };
+
                 // Get term
                 let term_bytes = term.to_bytes();
                 let term_ref = match self.store.term_dictionary.get(&term_bytes) {
@@ -70,6 +81,10 @@ impl<'a> RocksDBIndexReader<'a> {
                     }
                 };
 
+                plan.boolean_query.push(BooleanQueryOp::PushTermDirectory(field_ref, term_ref));
+                plan.score_function.push(ScoreFunctionOp::TermScorer(field_ref, term_ref, scorer.clone()));
+            }
+            Query::MatchMultiTerm{ref field, ref term_selector, ref scorer} => {
                 // Get field
                 let field_ref = match self.schema().get_field_by_name(field) {
                     Some(field_ref) => field_ref,
@@ -81,13 +96,26 @@ impl<'a> RocksDBIndexReader<'a> {
                     }
                 };
 
-                plan.boolean_query.push(BooleanQueryOp::PushTermDirectory(field_ref, term_ref));
-                plan.score_function.push(ScoreFunctionOp::TermScorer(field_ref, term_ref, scorer.clone()));
-            }
-            Query::MatchMultiTerm{ref field, ref term_selector, ref scorer} => {
-                // TODO
+                // Get terms
                 plan.boolean_query.push(BooleanQueryOp::PushEmpty);
-                plan.score_function.push(ScoreFunctionOp::Literal(0.0f64));
+                let mut total_terms = 0;
+                for term_ref in self.store.term_dictionary.select(term_selector) {
+                    plan.boolean_query.push(BooleanQueryOp::PushTermDirectory(field_ref, term_ref));
+                    plan.boolean_query.push(BooleanQueryOp::Or);
+                    plan.score_function.push(ScoreFunctionOp::TermScorer(field_ref, term_ref, scorer.clone()));
+                    total_terms += 1;
+                }
+
+                // This query must push only one score value onto the stack.
+                // If we haven't pushed any score operations, Push a literal 0.0
+                // If we have pushed more than one score operations, which will lead to more
+                // than one score value being pushed to the stack, combine the score values
+                // with a combinator operation.
+                match total_terms {
+                    0 => plan.score_function.push(ScoreFunctionOp::Literal(0.0f64)),
+                    1 => {},
+                    _ => plan.score_function.push(ScoreFunctionOp::CombinatorScorer(total_terms, CombinatorScorer::Avg)),
+                }
             }
             Query::Conjunction{ref queries} => {
                 self.plan_query_combinator(&mut plan, queries, BooleanQueryOp::And, score, CombinatorScorer::Avg);
