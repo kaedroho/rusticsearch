@@ -9,7 +9,7 @@ use term_dictionary::TermRef;
 pub enum BooleanQueryOp {
     PushEmpty,
     PushFull,
-    PushTermDirectory(FieldRef, TermRef, u8),
+    PushTermDirectory(FieldRef, TermRef),
     PushDeletionList,
     And,
     Or,

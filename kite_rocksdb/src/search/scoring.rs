@@ -14,6 +14,6 @@ pub enum CombinatorScorer {
 #[derive(Debug, Clone)]
 pub enum ScoreFunctionOp {
     Literal(f64),
-    TermScorer(FieldRef, TermRef, TermScorer, u8),
+    TermScorer(FieldRef, TermRef, TermScorer),
     CombinatorScorer(u32, CombinatorScorer),
 }
