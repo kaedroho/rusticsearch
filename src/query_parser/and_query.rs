@@ -22,7 +22,7 @@ pub fn parse(context: &QueryParseContext, json: &Json) -> Result<Query, QueryPar
 mod tests {
     use rustc_serialize::json::Json;
 
-    use kite::{Term, Query, TermMatcher, TermScorer};
+    use kite::{Term, Query, TermScorer};
 
     use query_parser::{QueryParseContext, QueryParseError};
 
@@ -50,13 +50,11 @@ mod tests {
                 Query::MatchTerm {
                     field: "test".to_string(),
                     term: Term::String("foo".to_string()),
-                    matcher: TermMatcher::Exact,
                     scorer: TermScorer::default(),
                 },
                 Query::MatchTerm {
                     field: "test".to_string(),
                     term: Term::String("bar".to_string()),
-                    matcher: TermMatcher::Exact,
                     scorer: TermScorer::default(),
                 },
             ],

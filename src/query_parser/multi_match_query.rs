@@ -1,7 +1,7 @@
 //! Parses "multi_match" queries
 
 use rustc_serialize::json::Json;
-use kite::{Term, Token, Query, TermMatcher, TermScorer};
+use kite::{Term, Token, Query, TermScorer};
 use kite::schema::SchemaRead;
 
 use mapping::{FieldMapping, FieldSearchOptions};
@@ -88,7 +88,6 @@ pub fn parse(context: &QueryParseContext, json: &Json) -> Result<Query, QueryPar
             term_queries.push(Query::MatchTerm {
                 field: field_name.clone(),
                 term: token.term,
-                matcher: TermMatcher::Exact,
                 scorer: TermScorer::default(),
             });
         }
@@ -121,7 +120,7 @@ pub fn parse(context: &QueryParseContext, json: &Json) -> Result<Query, QueryPar
 mod tests {
     use rustc_serialize::json::Json;
 
-    use kite::{Term, Query, TermMatcher, TermScorer};
+    use kite::{Term, Query, TermScorer};
 
     use query_parser::{QueryParseContext, QueryParseError};
 
@@ -141,13 +140,11 @@ mod tests {
                 Query::MatchTerm {
                     field: "bar".to_string(),
                     term: Term::String("foo".to_string()),
-                    matcher: TermMatcher::Exact,
                     scorer: TermScorer::default(),
                 },
                 Query::MatchTerm {
                     field: "baz".to_string(),
                     term: Term::String("foo".to_string()),
-                    matcher: TermMatcher::Exact,
                     scorer: TermScorer::default(),
                 }
             ],
@@ -170,13 +167,11 @@ mod tests {
                         Query::MatchTerm {
                             field: "bar".to_string(),
                             term: Term::String("hello".to_string()),
-                            matcher: TermMatcher::Exact,
                             scorer: TermScorer::default(),
                         },
                         Query::MatchTerm {
                             field: "bar".to_string(),
                             term: Term::String("world".to_string()),
-                            matcher: TermMatcher::Exact,
                             scorer: TermScorer::default(),
                         }
                     ],
@@ -186,13 +181,11 @@ mod tests {
                         Query::MatchTerm {
                             field: "baz".to_string(),
                             term: Term::String("hello".to_string()),
-                            matcher: TermMatcher::Exact,
                             scorer: TermScorer::default(),
                         },
                         Query::MatchTerm {
                             field: "baz".to_string(),
                             term: Term::String("world".to_string()),
-                            matcher: TermMatcher::Exact,
                             scorer: TermScorer::default(),
                         }
                     ],
@@ -216,13 +209,11 @@ mod tests {
                 Query::MatchTerm {
                     field: "bar".to_string(),
                     term: Term::String("foo".to_string()),
-                    matcher: TermMatcher::Exact,
                     scorer: TermScorer::default_with_boost(2.0f64),
                 },
                 Query::MatchTerm {
                     field: "baz".to_string(),
                     term: Term::String("foo".to_string()),
-                    matcher: TermMatcher::Exact,
                     scorer: TermScorer::default_with_boost(2.0f64),
                 }
             ],
@@ -244,13 +235,11 @@ mod tests {
                 Query::MatchTerm {
                     field: "bar".to_string(),
                     term: Term::String("foo".to_string()),
-                    matcher: TermMatcher::Exact,
                     scorer: TermScorer::default_with_boost(2.0f64),
                 },
                 Query::MatchTerm {
                     field: "baz".to_string(),
                     term: Term::String("foo".to_string()),
-                    matcher: TermMatcher::Exact,
                     scorer: TermScorer::default_with_boost(2.0f64),
                 }
             ],
@@ -271,13 +260,11 @@ mod tests {
                 Query::MatchTerm {
                     field: "bar".to_string(),
                     term: Term::String("foo".to_string()),
-                    matcher: TermMatcher::Exact,
                     scorer: TermScorer::default_with_boost(2.0f64),
                 },
                 Query::MatchTerm {
                     field: "baz".to_string(),
                     term: Term::String("foo".to_string()),
-                    matcher: TermMatcher::Exact,
                     scorer: TermScorer::default(),
                 }
             ],
@@ -299,13 +286,11 @@ mod tests {
                 Query::MatchTerm {
                     field: "bar".to_string(),
                     term: Term::String("foo".to_string()),
-                    matcher: TermMatcher::Exact,
                     scorer: TermScorer::default_with_boost(4.0f64),
                 },
                 Query::MatchTerm {
                     field: "baz".to_string(),
                     term: Term::String("foo".to_string()),
-                    matcher: TermMatcher::Exact,
                     scorer: TermScorer::default_with_boost(2.0f64),
                 }
             ],
@@ -329,13 +314,11 @@ mod tests {
                         Query::MatchTerm {
                             field: "baz".to_string(),
                             term: Term::String("foo".to_string()),
-                            matcher: TermMatcher::Exact,
                             scorer: TermScorer::default(),
                         },
                         Query::MatchTerm {
                             field: "baz".to_string(),
                             term: Term::String("bar".to_string()),
-                            matcher: TermMatcher::Exact,
                             scorer: TermScorer::default(),
                         }
                     ],
@@ -345,13 +328,11 @@ mod tests {
                         Query::MatchTerm {
                             field: "quux".to_string(),
                             term: Term::String("foo".to_string()),
-                            matcher: TermMatcher::Exact,
                             scorer: TermScorer::default(),
                         },
                         Query::MatchTerm {
                             field: "quux".to_string(),
                             term: Term::String("bar".to_string()),
-                            matcher: TermMatcher::Exact,
                             scorer: TermScorer::default(),
                         }
                     ],

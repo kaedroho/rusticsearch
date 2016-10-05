@@ -36,7 +36,7 @@ pub fn parse(_context: &QueryParseContext, json: &Json) -> Result<Query, QueryPa
 mod tests {
     use rustc_serialize::json::Json;
 
-    use kite::{Term, Query, TermMatcher, TermScorer};
+    use kite::{Term, Query, TermScorer};
 
     use query_parser::{QueryParseContext, QueryParseError};
 

@@ -1,7 +1,7 @@
 //! Parses "match" queries
 
 use rustc_serialize::json::Json;
-use kite::{Term, Token, Query, TermMatcher, TermScorer};
+use kite::{Term, Token, Query, TermScorer};
 use kite::schema::SchemaRead;
 
 use mapping::{FieldSearchOptions};
@@ -80,7 +80,6 @@ pub fn parse(context: &QueryParseContext, json: &Json) -> Result<Query, QueryPar
         sub_queries.push(Query::MatchTerm {
             field: field_name.clone(),
             term: token.term,
-            matcher: TermMatcher::Exact,
             scorer: TermScorer::default(),
         });
     }
@@ -106,7 +105,7 @@ pub fn parse(context: &QueryParseContext, json: &Json) -> Result<Query, QueryPar
 mod tests {
     use rustc_serialize::json::Json;
 
-    use kite::{Term, Query, TermMatcher, TermScorer};
+    use kite::{Term, Query, TermScorer};
 
     use query_parser::{QueryParseContext, QueryParseError};
 
@@ -125,7 +124,6 @@ mod tests {
         assert_eq!(query, Ok(Query::MatchTerm {
             field: "foo".to_string(),
             term: Term::String("bar".to_string()),
-            matcher: TermMatcher::Exact,
             scorer: TermScorer::default(),
         }))
     }
@@ -145,13 +143,11 @@ mod tests {
                 Query::MatchTerm {
                     field: "foo".to_string(),
                     term: Term::String("bar".to_string()),
-                    matcher: TermMatcher::Exact,
                     scorer: TermScorer::default(),
                 },
                 Query::MatchTerm {
                     field: "foo".to_string(),
                     term: Term::String("baz".to_string()),
-                    matcher: TermMatcher::Exact,
                     scorer: TermScorer::default(),
                 }
             ],
@@ -171,13 +167,11 @@ mod tests {
                 Query::MatchTerm {
                     field: "foo".to_string(),
                     term: Term::String("bar".to_string()),
-                    matcher: TermMatcher::Exact,
                     scorer: TermScorer::default(),
                 },
                 Query::MatchTerm {
                     field: "foo".to_string(),
                     term: Term::String("baz".to_string()),
-                    matcher: TermMatcher::Exact,
                     scorer: TermScorer::default(),
                 }
             ],
@@ -198,7 +192,6 @@ mod tests {
         assert_eq!(query, Ok(Query::MatchTerm {
             field: "foo".to_string(),
             term: Term::String("bar".to_string()),
-            matcher: TermMatcher::Exact,
             scorer: TermScorer::default_with_boost(2.0f64),
         }))
     }
@@ -217,7 +210,6 @@ mod tests {
         assert_eq!(query, Ok(Query::MatchTerm {
             field: "foo".to_string(),
             term: Term::String("bar".to_string()),
-            matcher: TermMatcher::Exact,
             scorer: TermScorer::default_with_boost(2.0f64),
         }))
     }
@@ -238,13 +230,11 @@ mod tests {
                 Query::MatchTerm {
                     field: "foo".to_string(),
                     term: Term::String("bar".to_string()),
-                    matcher: TermMatcher::Exact,
                     scorer: TermScorer::default(),
                 },
                 Query::MatchTerm {
                     field: "foo".to_string(),
                     term: Term::String("baz".to_string()),
-                    matcher: TermMatcher::Exact,
                     scorer: TermScorer::default(),
                 }
             ],
