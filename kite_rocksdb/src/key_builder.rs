@@ -16,7 +16,7 @@ impl KeyBuilder {
         }
     }
 
-    pub fn doc_key_mapping(key: &[u8]) -> KeyBuilder {
+    pub fn primary_key_index(key: &[u8]) -> KeyBuilder {
         let mut kb = KeyBuilder::with_capacity(1 + key.len());
         kb.push_char(b'k');
         kb.push_string(key);

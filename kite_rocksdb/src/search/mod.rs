@@ -17,7 +17,8 @@ use byteorder::{ByteOrder, BigEndian};
 
 use key_builder::KeyBuilder;
 use term_dictionary::TermRef;
-use super::{RocksDBIndexReader, DocRef};
+use document_index::DocRef;
+use super::RocksDBIndexReader;
 use search::doc_id_set::DocIdSet;
 use search::boolean_retrieval::BooleanQueryOp;
 use search::scoring::{CombinatorScorer, ScoreFunctionOp};
@@ -276,7 +277,7 @@ impl<'a> RocksDBIndexReader<'a> {
         for doc in matches.iter() {
             let score = self.score_doc(doc, plan, chunk);
 
-            let doc_ref = DocRef(chunk, doc);
+            let doc_ref = DocRef::from_chunk_ord(chunk, doc);
             let doc_match = DocumentMatch::new_scored(doc_ref.as_u64(), score);
             collector.collect(doc_match);
         }

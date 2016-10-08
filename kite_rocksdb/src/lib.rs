@@ -10,6 +10,7 @@ extern crate byteorder;
 pub mod key_builder;
 pub mod chunk;
 pub mod term_dictionary;
+pub mod document_index;
 pub mod search;
 
 use std::sync::{Arc, RwLock};
@@ -26,25 +27,7 @@ use byteorder::{ByteOrder, BigEndian};
 use key_builder::KeyBuilder;
 use chunk::ChunkManager;
 use term_dictionary::{TermDictionaryManager, TermRef};
-
-
-#[derive(Debug, Clone, Copy, Eq, PartialEq, Hash)]
-struct DocRef(u32, u16);
-
-
-impl DocRef {
-    pub fn chunk(&self) -> u32 {
-        self.0
-    }
-
-    pub fn ord(&self) -> u16 {
-        self.1
-    }
-
-    pub fn as_u64(&self) -> u64 {
-        (self.0 as u64) << 16 | (self.1 as u64)
-    }
-}
+use document_index::{DocumentIndexManager, DocRef};
 
 
 fn merge_keys(key: &[u8], existing_val: Option<&[u8]>, operands: &mut MergeOperands) -> Vec<u8> {
@@ -107,8 +90,8 @@ pub struct RocksDBIndexStore {
     db: DB,
     term_dictionary: TermDictionaryManager,
     chunks: ChunkManager,
+    document_index: DocumentIndexManager,
     doc_key_mapping: RwLock<BTreeMap<Vec<u8>, DocRef>>,
-    deleted_docs: RwLock<Vec<DocRef>>,
 }
 
 
@@ -129,13 +112,16 @@ impl RocksDBIndexStore {
         // Term dictionary manager
         let term_dictionary = TermDictionaryManager::new(&db);
 
+        // Document index
+        let document_index = DocumentIndexManager::new(&db);
+
         Ok(RocksDBIndexStore {
             schema: Arc::new(schema),
             db: db,
             term_dictionary: term_dictionary,
             chunks: chunks,
+            document_index: document_index,
             doc_key_mapping: RwLock::new(BTreeMap::new()),
-            deleted_docs: RwLock::new(Vec::new()),
         })
     }
 
@@ -159,13 +145,16 @@ impl RocksDBIndexStore {
         // Term dictionary manager
         let term_dictionary = TermDictionaryManager::open(&db);
 
+        // Document index
+        let document_index = DocumentIndexManager::open(&db);
+
         Ok(RocksDBIndexStore {
             schema: Arc::new(schema),
             db: db,
             term_dictionary: term_dictionary,
             chunks: chunks,
+            document_index: document_index,
             doc_key_mapping: RwLock::new(BTreeMap::new()),
-            deleted_docs: RwLock::new(Vec::new()),
         })
     }
 
@@ -201,7 +190,7 @@ impl RocksDBIndexStore {
         let chunk = self.chunks.new_chunk(&self.db);
 
         // Create doc ref
-        let doc_ref = DocRef(chunk, 0);
+        let doc_ref = DocRef::from_chunk_ord(chunk, 0);
 
         // Start write batch
         let mut write_batch = WriteBatch::default();
@@ -248,34 +237,8 @@ impl RocksDBIndexStore {
         // Write document data
         self.db.write(write_batch);
 
-        // Update doc_key_mapping
-        let mut write_batch = WriteBatch::default();
-        let previous_doc_ref = self.doc_key_mapping.write().unwrap().insert(doc.key.as_bytes().iter().cloned().collect(), doc_ref);
-
-        let mut kb = KeyBuilder::doc_key_mapping(doc.key.as_bytes());
-        let mut doc_ref_bytes = [0; 6];
-        BigEndian::write_u32(&mut doc_ref_bytes, doc_ref.chunk());
-        BigEndian::write_u16(&mut doc_ref_bytes[4..], doc_ref.ord());
-        write_batch.put(&kb.key(), &doc_ref_bytes);
-
-        // If there was a document there previously, mark it as deleted
-        if let Some(previous_doc_ref) = previous_doc_ref {
-            self.deleted_docs.write().unwrap().push(previous_doc_ref);
-
-            let mut kb = KeyBuilder::chunk_del_list(previous_doc_ref.chunk());
-            let mut previous_doc_id_bytes = [0; 2];
-            BigEndian::write_u16(&mut previous_doc_id_bytes, previous_doc_ref.ord());
-            write_batch.merge(&kb.key(), &previous_doc_id_bytes);
-
-            // Increment deleted docs
-            let mut kb = KeyBuilder::chunk_stat(previous_doc_ref.chunk(), b"deleted_docs");
-            let mut inc_bytes = [0; 8];
-            BigEndian::write_i64(&mut inc_bytes, 1);
-            write_batch.merge(&kb.key(), &inc_bytes);
-        }
-
-        // Write document data
-        self.db.write(write_batch);
+        // Update document index
+        self.document_index.insert_or_replace_key(&self.db, &doc.key.as_bytes().iter().cloned().collect(), doc_ref);
     }
 
     pub fn reader<'a>(&'a self) -> RocksDBIndexReader<'a> {
@@ -402,7 +365,9 @@ mod tests {
     fn test() {
         remove_dir_all("test_indices/test");
 
-        let store = make_test_store("test_indices/test");
+        make_test_store("test_indices/test");
+
+        let store = RocksDBIndexStore::open("test_indices/test").unwrap();
 
         let index_reader = store.reader();
 

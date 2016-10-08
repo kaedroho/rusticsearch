@@ -12,7 +12,8 @@ use byteorder::{ByteOrder, BigEndian};
 
 use key_builder::KeyBuilder;
 use term_dictionary::TermRef;
-use super::super::{RocksDBIndexReader, DocRef};
+use document_index::DocRef;
+use super::super::RocksDBIndexReader;
 
 
 pub enum DocIdSet {
