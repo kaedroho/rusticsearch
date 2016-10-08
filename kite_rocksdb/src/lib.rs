@@ -241,6 +241,13 @@ impl RocksDBIndexStore {
         self.document_index.insert_or_replace_key(&self.db, &doc.key.as_bytes().iter().cloned().collect(), doc_ref);
     }
 
+    pub fn remove_document_by_key(&mut self, doc_key: &str) -> bool {
+        match self.document_index.delete_document_by_key(&self.db, &doc_key.as_bytes().iter().cloned().collect()) {
+            Some(doc_ref) => true,
+            None => false,
+        }
+    }
+
     pub fn reader<'a>(&'a self) -> RocksDBIndexReader<'a> {
         RocksDBIndexReader {
             store: &self,
@@ -259,6 +266,11 @@ pub struct RocksDBIndexReader<'a> {
 impl<'a> RocksDBIndexReader<'a> {
     pub fn schema(&self) -> &Schema {
         &self.store.schema
+    }
+
+    pub fn contains_document_key(&self, doc_key: &str) -> bool {
+        // TODO: use snapshot
+        self.store.document_index.contains_document_key(&doc_key.as_bytes().iter().cloned().collect())
     }
 }
 

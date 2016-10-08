@@ -75,6 +75,19 @@ impl DocumentIndexManager {
         }
     }
 
+    fn delete_document_by_ref_unchecked(&self, write_batch: &mut WriteBatch, doc_ref: DocRef) {
+        let mut kb = KeyBuilder::chunk_del_list(doc_ref.chunk());
+        let mut previous_doc_id_bytes = [0; 2];
+        BigEndian::write_u16(&mut previous_doc_id_bytes, doc_ref.ord());
+        write_batch.merge(&kb.key(), &previous_doc_id_bytes);
+
+        // Increment deleted docs
+        let mut kb = KeyBuilder::chunk_stat(doc_ref.chunk(), b"deleted_docs");
+        let mut inc_bytes = [0; 8];
+        BigEndian::write_i64(&mut inc_bytes, 1);
+        write_batch.merge(&kb.key(), &inc_bytes);
+    }
+
     pub fn insert_or_replace_key(&self, db: &DB, key: &Vec<u8>, doc_ref: DocRef) -> Option<DocRef> {
         // Update primary_key_index
         let mut write_batch = WriteBatch::default();
@@ -86,23 +99,31 @@ impl DocumentIndexManager {
         BigEndian::write_u16(&mut doc_ref_bytes[4..], doc_ref.ord());
         write_batch.put(&kb.key(), &doc_ref_bytes);
 
-        // If there was a document there previously, mark it as deleted
+        // If there was a document there previously, delete it
         if let Some(previous_doc_ref) = previous_doc_ref {
-            let mut kb = KeyBuilder::chunk_del_list(previous_doc_ref.chunk());
-            let mut previous_doc_id_bytes = [0; 2];
-            BigEndian::write_u16(&mut previous_doc_id_bytes, previous_doc_ref.ord());
-            write_batch.merge(&kb.key(), &previous_doc_id_bytes);
-
-            // Increment deleted docs
-            let mut kb = KeyBuilder::chunk_stat(previous_doc_ref.chunk(), b"deleted_docs");
-            let mut inc_bytes = [0; 8];
-            BigEndian::write_i64(&mut inc_bytes, 1);
-            write_batch.merge(&kb.key(), &inc_bytes);
+            self.delete_document_by_ref_unchecked(&mut write_batch, doc_ref);
         }
 
         // Write document data
         db.write(write_batch);
 
         previous_doc_ref
+    }
+
+    pub fn delete_document_by_key(&self, db: &DB, key: &Vec<u8>) -> Option<DocRef> {
+        // Remove document from index
+        let doc_ref = self.primary_key_index.write().unwrap().remove(key);
+
+        if let Some(doc_ref) = doc_ref {
+            let mut write_batch = WriteBatch::default();
+            self.delete_document_by_ref_unchecked(&mut write_batch, doc_ref);
+            db.write(write_batch);
+        }
+
+        doc_ref
+    }
+
+    pub fn contains_document_key(&self, key: &Vec<u8>) -> bool {
+        self.primary_key_index.read().unwrap().contains_key(key)
     }
 }
