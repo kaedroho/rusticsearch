@@ -20,7 +20,7 @@ use std::collections::BTreeMap;
 use rocksdb::{DB, WriteBatch, Writable, Options, MergeOperands};
 use rocksdb::rocksdb::Snapshot;
 use kite::{Term, Document};
-use kite::schema::{Schema, SchemaRead, SchemaWrite, FieldType, FieldRef, AddFieldError};
+use kite::schema::{Schema, SchemaRead, SchemaWrite, FieldType, FieldFlags, FieldRef, AddFieldError};
 use rustc_serialize::{json, Encodable};
 use byteorder::{ByteOrder, BigEndian};
 
@@ -158,9 +158,9 @@ impl RocksDBIndexStore {
         })
     }
 
-    pub fn add_field(&mut self, name: String, field_type: FieldType) -> Result<FieldRef, AddFieldError> {
+    pub fn add_field(&mut self, name: String, field_type: FieldType, field_flags: FieldFlags) -> Result<FieldRef, AddFieldError> {
         let mut schema_copy = (*self.schema).clone();
-        let field_ref = try!(schema_copy.add_field(name, field_type));
+        let field_ref = try!(schema_copy.add_field(name, field_type, field_flags));
         self.schema = Arc::new(schema_copy);
 
         self.db.put(b".schema", json::encode(&self.schema).unwrap().as_bytes());
@@ -281,7 +281,7 @@ mod tests {
 
     use rocksdb::{DB, Options, IteratorMode};
     use kite::{Term, Token, Document};
-    use kite::schema::{Schema, FieldType, FieldRef};
+    use kite::schema::{Schema, FieldType, FIELD_INDEXED, FieldRef};
     use kite::query::Query;
     use kite::query::term_scorer::TermScorer;
     use kite::collectors::top_score::TopScoreCollector;
@@ -314,8 +314,8 @@ mod tests {
 
     fn make_test_store(path: &str) -> RocksDBIndexStore {
         let mut store = RocksDBIndexStore::create(path).unwrap();
-        let mut title_field = store.add_field("title".to_string(), FieldType::Text).unwrap();
-        let mut body_field = store.add_field("body".to_string(), FieldType::Text).unwrap();
+        let mut title_field = store.add_field("title".to_string(), FieldType::Text, FIELD_INDEXED).unwrap();
+        let mut body_field = store.add_field("body".to_string(), FieldType::Text, FIELD_INDEXED).unwrap();
 
         store.insert_or_update_document(Document {
             key: "test_doc".to_string(),
