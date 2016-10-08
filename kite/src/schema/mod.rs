@@ -4,6 +4,55 @@ use std::ops::Deref;
 use rustc_serialize::{Encodable, Decodable, Encoder, Decoder};
 
 
+bitflags! {
+    pub flags FieldFlags: u32 {
+        const FIELD_INDEXED = 0b00000001,
+        const FIELD_STORED  = 0b00000010,
+    }
+}
+
+
+impl Encodable for FieldFlags {
+    fn encode<S: Encoder>(&self, s: &mut S) -> Result<(), S::Error> {
+        let mut flag_strings = Vec::new();
+
+        if self.contains(FIELD_INDEXED) {
+            flag_strings.push("INDEXED");
+        }
+
+        if self.contains(FIELD_STORED) {
+            flag_strings.push("STORED");
+        }
+
+        s.emit_str(&flag_strings.join("|"));
+
+        Ok(())
+    }
+}
+
+impl Decodable for FieldFlags {
+    fn decode<D: Decoder>(d: &mut D) -> Result<FieldFlags, D::Error> {
+        let s = try!(d.read_str());
+        let mut flags = FieldFlags::empty();
+
+        for flag_s in s.split("|") {
+            match flag_s {
+                "INDEXED" => {
+                    flags |= FIELD_INDEXED;
+                }
+                "STORED" => {
+                    flags |= FIELD_STORED;
+                }
+                _ => {} // TODO: error
+            }
+        }
+
+
+        Ok(flags)
+    }
+}
+
+
 #[derive(Debug, Clone, PartialEq, RustcEncodable, RustcDecodable)]
 pub enum FieldType {
     Text,
@@ -18,14 +67,16 @@ pub enum FieldType {
 pub struct FieldInfo {
     name: String,
     pub field_type: FieldType,
+    pub field_flags: FieldFlags,
 }
 
 
 impl FieldInfo {
-    pub fn new(name: String, field_type: FieldType) -> FieldInfo {
+    pub fn new(name: String, field_type: FieldType, field_flags: FieldFlags) -> FieldInfo {
         FieldInfo {
             name: name,
             field_type: field_type,
+            field_flags: field_flags,
         }
     }
 }
@@ -67,7 +118,7 @@ pub trait SchemaRead {
 
 
 pub trait SchemaWrite {
-    fn add_field(&mut self, name: String, field_type: FieldType) -> Result<FieldRef, AddFieldError>;
+    fn add_field(&mut self, name: String, field_type: FieldType, field_flags: FieldFlags) -> Result<FieldRef, AddFieldError>;
     fn remove_field(&mut self, field_ref: &FieldRef) -> bool;
 }
 
@@ -106,13 +157,13 @@ impl SchemaRead for Schema {
 
 
 impl SchemaWrite for Schema {
-    fn add_field(&mut self, name: String, field_type: FieldType) -> Result<FieldRef, AddFieldError> {
+    fn add_field(&mut self, name: String, field_type: FieldType, field_flags: FieldFlags) -> Result<FieldRef, AddFieldError> {
         if self.field_names.contains_key(&name) {
             return Err(AddFieldError::FieldAlreadyExists(name));
         }
 
         let field_ref = self.new_field_ref();
-        let field_info = FieldInfo::new(name.clone(), field_type);
+        let field_info = FieldInfo::new(name.clone(), field_type, field_flags);
 
         self.fields.insert(field_ref, field_info);
         self.field_names.insert(name, field_ref);

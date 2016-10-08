@@ -68,7 +68,8 @@ impl Default for FieldSearchOptions {
 pub struct FieldMapping {
     pub data_type: FieldType,
     pub index_ref: Option<FieldRef>,
-    is_stored: bool,
+    pub is_indexed: bool,
+    pub is_stored: bool,
     pub is_in_all: bool,
     boost: f64,
     index_analyzer: Option<AnalyzerSpec>,
@@ -81,6 +82,7 @@ impl Default for FieldMapping {
         FieldMapping {
             data_type: FieldType::default(),
             index_ref: None,
+            is_indexed: true,
             is_stored: false,
             is_in_all: true,
             boost: 1.0f64,

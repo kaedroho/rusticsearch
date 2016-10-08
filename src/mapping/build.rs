@@ -84,6 +84,7 @@ impl FieldMappingBuilder {
         FieldMapping {
             data_type: self.field_type,
             index_ref: None,
+            is_indexed: self.is_indexed,
             is_stored: self.is_stored,
             is_in_all: self.is_in_all,
             boost: self.boost,

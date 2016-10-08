@@ -4,7 +4,7 @@ use std::collections::{BTreeMap, HashMap};
 use std::collections::btree_map::Keys;
 
 use document::Document;
-use schema::{Schema, SchemaRead, SchemaWrite, FieldType, FieldRef, AddFieldError};
+use schema::{Schema, SchemaRead, SchemaWrite, FieldType, FieldFlags, FieldRef, AddFieldError};
 use store::{IndexStore, IndexReader, DocRefIterator};
 
 
@@ -74,8 +74,8 @@ impl<'a> IndexStore<'a> for MemoryIndexStore {
         }
     }
 
-    fn add_field(&mut self, name: String, field_type: FieldType) -> Result<FieldRef, AddFieldError> {
-        let field_ref = try!(self.schema.add_field(name, field_type));
+    fn add_field(&mut self, name: String, field_type: FieldType, field_flags: FieldFlags) -> Result<FieldRef, AddFieldError> {
+        let field_ref = try!(self.schema.add_field(name, field_type, field_flags));
         self.fields.insert(field_ref, MemoryIndexStoreField::new());
 
         Ok(field_ref)
@@ -259,13 +259,13 @@ mod tests {
     use term::Term;
     use token::Token;
     use document::Document;
-    use schema::{Schema, SchemaRead, FieldType, FieldRef};
+    use schema::{Schema, SchemaRead, FieldType, FIELD_INDEXED, FieldRef};
     use store::{IndexStore, IndexReader};
 
     fn make_test_store() -> MemoryIndexStore {
         let mut store = MemoryIndexStore::new();
-        let mut title_field = store.add_field("title".to_string(), FieldType::Text).unwrap();
-        let mut body_field = store.add_field("body".to_string(), FieldType::Text).unwrap();
+        let mut title_field = store.add_field("title".to_string(), FieldType::Text, FIELD_INDEXED).unwrap();
+        let mut body_field = store.add_field("body".to_string(), FieldType::Text, FIELD_INDEXED).unwrap();
 
         store.insert_or_update_document(Document {
             key: "test_doc".to_string(),

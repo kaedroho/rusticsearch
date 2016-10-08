@@ -7,6 +7,8 @@ extern crate maplit;
 extern crate chrono;
 extern crate roaring;
 extern crate byteorder;
+#[macro_use]
+extern crate bitflags;
 
 pub mod term;
 pub mod token;
