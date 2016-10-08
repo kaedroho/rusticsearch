@@ -36,20 +36,18 @@ impl DocIdSet {
         DocIdSet::Owned(data)
     }
 
-    pub fn get_cursor(&self) -> Cursor<&[u8]> {
-        match *self {
+    pub fn iter<'a>(&'a self) -> DocIdSetIterator<'a> {
+        let data = match *self {
             DocIdSet::Owned(ref data) => {
-                Cursor::new(&data[..])
+                &data[..]
             }
             DocIdSet::FromRDB(ref data) => {
-                Cursor::new(&data[..])
+                &data[..]
             }
-        }
-    }
+        };
 
-    pub fn iter<'a>(&'a self) -> DocIdSetIterator<'a> {
         DocIdSetIterator {
-            cursor: self.get_cursor(),
+            cursor: Cursor::new(data),
         }
     }
 
