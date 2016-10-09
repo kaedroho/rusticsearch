@@ -7,6 +7,7 @@ use std::ops::{Deref, DerefMut};
 use rustc_serialize::json::Json;
 use chrono::{DateTime, UTC};
 use kite::{Term, Token};
+use kite::document::StoredFieldValue;
 use kite::analysis::AnalyzerSpec;
 use kite::analysis::tokenizers::TokenizerSpec;
 use kite::analysis::filters::FilterSpec;
@@ -182,6 +183,71 @@ impl FieldMapping {
                         };
 
                         Some(vec![Token{term: Term::DateTime(date_parsed), position: 1}])
+                    }
+                    Json::U64(_) => {
+                        // TODO needs to be interpreted as milliseconds since epoch
+                        // This would really help: https://github.com/lifthrasiir/rust-chrono/issues/74
+                        None
+                    }
+                    _ => None
+                }
+            }
+        }
+    }
+
+    pub fn process_value_for_store(&self, value: Json) -> Option<StoredFieldValue> {
+        if value == Json::Null {
+            return None;
+        }
+
+        match self.data_type {
+            FieldType::String => {
+                match value {
+                    Json::String(string) => {
+                        Some(StoredFieldValue::String(string))
+                    }
+                    Json::I64(num) => self.process_value_for_store(Json::String(num.to_string())),
+                    Json::U64(num) => self.process_value_for_store(Json::String(num.to_string())),
+                    Json::F64(num) => self.process_value_for_store(Json::String(num.to_string())),
+                    Json::Array(array) => {
+                        // Pack any strings into a vec, ignore nulls. Quit if we see anything else
+                        let mut strings = Vec::new();
+
+                        for item in array {
+                            match item {
+                                Json::String(string) => strings.push(string),
+                                Json::Null => {}
+                                _ => {
+                                    return None;
+                                }
+                            }
+                        }
+
+                        self.process_value_for_store(Json::String(strings.join(" ")))
+                    }
+                    _ => None,
+                }
+            }
+            FieldType::Integer => {
+                match value {
+                    Json::U64(num) => Some(StoredFieldValue::Integer(num as i64)),
+                    Json::I64(num) => Some(StoredFieldValue::Integer(num)),
+                    _ => None,
+                }
+            }
+            FieldType::Boolean => Some(StoredFieldValue::Boolean(parse_boolean(&value))),
+            FieldType::Date => {
+                match value {
+                    Json::String(string) => {
+                        let date_parsed = match string.parse::<DateTime<UTC>>() {
+                            Ok(date_parsed) => date_parsed,
+                            Err(_) => {
+                                // TODO: Handle this properly
+                                return None;
+                            }
+                        };
+
+                        Some(StoredFieldValue::DateTime(date_parsed))
                     }
                     Json::U64(_) => {
                         // TODO needs to be interpreted as milliseconds since epoch
