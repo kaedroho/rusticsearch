@@ -201,6 +201,8 @@ impl RocksDBIndexStore {
         write_batch.merge(&kb.key(), &[0; 0]);
 
         // Insert contents
+
+        // Indexed fields
         let mut token_count: i64 = 0;
         for (field_name, tokens) in doc.fields.iter() {
             let field_ref = match self.schema.get_field_by_name(field_name) {
@@ -220,6 +222,20 @@ impl RocksDBIndexStore {
                 BigEndian::write_u16(&mut doc_id_bytes, doc_ref.ord());
                 write_batch.merge(&kb.key(), &doc_id_bytes);
             }
+        }
+
+        // Stored fields
+        for (field_name, value) in doc.stored_fields.iter() {
+            let field_ref = match self.schema.get_field_by_name(field_name) {
+                Some(field_ref) => field_ref,
+                None => {
+                    // TODO: error?
+                    continue;
+                }
+            };
+
+            let mut kb = KeyBuilder::stored_field_value(doc_ref.chunk(), field_ref.ord(), doc_ref.ord());
+            write_batch.merge(&kb.key(), &value.to_bytes());
         }
 
         // Increment total docs
@@ -281,7 +297,8 @@ mod tests {
 
     use rocksdb::{DB, Options, IteratorMode};
     use kite::{Term, Token, Document};
-    use kite::schema::{Schema, FieldType, FIELD_INDEXED, FieldRef};
+    use kite::document::StoredFieldValue;
+    use kite::schema::{Schema, FieldType, FIELD_INDEXED, FIELD_STORED, FieldRef};
     use kite::query::Query;
     use kite::query::term_scorer::TermScorer;
     use kite::collectors::top_score::TopScoreCollector;
@@ -316,6 +333,7 @@ mod tests {
         let mut store = RocksDBIndexStore::create(path).unwrap();
         let mut title_field = store.add_field("title".to_string(), FieldType::Text, FIELD_INDEXED).unwrap();
         let mut body_field = store.add_field("body".to_string(), FieldType::Text, FIELD_INDEXED).unwrap();
+        let mut pk_field = store.add_field("pk".to_string(), FieldType::I64, FIELD_STORED).unwrap();
 
         store.insert_or_update_document(Document {
             key: "test_doc".to_string(),
@@ -329,6 +347,9 @@ mod tests {
                     Token { term: Term::String("ipsum".to_string()), position: 2 },
                     Token { term: Term::String("dolar".to_string()), position: 3 },
                 ],
+            },
+            stored_fields: hashmap! {
+                "pk".to_string() => StoredFieldValue::Integer(1),
             }
         });
 
@@ -344,6 +365,9 @@ mod tests {
                     Token { term: Term::String("ipsum".to_string()), position: 2 },
                     Token { term: Term::String("dolar".to_string()), position: 3 },
                 ],
+            },
+            stored_fields: hashmap! {
+                "pk".to_string() => StoredFieldValue::Integer(2),
             }
         });
 
