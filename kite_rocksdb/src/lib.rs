@@ -1,4 +1,5 @@
 #![feature(integer_atomics)]
+#![feature(slice_patterns)]
 
 extern crate kite;
 extern crate rocksdb;
@@ -6,6 +7,7 @@ extern crate rustc_serialize;
 #[macro_use]
 extern crate maplit;
 extern crate byteorder;
+extern crate chrono;
 
 pub mod key_builder;
 pub mod chunk;
@@ -13,6 +15,7 @@ pub mod term_dictionary;
 pub mod document_index;
 pub mod search;
 
+use std::str;
 use std::sync::{Arc, RwLock};
 use std::sync::atomic::{AtomicU32, Ordering};
 use std::collections::BTreeMap;
@@ -20,9 +23,11 @@ use std::collections::BTreeMap;
 use rocksdb::{DB, WriteBatch, Writable, Options, MergeOperands};
 use rocksdb::rocksdb::Snapshot;
 use kite::{Term, Document};
+use kite::document::StoredFieldValue;
 use kite::schema::{Schema, SchemaRead, SchemaWrite, FieldType, FieldFlags, FieldRef, AddFieldError};
 use rustc_serialize::{json, Encodable};
 use byteorder::{ByteOrder, BigEndian};
+use chrono::{NaiveDateTime, DateTime, UTC};
 
 use key_builder::KeyBuilder;
 use chunk::ChunkManager;
@@ -287,6 +292,45 @@ impl<'a> RocksDBIndexReader<'a> {
     pub fn contains_document_key(&self, doc_key: &str) -> bool {
         // TODO: use snapshot
         self.store.document_index.contains_document_key(&doc_key.as_bytes().iter().cloned().collect())
+    }
+
+    pub fn read_stored_field(&self, field_ref: FieldRef, doc_ref: DocRef) -> Option<StoredFieldValue> {
+        let field_info = match self.schema().get(&field_ref) {
+            Some(field_info) => field_info,
+            None => return None,  // TODO Error?
+        };
+
+        let mut kb = KeyBuilder::stored_field_value(doc_ref.chunk(), field_ref.ord(), doc_ref.ord());
+
+        match self.snapshot.get(&kb.key()) {
+            Ok(Some(value)) => {
+                match field_info.field_type {
+                    FieldType::Text | FieldType::PlainString => {
+                        Some(StoredFieldValue::String(str::from_utf8(&value).unwrap().to_string()))
+                    }
+                    FieldType::I64 => {
+                        Some(StoredFieldValue::Integer(BigEndian::read_i64(&value)))
+                    }
+                    FieldType::Boolean => {
+                        match value[..] {
+                            [b't'] => Some(StoredFieldValue::Boolean(true)),
+                            [b'f'] => Some(StoredFieldValue::Boolean(false)),
+                            _ => None  // TODO Error
+                        }
+                    }
+                    FieldType::DateTime => {
+                        let timestamp_with_micros = BigEndian::read_i64(&value);
+                        let timestamp = timestamp_with_micros / 1000000;
+                        let micros = timestamp_with_micros % 1000000;
+                        let nanos = micros * 1000;
+                        let datetime = NaiveDateTime::from_timestamp(timestamp, nanos as u32);
+                        Some(StoredFieldValue::DateTime(DateTime::from_utc(datetime, UTC)))
+                    }
+                }
+            }
+            Ok(None) => None,
+            Err(e) => None,  // TODO Error
+        }
     }
 }
 
