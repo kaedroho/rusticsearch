@@ -16,14 +16,14 @@ impl KeyBuilder {
         }
     }
 
-    pub fn stored_field_value(chunk: u32, field_ord: u32, doc_ord: u16) -> KeyBuilder {
+    pub fn stored_field_value(chunk: u32, doc_ord: u16, field_ord: u32) -> KeyBuilder {
         let mut kb = KeyBuilder::new();
         kb.push_char(b'v');
-        kb.push_string(field_ord.to_string().as_bytes());
-        kb.separator();
         kb.push_string(chunk.to_string().as_bytes());
         kb.separator();
         kb.push_string(doc_ord.to_string().as_bytes());
+        kb.separator();
+        kb.push_string(field_ord.to_string().as_bytes());
         kb
     }
 
