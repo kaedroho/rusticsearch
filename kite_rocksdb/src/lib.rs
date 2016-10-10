@@ -222,10 +222,15 @@ impl RocksDBIndexStore {
                 token_count += 1;
                 let term_ref = self.term_dictionary.get_or_create(&self.db, &token.term);
 
+                // Write directory list
                 let mut kb = KeyBuilder::chunk_dir_list(doc_ref.chunk(), field_ref.ord(), term_ref.ord());
                 let mut doc_id_bytes = [0; 2];
                 BigEndian::write_u16(&mut doc_id_bytes, doc_ref.ord());
                 write_batch.merge(&kb.key(), &doc_id_bytes);
+
+                // Write beacon
+                let mut kb = KeyBuilder::chunk_dir_list_beacon(doc_ref.chunk(), field_ref.ord(), term_ref.ord());
+                write_batch.put(&kb.key(), b"");
             }
         }
 
@@ -414,6 +419,8 @@ mod tests {
                 "pk".to_string() => FieldValue::Integer(2),
             }
         });
+
+        store.chunks.merge_chunks(&store.db, vec![1, 2]);
 
         store
     }
