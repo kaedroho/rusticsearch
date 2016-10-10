@@ -59,6 +59,21 @@ impl KeyBuilder {
         kb
     }
 
+    pub fn chunk_dir_list_beacon(chunk: u32, field_ord: u32, term_ord: u32) -> KeyBuilder {
+        // Due to the key order, we can't easily find all the directory lists
+        // for a particular chunk. We need these in order to perform chunk
+        // merging. To work around this, we add another key, the "beacon"
+        // which locates the directory lists for chunks.
+        let mut kb = KeyBuilder::new();
+        kb.push_char(b'D');
+        kb.push_string(chunk.to_string().as_bytes());
+        kb.separator();
+        kb.push_string(field_ord.to_string().as_bytes());
+        kb.separator();
+        kb.push_string(term_ord.to_string().as_bytes());
+        kb
+    }
+
     pub fn chunk_stat(chunk: u32, name: &[u8]) -> KeyBuilder {
         let mut kb = KeyBuilder::new();
         kb.push_char(b's');
