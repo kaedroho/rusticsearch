@@ -239,7 +239,7 @@ impl RocksDBIndexStore {
                 }
             };
 
-            let mut kb = KeyBuilder::stored_field_value(doc_ref.chunk(), field_ref.ord(), doc_ref.ord());
+            let mut kb = KeyBuilder::stored_field_value(doc_ref.chunk(), doc_ref.ord(), field_ref.ord());
             write_batch.merge(&kb.key(), &value.to_bytes());
         }
 
@@ -300,7 +300,7 @@ impl<'a> RocksDBIndexReader<'a> {
             None => return None,  // TODO Error?
         };
 
-        let mut kb = KeyBuilder::stored_field_value(doc_ref.chunk(), field_ref.ord(), doc_ref.ord());
+        let mut kb = KeyBuilder::stored_field_value(doc_ref.chunk(), doc_ref.ord(), field_ref.ord());
 
         match self.snapshot.get(&kb.key()) {
             Ok(Some(value)) => {
