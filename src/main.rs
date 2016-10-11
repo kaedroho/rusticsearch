@@ -11,6 +11,7 @@ extern crate slog;
 extern crate slog_term;
 #[macro_use]
 extern crate maplit;
+extern crate unicode_segmentation;
 
 pub mod analysis;
 pub mod query_parser;

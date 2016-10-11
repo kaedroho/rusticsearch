@@ -132,11 +132,10 @@ impl MappingBuilder {
 mod tests {
     use std::collections::HashMap;
 
-    use kite::analysis::AnalyzerSpec;
-    use kite::analysis::tokenizers::TokenizerSpec;
-    use kite::analysis::filters::FilterSpec;
-
     use analysis::registry::AnalyzerRegistry;
+    use analysis::AnalyzerSpec;
+    use analysis::tokenizers::TokenizerSpec;
+    use analysis::filters::FilterSpec;
     use mapping::{Mapping, FieldMapping, FieldType, get_standard_analyzer};
 
     use super::{MappingBuilder, FieldMappingBuilder};

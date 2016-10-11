@@ -1,5 +1,4 @@
 extern crate rustc_serialize;
-extern crate unicode_segmentation;
 #[macro_use]
 extern crate log;
 #[macro_use]
@@ -10,7 +9,6 @@ extern crate byteorder;
 
 pub mod term;
 pub mod token;
-pub mod analysis;
 pub mod schema;
 pub mod document;
 pub mod store;
