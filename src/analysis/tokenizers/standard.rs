@@ -2,8 +2,7 @@
 
 use unicode_segmentation::{UnicodeSegmentation, UnicodeWords};
 
-use term::Term;
-use token::Token;
+use kite::{Term, Token};
 
 
 pub struct StandardTokenizer<'a> {
@@ -44,8 +43,7 @@ impl<'a> Iterator for StandardTokenizer<'a> {
 
 #[cfg(test)]
 mod tests {
-    use term::Term;
-    use token::Token;
+    use kite::{Term, Token};
 
     use super::StandardTokenizer;
 

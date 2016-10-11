@@ -1,24 +1,28 @@
-//! Converts each token into lowercase
+//! Converts any non-ASCII character into ASCII if a reasonable equivilent exists
+//!
+//! For example, "Ĥéllø" is converted to "Hello" but non-latin scripts such as
+//! arabic or hiragana are not changed.
 
-use term::Term;
-use token::Token;
+use kite::{Term, Token};
+
+use analysis::lucene_asciifold::fold_to_ascii;
 
 
-pub struct LowercaseFilter<'a> {
+pub struct ASCIIFoldingFilter<'a> {
     tokens: Box<Iterator<Item=Token> + 'a>,
 }
 
 
-impl<'a> LowercaseFilter<'a> {
-    pub fn new(tokens: Box<Iterator<Item=Token> +'a>) -> LowercaseFilter<'a> {
-        LowercaseFilter {
+impl<'a> ASCIIFoldingFilter<'a> {
+    pub fn new(tokens: Box<Iterator<Item=Token> +'a >) -> ASCIIFoldingFilter<'a> {
+        ASCIIFoldingFilter {
             tokens: tokens,
         }
     }
 }
 
 
-impl<'a> Iterator for LowercaseFilter<'a> {
+impl<'a> Iterator for ASCIIFoldingFilter<'a> {
     type Item = Token;
 
     fn next(&mut self) -> Option<Token> {
@@ -26,9 +30,8 @@ impl<'a> Iterator for LowercaseFilter<'a> {
             Some(token) => {
                 Some(Token {
                     term: match token.term {
-                        Term::String(string) => {
-                            // TODO: Can this be done in place?
-                            Term::String(string.to_lowercase())
+                        Term::String(ref string) => {
+                            Term::String(fold_to_ascii(string))
                         }
                         _ => token.term,
                     },
@@ -43,42 +46,37 @@ impl<'a> Iterator for LowercaseFilter<'a> {
 
 #[cfg(test)]
 mod tests {
-    use term::Term;
-    use token::Token;
+    use kite::{Term, Token};
 
-    use super::LowercaseFilter;
+    use super::ASCIIFoldingFilter;
 
     #[test]
-    fn test_lowercase_filter() {
+    fn test_simple() {
         let mut tokens: Vec<Token> = vec![
-            Token { term: Term::String("Hulk".to_string()), position: 1 },
-            Token { term: Term::String("SMASH".to_string()), position: 2 }
+            Token { term: Term::String("Ĥéllø".to_string()), position: 1 },
         ];
 
-        let token_filter = LowercaseFilter::new(Box::new(tokens.drain((..))));
+        let token_filter = ASCIIFoldingFilter::new(Box::new(tokens.drain((..))));
         let tokens = token_filter.collect::<Vec<Token>>();
 
         assert_eq!(tokens, vec![
-            Token { term: Term::String("hulk".to_string()), position: 1 },
-            Token { term: Term::String("smash".to_string()), position: 2 }
+            Token { term: Term::String("Hello".to_string()), position: 1 }
         ]);
     }
 
     #[test]
-    fn test_lowercase_filter_cjk() {
+    fn test_hiragana_not_changed() {
         let mut tokens: Vec<Token> = vec![
             Token { term: Term::String("こんにちは".to_string()), position: 1 },
             Token { term: Term::String("ハチ公".to_string()), position: 2 },
-            Token { term: Term::String("Test".to_string()), position: 3 }
         ];
 
-        let token_filter = LowercaseFilter::new(Box::new(tokens.drain((..))));
+        let token_filter = ASCIIFoldingFilter::new(Box::new(tokens.drain((..))));
         let tokens = token_filter.collect::<Vec<Token>>();
 
         assert_eq!(tokens, vec![
             Token { term: Term::String("こんにちは".to_string()), position: 1 },
             Token { term: Term::String("ハチ公".to_string()), position: 2 },
-            Token { term: Term::String("test".to_string()), position: 3 }
         ]);
     }
 }

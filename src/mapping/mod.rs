@@ -8,12 +8,12 @@ use rustc_serialize::json::Json;
 use chrono::{DateTime, UTC};
 use kite::{Term, Token};
 use kite::document::StoredFieldValue;
-use kite::analysis::AnalyzerSpec;
-use kite::analysis::tokenizers::TokenizerSpec;
-use kite::analysis::filters::FilterSpec;
 use kite::similarity::SimilarityModel;
 use kite::schema::FieldRef;
 
+use analysis::AnalyzerSpec;
+use analysis::tokenizers::TokenizerSpec;
+use analysis::filters::FilterSpec;
 use analysis::registry::AnalyzerRegistry;
 
 

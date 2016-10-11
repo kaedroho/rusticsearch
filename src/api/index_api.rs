@@ -1,9 +1,9 @@
-use kite::analysis::AnalyzerSpec;
-use kite::analysis::tokenizers::TokenizerSpec;
-use kite::analysis::filters::FilterSpec;
-use kite::analysis::ngram_generator::Edge;
 use kite::store::memory::MemoryIndexStore;
 
+use analysis::AnalyzerSpec;
+use analysis::tokenizers::TokenizerSpec;
+use analysis::filters::FilterSpec;
+use analysis::ngram_generator::Edge;
 use index::Index;
 
 use api::persistent;

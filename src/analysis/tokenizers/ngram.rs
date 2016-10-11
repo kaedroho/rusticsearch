@@ -1,7 +1,7 @@
 use unicode_segmentation::{UnicodeSegmentation, UnicodeWords};
 
-use term::Term;
-use token::Token;
+use kite::{Term, Token};
+
 use analysis::ngram_generator::{Edge, NGramGenerator};
 
 
@@ -63,8 +63,8 @@ impl<'a> Iterator for NGramTokenizer<'a> {
 
 #[cfg(test)]
 mod tests {
-    use term::Term;
-    use token::Token;
+    use kite::{Term, Token};
+
     use analysis::ngram_generator::Edge;
 
     use super::NGramTokenizer;

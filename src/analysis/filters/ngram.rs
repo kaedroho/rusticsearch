@@ -2,8 +2,8 @@
 
 use std::collections::VecDeque;
 
-use term::Term;
-use token::Token;
+use kite::{Term, Token};
+
 use analysis::ngram_generator::{Edge, NGramGenerator};
 
 
@@ -61,8 +61,8 @@ impl<'a> Iterator for NGramFilter<'a> {
 
 #[cfg(test)]
 mod tests {
-    use term::Term;
-    use token::Token;
+    use kite::{Term, Token};
+
     use analysis::ngram_generator::Edge;
 
     use super::NGramFilter;

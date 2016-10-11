@@ -2,7 +2,8 @@ pub mod lowercase;
 pub mod ngram;
 pub mod asciifolding;
 
-use token::Token;
+use kite::Token;
+
 use analysis::ngram_generator::Edge;
 use analysis::filters::lowercase::LowercaseFilter;
 use analysis::filters::ngram::NGramFilter;

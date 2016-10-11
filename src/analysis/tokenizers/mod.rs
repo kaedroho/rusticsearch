@@ -1,7 +1,8 @@
 pub mod standard;
 pub mod ngram;
 
-use token::Token;
+use kite::token::Token;
+
 use analysis::ngram_generator::Edge;
 use analysis::tokenizers::standard::StandardTokenizer;
 use analysis::tokenizers::ngram::NGramTokenizer;

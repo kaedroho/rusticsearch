@@ -1,9 +1,9 @@
 use std::collections::HashMap;
 use std::ops::{Deref, DerefMut};
 
-use kite::analysis::AnalyzerSpec;
-use kite::analysis::tokenizers::TokenizerSpec;
-use kite::analysis::filters::FilterSpec;
+use analysis::AnalyzerSpec;
+use analysis::tokenizers::TokenizerSpec;
+use analysis::filters::FilterSpec;
 
 
 #[derive(Debug)]
