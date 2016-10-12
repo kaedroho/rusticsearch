@@ -23,7 +23,7 @@ use std::collections::BTreeMap;
 use rocksdb::{DB, WriteBatch, Writable, Options, MergeOperands};
 use rocksdb::rocksdb::Snapshot;
 use kite::{Term, Document};
-use kite::document::StoredFieldValue;
+use kite::document::FieldValue;
 use kite::schema::{Schema, SchemaRead, SchemaWrite, FieldType, FieldFlags, FieldRef, AddFieldError};
 use rustc_serialize::{json, Encodable};
 use byteorder::{ByteOrder, BigEndian};
@@ -294,7 +294,7 @@ impl<'a> RocksDBIndexReader<'a> {
         self.store.document_index.contains_document_key(&doc_key.as_bytes().iter().cloned().collect())
     }
 
-    pub fn read_stored_field(&self, field_ref: FieldRef, doc_ref: DocRef) -> Option<StoredFieldValue> {
+    pub fn read_stored_field(&self, field_ref: FieldRef, doc_ref: DocRef) -> Option<FieldValue> {
         let field_info = match self.schema().get(&field_ref) {
             Some(field_info) => field_info,
             None => return None,  // TODO Error?
@@ -306,15 +306,15 @@ impl<'a> RocksDBIndexReader<'a> {
             Ok(Some(value)) => {
                 match field_info.field_type {
                     FieldType::Text | FieldType::PlainString => {
-                        Some(StoredFieldValue::String(str::from_utf8(&value).unwrap().to_string()))
+                        Some(FieldValue::String(str::from_utf8(&value).unwrap().to_string()))
                     }
                     FieldType::I64 => {
-                        Some(StoredFieldValue::Integer(BigEndian::read_i64(&value)))
+                        Some(FieldValue::Integer(BigEndian::read_i64(&value)))
                     }
                     FieldType::Boolean => {
                         match value[..] {
-                            [b't'] => Some(StoredFieldValue::Boolean(true)),
-                            [b'f'] => Some(StoredFieldValue::Boolean(false)),
+                            [b't'] => Some(FieldValue::Boolean(true)),
+                            [b'f'] => Some(FieldValue::Boolean(false)),
                             _ => None  // TODO Error
                         }
                     }
@@ -324,7 +324,7 @@ impl<'a> RocksDBIndexReader<'a> {
                         let micros = timestamp_with_micros % 1000000;
                         let nanos = micros * 1000;
                         let datetime = NaiveDateTime::from_timestamp(timestamp, nanos as u32);
-                        Some(StoredFieldValue::DateTime(DateTime::from_utc(datetime, UTC)))
+                        Some(FieldValue::DateTime(DateTime::from_utc(datetime, UTC)))
                     }
                 }
             }
@@ -341,7 +341,7 @@ mod tests {
 
     use rocksdb::{DB, Options, IteratorMode};
     use kite::{Term, Token, Document};
-    use kite::document::StoredFieldValue;
+    use kite::document::FieldValue;
     use kite::schema::{Schema, FieldType, FIELD_INDEXED, FIELD_STORED, FieldRef};
     use kite::query::Query;
     use kite::query::term_scorer::TermScorer;
@@ -393,7 +393,7 @@ mod tests {
                 ],
             },
             stored_fields: hashmap! {
-                "pk".to_string() => StoredFieldValue::Integer(1),
+                "pk".to_string() => FieldValue::Integer(1),
             }
         });
 
@@ -411,7 +411,7 @@ mod tests {
                 ],
             },
             stored_fields: hashmap! {
-                "pk".to_string() => StoredFieldValue::Integer(2),
+                "pk".to_string() => FieldValue::Integer(2),
             }
         });
 

@@ -7,7 +7,7 @@ use token::Token;
 
 
 #[derive(Debug)]
-pub enum StoredFieldValue {
+pub enum FieldValue {
     String(String),
     Integer(i64),
     Boolean(bool),
@@ -15,10 +15,10 @@ pub enum StoredFieldValue {
 }
 
 
-impl StoredFieldValue {
+impl FieldValue {
     pub fn to_bytes(&self) -> Vec<u8> {
         match *self {
-            StoredFieldValue::String(ref string) => {
+            FieldValue::String(ref string) => {
                 let mut bytes = Vec::with_capacity(string.len());
 
                 for byte in string.as_bytes() {
@@ -27,19 +27,19 @@ impl StoredFieldValue {
 
                 bytes
             }
-            StoredFieldValue::Integer(value) => {
+            FieldValue::Integer(value) => {
                 let mut bytes = Vec::with_capacity(8);
                 bytes.write_i64::<BigEndian>(value).unwrap();
                 bytes
             }
-            StoredFieldValue::Boolean(value) => {
+            FieldValue::Boolean(value) => {
                 if value {
                     vec![b't']
                 } else {
                     vec![b'f']
                 }
             }
-            StoredFieldValue::DateTime(value) => {
+            FieldValue::DateTime(value) => {
                 let mut bytes = Vec::with_capacity(0);
                 let timestamp = value.timestamp();
                 let micros = value.nanosecond() / 1000;
@@ -56,5 +56,5 @@ impl StoredFieldValue {
 pub struct Document {
     pub key: String,
     pub fields: HashMap<String, Vec<Token>>,
-    pub stored_fields: HashMap<String, StoredFieldValue>,
+    pub stored_fields: HashMap<String, FieldValue>,
 }

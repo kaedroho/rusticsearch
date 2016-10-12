@@ -7,7 +7,7 @@ use std::ops::{Deref, DerefMut};
 use rustc_serialize::json::Json;
 use chrono::{DateTime, UTC};
 use kite::{Term, Token};
-use kite::document::StoredFieldValue;
+use kite::document::FieldValue;
 use kite::similarity::SimilarityModel;
 use kite::schema::FieldRef;
 
@@ -195,7 +195,7 @@ impl FieldMapping {
         }
     }
 
-    pub fn process_value_for_store(&self, value: Json) -> Option<StoredFieldValue> {
+    pub fn process_value_for_store(&self, value: Json) -> Option<FieldValue> {
         if value == Json::Null {
             return None;
         }
@@ -204,7 +204,7 @@ impl FieldMapping {
             FieldType::String => {
                 match value {
                     Json::String(string) => {
-                        Some(StoredFieldValue::String(string))
+                        Some(FieldValue::String(string))
                     }
                     Json::I64(num) => self.process_value_for_store(Json::String(num.to_string())),
                     Json::U64(num) => self.process_value_for_store(Json::String(num.to_string())),
@@ -230,12 +230,12 @@ impl FieldMapping {
             }
             FieldType::Integer => {
                 match value {
-                    Json::U64(num) => Some(StoredFieldValue::Integer(num as i64)),
-                    Json::I64(num) => Some(StoredFieldValue::Integer(num)),
+                    Json::U64(num) => Some(FieldValue::Integer(num as i64)),
+                    Json::I64(num) => Some(FieldValue::Integer(num)),
                     _ => None,
                 }
             }
-            FieldType::Boolean => Some(StoredFieldValue::Boolean(parse_boolean(&value))),
+            FieldType::Boolean => Some(FieldValue::Boolean(parse_boolean(&value))),
             FieldType::Date => {
                 match value {
                     Json::String(string) => {
@@ -247,7 +247,7 @@ impl FieldMapping {
                             }
                         };
 
-                        Some(StoredFieldValue::DateTime(date_parsed))
+                        Some(FieldValue::DateTime(date_parsed))
                     }
                     Json::U64(_) => {
                         // TODO needs to be interpreted as milliseconds since epoch
