@@ -4,6 +4,10 @@ rust:
   - stable
   - nightly
 
+os:
+  - linux
+  - osx
+
 sudo: false
 
 script:
