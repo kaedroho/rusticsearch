@@ -4,10 +4,11 @@ use std::collections::HashMap;
 
 use rocksdb::{DB, Writable, DBIterator, IteratorMode, Direction};
 use rocksdb::rocksdb::Snapshot;
-use byteorder::{ByteOrder, BigEndian};
+use byteorder::{ByteOrder, BigEndian, WriteBytesExt};
 
 use document_index::DocRef;
 use key_builder::KeyBuilder;
+use search::doc_id_set::DocIdSet;
 
 
 #[derive(Debug)]
@@ -104,17 +105,61 @@ impl ChunkManager {
 
         // Merge the term directories
         // The term directory keys are ordered to be most convenient for retrieving all the chunks
-        // of for a term/field combination in one go (field/term/chunk). Unfortunately, this makes
-        // it difficult to find all the term directories for a particular chunk -- there are many
-        // term/field combinations and most chunks won't need every combination.
+        // of for a term/field combination in one go (field/term/chunk). So we don't end up pulling
+        // in a lot of unwanted data, we firstly iterate the keys, it they one of the source chunks
+        // looking for then we load them and append them to our new chunk.
 
-        // We need a quick way to find all the term directories for a given chunk. This has been
-        // solved by adding "term directory beacon" key for every term directory these are ordered
-        // by (chunk/field/term). A simple prefix scan will give is all we need to find all the term
-        // directories for a given chunk id.
+        /// Converts term directory key strings "d1/2/3" into tuples of 3 i32s (1, 2, 3)
+        fn parse_term_directory_key(key: &[u8]) -> (u32, u32, u32) {
+            let mut nums_iter = key[1..].split(|b| *b == b'/').map(|s| str::from_utf8(s).unwrap().parse::<u32>().unwrap());
+            (nums_iter.next().unwrap(), nums_iter.next().unwrap(), nums_iter.next().unwrap())
+        }
 
-        for source_chunk in source_chunks.iter() {
+        let mut current_td_key: Option<(u32, u32)> = None;
+        let mut current_td = Vec::new();
 
+        for k in db.keys_iterator(IteratorMode::From(b"d", Direction::Forward)) {
+            if k[0] != b'd' {
+                // No more term directories to merge
+                break;
+            }
+
+            let (field, term, chunk) = parse_term_directory_key(&k);
+
+            if !source_chunks.contains(&chunk) {
+                continue;
+            }
+
+            if current_td_key != Some((field, term)) {
+                // Finished current term directory. Write it to the DB and start the next one
+                if let Some((field, term)) = current_td_key {
+                    let kb = KeyBuilder::chunk_dir_list(dest_chunk, field, term);
+                    db.put(&kb.key(), &current_td);
+                    current_td.clear();
+                }
+
+                current_td_key = Some((field, term));
+            }
+
+            // Merge term directory into the new one (and remap the doc ids)
+            match db.get(&k) {
+                Ok(Some(docid_set)) => {
+                    for doc_id in DocIdSet::FromRDB(docid_set).iter() {
+                        let doc_ref = DocRef::from_chunk_ord(chunk, doc_id);
+                        let new_doc_id = doc_ref_mapping.get(&doc_ref).unwrap();
+                        current_td.write_u16::<BigEndian>(*new_doc_id);
+                    }
+                }
+                Ok(None) => {},  // FIXME
+                Err(e) => {},  // FIXME
+            }
+        }
+
+        // All done, write the last term directory
+        if let Some((field, term)) = current_td_key {
+            let kb = KeyBuilder::chunk_dir_list(dest_chunk, field, term);
+            db.put(&kb.key(), &current_td);
+            current_td.clear();
         }
 
         // Merge the stored values
