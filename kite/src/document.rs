@@ -55,6 +55,6 @@ impl FieldValue {
 #[derive(Debug)]
 pub struct Document {
     pub key: String,
-    pub fields: HashMap<String, Vec<Token>>,
+    pub indexed_fields: HashMap<String, Vec<Token>>,
     pub stored_fields: HashMap<String, FieldValue>,
 }

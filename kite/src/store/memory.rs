@@ -95,7 +95,7 @@ impl<'a> IndexStore<'a> for MemoryIndexStore {
         self.next_doc_id += 1;
 
         // Put field contents in inverted index
-        for (field_name, tokens) in doc.fields.iter() {
+        for (field_name, tokens) in doc.indexed_fields.iter() {
             // Silently ignore unrecognised fields
             // TODO: Review this
             if let Some(ref field_ref) = self.reader().schema().get_field_by_name(field_name) {
@@ -269,7 +269,7 @@ mod tests {
 
         store.insert_or_update_document(Document {
             key: "test_doc".to_string(),
-            fields: hashmap! {
+            indexed_fields: hashmap! {
                 "title".to_string() => vec![
                     Token { term: Term::String("hello".to_string()), position: 1 },
                     Token { term: Term::String("world".to_string()), position: 2 },
@@ -279,12 +279,13 @@ mod tests {
                     Token { term: Term::String("ipsum".to_string()), position: 2 },
                     Token { term: Term::String("dolar".to_string()), position: 3 },
                 ],
-            }
+            },
+            stored_fields: hashmap! {}
         });
 
         store.insert_or_update_document(Document {
             key: "test_doc".to_string(),
-            fields: hashmap! {
+            indexed_fields: hashmap! {
                 "title".to_string() => vec![
                     Token { term: Term::String("howdy".to_string()), position: 1 },
                     Token { term: Term::String("partner".to_string()), position: 2 },
@@ -294,7 +295,8 @@ mod tests {
                     Token { term: Term::String("ipsum".to_string()), position: 2 },
                     Token { term: Term::String("dolar".to_string()), position: 3 },
                 ],
-            }
+            },
+            stored_fields: hashmap! {}
         });
 
         store

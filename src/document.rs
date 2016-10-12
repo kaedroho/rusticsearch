@@ -15,7 +15,7 @@ pub struct DocumentSource {
 
 impl DocumentSource {
     pub fn prepare(&self, mapping: &Mapping) -> Document {
-        let mut fields = HashMap::new();
+        let mut indexed_fields = HashMap::new();
         let mut stored_fields = HashMap::new();
         let mut all_field_strings: Vec<String> = Vec::new();
 
@@ -40,7 +40,7 @@ impl DocumentSource {
                                 }
 
                                 // Insert the field
-                                fields.insert(field_name.clone(), value);
+                                indexed_fields.insert(field_name.clone(), value);
                             }
                             None => {
                                 // TODO: Should probably be an error
@@ -79,7 +79,7 @@ impl DocumentSource {
 
                 match value {
                     Some(value) => {
-                        fields.insert("_all".to_string(), value);
+                        indexed_fields.insert("_all".to_string(), value);
                     }
                     None => {
                         // TODO: Should probably be an error
@@ -94,7 +94,7 @@ impl DocumentSource {
 
         Document {
             key: self.key.clone(),
-            fields: fields,
+            indexed_fields: indexed_fields,
             stored_fields: stored_fields,
         }
     }

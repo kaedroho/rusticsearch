@@ -209,7 +209,7 @@ impl RocksDBIndexStore {
 
         // Indexed fields
         let mut token_count: i64 = 0;
-        for (field_name, tokens) in doc.fields.iter() {
+        for (field_name, tokens) in doc.indexed_fields.iter() {
             let field_ref = match self.schema.get_field_by_name(field_name) {
                 Some(field_ref) => field_ref,
                 None => {
@@ -381,7 +381,7 @@ mod tests {
 
         store.insert_or_update_document(Document {
             key: "test_doc".to_string(),
-            fields: hashmap! {
+            indexed_fields: hashmap! {
                 "title".to_string() => vec![
                     Token { term: Term::String("hello".to_string()), position: 1 },
                     Token { term: Term::String("world".to_string()), position: 2 },
@@ -399,7 +399,7 @@ mod tests {
 
         store.insert_or_update_document(Document {
             key: "another_test_doc".to_string(),
-            fields: hashmap! {
+            indexed_fields: hashmap! {
                 "title".to_string() => vec![
                     Token { term: Term::String("howdy".to_string()), position: 1 },
                     Token { term: Term::String("partner".to_string()), position: 2 },
