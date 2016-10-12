@@ -15,7 +15,7 @@ pub struct SearchHit<'a> {
 impl<'a> SearchHit<'a> {
     pub fn as_json(&self) -> Json {
         let mut pk_field: Vec<Json> = Vec::new();
-        pk_field.push(self.doc.fields.get("pk").unwrap()[0].term.as_json());
+        pk_field.push(self.doc.indexed_fields.get("pk").unwrap()[0].term.as_json());
 
         let mut fields = BTreeMap::new();
         fields.insert("pk".to_owned(), Json::Array(pk_field));

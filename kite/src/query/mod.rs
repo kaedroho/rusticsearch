@@ -166,7 +166,7 @@ impl Query {
             Query::MatchAll{score} => true,
             Query::MatchNone => false,
             Query::MatchTerm{ref field, ref term, ref scorer} => {
-                if let Some(field_value) = doc.fields.get(field) {
+                if let Some(field_value) = doc.indexed_fields.get(field) {
                     for field_token in field_value.iter() {
                         if &field_token.term == term {
                             return true;
@@ -177,7 +177,7 @@ impl Query {
                 false
             }
             Query::MatchMultiTerm{ref field, ref term_selector, ref scorer} => {
-                if let Some(field_value) = doc.fields.get(field) {
+                if let Some(field_value) = doc.indexed_fields.get(field) {
                     for field_token in field_value.iter() {
                         if term_selector.matches(&field_token.term) {
                             return true;
@@ -244,7 +244,7 @@ impl Query {
             Query::MatchNone => None,
             Query::MatchTerm{ref field, ref term, ref scorer} => {
                 if let Some(field_ref) = index_reader.schema().get_field_by_name(field) {
-                    if let Some(field_value) = doc.fields.get(field) {
+                    if let Some(field_value) = doc.indexed_fields.get(field) {
                         let mut term_freq: u32 = 0;
                         for field_token in field_value.iter() {
                             if &field_token.term == term {
@@ -262,7 +262,7 @@ impl Query {
             }
             Query::MatchMultiTerm{ref field, ref term_selector, ref scorer} => {
                 if let Some(field_ref) = index_reader.schema().get_field_by_name(field) {
-                    if let Some(field_value) = doc.fields.get(field) {
+                    if let Some(field_value) = doc.indexed_fields.get(field) {
                         let mut term_frequencies = HashMap::new();
                         for field_token in field_value.iter() {
                             if term_selector.matches(&field_token.term) {
