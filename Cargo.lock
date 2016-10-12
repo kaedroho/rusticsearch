@@ -225,7 +225,7 @@ dependencies = [
  "chrono 0.2.25 (registry+https://github.com/rust-lang/crates.io-index)",
  "kite 0.0.1",
  "maplit 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)",
- "rocksdb 0.4.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "rocksdb 0.4.1 (git+https://github.com/kaedroho/rust-rocksdb?rev=d4b160b)",
  "rustc-serialize 0.3.19 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
@@ -382,7 +382,7 @@ dependencies = [
 [[package]]
 name = "rocksdb"
 version = "0.4.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
+source = "git+https://github.com/kaedroho/rust-rocksdb?rev=d4b160b#d4b160b61fb0d6056b5ded08349f541bab384e29"
 dependencies = [
  "libc 0.2.16 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
@@ -583,7 +583,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 "checksum plugin 0.2.6 (registry+https://github.com/rust-lang/crates.io-index)" = "1a6a0dc3910bc8db877ffed8e457763b317cf880df4ae19109b9f77d277cf6e0"
 "checksum rand 0.3.14 (registry+https://github.com/rust-lang/crates.io-index)" = "2791d88c6defac799c3f20d74f094ca33b9332612d9aef9078519c82e4fe04a5"
 "checksum roaring 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)" = "969e26fb9004ee0a72f63dc95a1b7b0058ff526c6027745f1c393edc1b7b1b07"
-"checksum rocksdb 0.4.1 (registry+https://github.com/rust-lang/crates.io-index)" = "5656ce0eccb74b2cf2067140ab02d76f7b2e0eb2e2307057f67596791544aaed"
+"checksum rocksdb 0.4.1 (git+https://github.com/kaedroho/rust-rocksdb?rev=d4b160b)" = "<none>"
 "checksum route-recognizer 0.1.11 (registry+https://github.com/rust-lang/crates.io-index)" = "4f0a750d020adb1978f5964ea7bca830585899b09da7cbb3f04961fc2400122d"
 "checksum router 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)" = "ff665ba113dc57ef54604ded19375c5ddd23ec44b550a3667c595205b5f98b42"
 "checksum rustc-demangle 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)" = "662b2795f21ff17df7c4c50c1d955c8b5fa9eaddd1cf1bb32f8de2372ffd989b"
