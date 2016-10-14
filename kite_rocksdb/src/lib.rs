@@ -198,11 +198,11 @@ impl RocksDBIndexStore {
         let doc_ref = DocRef::from_chunk_ord(chunk, 0);
 
         // Start write batch
-        let mut write_batch = WriteBatch::default();
+        let write_batch = WriteBatch::default();
 
         // Set chunk active flag, this will activate the chunk as soon as the
         // write batch is written
-        let mut kb = KeyBuilder::chunk_active(doc_ref.chunk());
+        let kb = KeyBuilder::chunk_active(doc_ref.chunk());
         write_batch.put(&kb.key(), b"");
 
         // Insert contents
@@ -223,7 +223,7 @@ impl RocksDBIndexStore {
                 let term_ref = self.term_dictionary.get_or_create(&self.db, &token.term);
 
                 // Write directory list
-                let mut kb = KeyBuilder::chunk_dir_list(doc_ref.chunk(), field_ref.ord(), term_ref.ord());
+                let kb = KeyBuilder::chunk_dir_list(doc_ref.chunk(), field_ref.ord(), term_ref.ord());
                 let mut doc_id_bytes = [0; 2];
                 BigEndian::write_u16(&mut doc_id_bytes, doc_ref.ord());
                 write_batch.merge(&kb.key(), &doc_id_bytes);
@@ -240,18 +240,18 @@ impl RocksDBIndexStore {
                 }
             };
 
-            let mut kb = KeyBuilder::stored_field_value(doc_ref.chunk(), doc_ref.ord(), field_ref.ord());
+            let kb = KeyBuilder::stored_field_value(doc_ref.chunk(), doc_ref.ord(), field_ref.ord());
             write_batch.merge(&kb.key(), &value.to_bytes());
         }
 
         // Increment total docs
-        let mut kb = KeyBuilder::chunk_stat(doc_ref.chunk(), b"total_docs");
+        let kb = KeyBuilder::chunk_stat(doc_ref.chunk(), b"total_docs");
         let mut inc_bytes = [0; 8];
         BigEndian::write_i64(&mut inc_bytes, 1);
         write_batch.merge(&kb.key(), &inc_bytes);
 
         // Increment total tokens
-        let mut kb = KeyBuilder::chunk_stat(doc_ref.chunk(), b"total_tokens");
+        let kb = KeyBuilder::chunk_stat(doc_ref.chunk(), b"total_tokens");
         let mut inc_bytes = [0; 8];
         BigEndian::write_i64(&mut inc_bytes, token_count);
         write_batch.merge(&kb.key(), &inc_bytes);
@@ -301,7 +301,7 @@ impl<'a> RocksDBIndexReader<'a> {
             None => return None,  // TODO Error?
         };
 
-        let mut kb = KeyBuilder::stored_field_value(doc_ref.chunk(), doc_ref.ord(), field_ref.ord());
+        let kb = KeyBuilder::stored_field_value(doc_ref.chunk(), doc_ref.ord(), field_ref.ord());
 
         match self.snapshot.get(&kb.key()) {
             Ok(Some(value)) => {
@@ -376,9 +376,9 @@ mod tests {
 
     fn make_test_store(path: &str) -> RocksDBIndexStore {
         let mut store = RocksDBIndexStore::create(path).unwrap();
-        let mut title_field = store.add_field("title".to_string(), FieldType::Text, FIELD_INDEXED).unwrap();
-        let mut body_field = store.add_field("body".to_string(), FieldType::Text, FIELD_INDEXED).unwrap();
-        let mut pk_field = store.add_field("pk".to_string(), FieldType::I64, FIELD_STORED).unwrap();
+        let title_field = store.add_field("title".to_string(), FieldType::Text, FIELD_INDEXED).unwrap();
+        let body_field = store.add_field("body".to_string(), FieldType::Text, FIELD_INDEXED).unwrap();
+        let pk_field = store.add_field("pk".to_string(), FieldType::I64, FIELD_STORED).unwrap();
 
         store.insert_or_update_document(Document {
             key: "test_doc".to_string(),

@@ -72,14 +72,14 @@ impl DocumentIndexManager {
         }
     }
 
-    fn delete_document_by_ref_unchecked(&self, write_batch: &mut WriteBatch, doc_ref: DocRef) {
-        let mut kb = KeyBuilder::chunk_del_list(doc_ref.chunk());
+    fn delete_document_by_ref_unchecked(&self, write_batch: &WriteBatch, doc_ref: DocRef) {
+        let kb = KeyBuilder::chunk_del_list(doc_ref.chunk());
         let mut previous_doc_id_bytes = [0; 2];
         BigEndian::write_u16(&mut previous_doc_id_bytes, doc_ref.ord());
         write_batch.merge(&kb.key(), &previous_doc_id_bytes);
 
         // Increment deleted docs
-        let mut kb = KeyBuilder::chunk_stat(doc_ref.chunk(), b"deleted_docs");
+        let kb = KeyBuilder::chunk_stat(doc_ref.chunk(), b"deleted_docs");
         let mut inc_bytes = [0; 8];
         BigEndian::write_i64(&mut inc_bytes, 1);
         write_batch.merge(&kb.key(), &inc_bytes);
@@ -87,10 +87,10 @@ impl DocumentIndexManager {
 
     pub fn insert_or_replace_key(&self, db: &DB, key: &Vec<u8>, doc_ref: DocRef) -> Option<DocRef> {
         // Update primary_key_index
-        let mut write_batch = WriteBatch::default();
+        let write_batch = WriteBatch::default();
         let previous_doc_ref = self.primary_key_index.write().unwrap().insert(key.clone(), doc_ref);
 
-        let mut kb = KeyBuilder::primary_key_index(key);
+        let kb = KeyBuilder::primary_key_index(key);
         let mut doc_ref_bytes = [0; 6];
         BigEndian::write_u32(&mut doc_ref_bytes, doc_ref.chunk());
         BigEndian::write_u16(&mut doc_ref_bytes[4..], doc_ref.ord());
@@ -98,7 +98,7 @@ impl DocumentIndexManager {
 
         // If there was a document there previously, delete it
         if let Some(previous_doc_ref) = previous_doc_ref {
-            self.delete_document_by_ref_unchecked(&mut write_batch, doc_ref);
+            self.delete_document_by_ref_unchecked(&write_batch, doc_ref);
         }
 
         // Write document data

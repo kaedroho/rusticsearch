@@ -118,7 +118,7 @@ impl TermDictionaryManager {
         }
 
         // Write it to the on-disk term dictionary
-        let mut kb = KeyBuilder::term_dict_mapping(&term_bytes);
+        let kb = KeyBuilder::term_dict_mapping(&term_bytes);
         db.put(kb.key(), next_term_ref.to_string().as_bytes());
 
         // Write it to the term dictionary

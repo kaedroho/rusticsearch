@@ -168,17 +168,17 @@ impl RocksDBIndexStore {
         // this until the commit phase though.
     }
 
-    fn commit_chunk_merge(&mut self, source_chunks: &Vec<u32>, dest_chunk: u32, doc_ref_mapping: &HashMap<DocRef, u16>) {
+    fn commit_chunk_merge(&self, source_chunks: &Vec<u32>, dest_chunk: u32, doc_ref_mapping: &HashMap<DocRef, u16>) {
         let write_batch = WriteBatch::default();
 
         // Activate new chunk
-        let mut kb = KeyBuilder::chunk_active(dest_chunk);
+        let kb = KeyBuilder::chunk_active(dest_chunk);
         write_batch.put(&kb.key(), b"");
 
         // Deactivate old chunks
         for source_chunk in source_chunks.iter() {
             // Activate new chunk
-            let mut kb = KeyBuilder::chunk_active(*source_chunk);
+            let kb = KeyBuilder::chunk_active(*source_chunk);
             write_batch.delete(&kb.key());
         }
 
@@ -187,8 +187,8 @@ impl RocksDBIndexStore {
         self.document_index.commit_chunk_merge(&self.db, write_batch, source_chunks, dest_chunk, doc_ref_mapping);
     }
 
-    pub fn merge_chunks(&mut self, source_chunks: Vec<u32>) -> Result<u32, ChunkMergeError> {
-        let mut dest_chunk = self.chunks.new_chunk(&self.db);
+    pub fn merge_chunks(&self, source_chunks: Vec<u32>) -> Result<u32, ChunkMergeError> {
+        let dest_chunk = self.chunks.new_chunk(&self.db);
 
         // Generate a mapping between the ids of the documents in the old chunks to the new one
         // This packs the id spaces of the old chunks together:
@@ -201,7 +201,7 @@ impl RocksDBIndexStore {
         let mut current_ord: u32 = 0;
 
         for source_chunk in source_chunks.iter() {
-            let mut kb = KeyBuilder::chunk_stat(*source_chunk, b"total_docs");
+            let kb = KeyBuilder::chunk_stat(*source_chunk, b"total_docs");
             let total_docs = match self.db.get(&kb.key()) {
                 Ok(Some(total_docs_bytes)) => {
                     BigEndian::read_i64(&total_docs_bytes)
