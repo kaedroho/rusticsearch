@@ -82,10 +82,10 @@ impl TermDictionaryManager {
     /// Iterates over terms in the dictionary which match the selector
     pub fn select(&self, term_selector: &TermSelector) -> Vec<TermRef> {
         self.terms.read().unwrap().iter()
-            .filter(|&(term, term_ref)| {
+            .filter(|&(term, _term_ref)| {
                 term_selector.matches_bytes(term)
             })
-            .map(|(term, term_ref)| *term_ref)
+            .map(|(_term, term_ref)| *term_ref)
             .collect()
     }
 

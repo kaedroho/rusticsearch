@@ -32,8 +32,8 @@ impl BooleanQueryBlock {
         use self::BooleanQueryBlock::*;
 
         match *self {
-            Leaf{ref op, return_type} => return_type,
-            Combinator{ref op, ref child_a, ref child_b, return_type} => return_type,
+            Leaf{return_type, ..} => return_type,
+            Combinator{return_type, ..} => return_type,
         }
     }
 
@@ -41,8 +41,8 @@ impl BooleanQueryBlock {
         use self::BooleanQueryBlock::*;
 
         match *self {
-            Leaf{ref op, ref mut return_type} => *return_type = new_type,
-            Combinator{ref op, ref child_a, ref child_b, ref mut return_type} => *return_type = new_type,
+            Leaf{ref mut return_type, ..} => *return_type = new_type,
+            Combinator{ref mut return_type, ..} => *return_type = new_type,
         }
     }
 
@@ -50,10 +50,10 @@ impl BooleanQueryBlock {
         use self::BooleanQueryBlock::*;
 
         match *self {
-            Leaf{ref op, ref return_type} => {
+            Leaf{ref op, ..} => {
                 boolean_query.push(op.clone());
             }
-            Combinator{ref op, ref child_a, ref child_b, ref return_type} => {
+            Combinator{ref op, ref child_a, ref child_b, ..} => {
                 child_a.build(boolean_query);
                 child_b.build(boolean_query);
                 boolean_query.push(op.clone());
