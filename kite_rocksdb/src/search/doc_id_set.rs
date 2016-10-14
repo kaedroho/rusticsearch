@@ -1,19 +1,8 @@
 use std::fmt;
 use std::io::{Cursor, Read, Write};
-use std::collections::HashMap;
-use std::rc::Rc;
 
-use kite::schema::{FieldRef, SchemaRead};
-use kite::query::Query;
-use kite::query::term_scorer::TermScorer;
-use kite::collectors::{Collector, DocumentMatch};
 use rocksdb::DBVector;
 use byteorder::{ByteOrder, BigEndian};
-
-use key_builder::KeyBuilder;
-use term_dictionary::TermRef;
-use document_index::DocRef;
-use super::super::RocksDBIndexReader;
 
 
 pub enum DocIdSet {

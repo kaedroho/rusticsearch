@@ -18,21 +18,20 @@ pub mod search;
 
 use std::str;
 use std::sync::{Arc, RwLock};
-use std::sync::atomic::{AtomicU32, Ordering};
 use std::collections::BTreeMap;
 
 use rocksdb::{DB, WriteBatch, Writable, Options, MergeOperands};
 use rocksdb::rocksdb::Snapshot;
-use kite::{Term, Document};
+use kite::Document;
 use kite::document::FieldValue;
 use kite::schema::{Schema, SchemaRead, SchemaWrite, FieldType, FieldFlags, FieldRef, AddFieldError};
-use rustc_serialize::{json, Encodable};
+use rustc_serialize::json;
 use byteorder::{ByteOrder, BigEndian};
 use chrono::{NaiveDateTime, DateTime, UTC};
 
 use key_builder::KeyBuilder;
 use chunk::ChunkManager;
-use term_dictionary::{TermDictionaryManager, TermRef};
+use term_dictionary::TermDictionaryManager;
 use document_index::{DocumentIndexManager, DocRef};
 
 

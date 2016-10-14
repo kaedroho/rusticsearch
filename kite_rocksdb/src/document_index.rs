@@ -1,11 +1,7 @@
-use std::str;
 use std::sync::RwLock;
-use std::sync::atomic::{AtomicU32, Ordering};
 use std::collections::{BTreeMap, HashMap};
 
 use rocksdb::{DB, Writable, WriteBatch, IteratorMode, Direction};
-use kite::Term;
-use kite::query::term_selector::TermSelector;
 use byteorder::{ByteOrder, BigEndian, WriteBytesExt};
 
 use key_builder::KeyBuilder;
