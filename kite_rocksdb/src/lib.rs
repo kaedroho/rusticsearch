@@ -186,7 +186,7 @@ impl RocksDBIndexStore {
         field_removed
     }
 
-    pub fn insert_or_update_document(&mut self, doc: Document) {
+    pub fn insert_or_update_document(&self, doc: Document) {
         // Allocate a new chunk for the document
         // Chunk merges are very slow so we should avoid doing them at runtime
         // which is why each new document is created in a fresh chunk.

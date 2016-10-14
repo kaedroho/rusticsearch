@@ -91,7 +91,7 @@ impl TermDictionaryManager {
 
     /// Retrieves the TermRef for the given term, adding the term to the
     /// dictionary if it doesn't exist
-    pub fn get_or_create(&mut self, db: &DB, term: &Term) -> TermRef {
+    pub fn get_or_create(&self, db: &DB, term: &Term) -> TermRef {
         let term_bytes = term.to_bytes();
 
         if let Some(term_ref) = self.get(&term_bytes) {
