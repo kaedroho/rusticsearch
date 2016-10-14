@@ -3,20 +3,12 @@ pub mod boolean_retrieval;
 pub mod scoring;
 pub mod plan;
 
-use std::fmt;
-use std::io::{Cursor, Read, Write};
-use std::collections::HashMap;
-use std::rc::Rc;
-
-use kite::schema::{FieldRef, SchemaRead};
+use kite::schema::SchemaRead;
 use kite::query::Query;
-use kite::query::term_scorer::TermScorer;
 use kite::collectors::{Collector, DocumentMatch};
-use rocksdb::DBVector;
 use byteorder::{ByteOrder, BigEndian};
 
 use key_builder::KeyBuilder;
-use term_dictionary::TermRef;
 use document_index::DocRef;
 use super::RocksDBIndexReader;
 use search::doc_id_set::DocIdSet;

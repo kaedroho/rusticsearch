@@ -1,14 +1,8 @@
 use std::str;
 use std::sync::atomic::{AtomicU32, Ordering};
-use std::collections::HashMap;
 
 use rocksdb::{DB, Writable, DBIterator, IteratorMode, Direction};
 use rocksdb::rocksdb::Snapshot;
-use byteorder::{ByteOrder, BigEndian, WriteBytesExt};
-
-use document_index::DocRef;
-use key_builder::KeyBuilder;
-use search::doc_id_set::DocIdSet;
 
 
 /// Manages "chunks" within the index

@@ -1,7 +1,7 @@
 use std::str;
 use std::collections::HashMap;
 
-use rocksdb::{DB, Writable, DBIterator, IteratorMode, Direction, WriteBatch};
+use rocksdb::{Writable, IteratorMode, Direction, WriteBatch};
 use byteorder::{ByteOrder, BigEndian, WriteBytesExt};
 
 use RocksDBIndexStore;
