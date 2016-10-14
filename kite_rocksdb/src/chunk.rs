@@ -168,7 +168,7 @@ impl ChunkManager {
         // - Remap their doc ids to the one in the new chunk
         // - Write the value back with the new chunk/doc ids in the key
 
-        /// Converts storef value key strings "v1/2/3" into tuples of 3 i32s (1, 2, 3)
+        /// Converts stored value key strings "v1/2/3" into tuples of 3 i32s (1, 2, 3)
         fn parse_stored_value_key(key: &[u8]) -> (u32, u32, u32) {
             let mut nums_iter = key[1..].split(|b| *b == b'/').map(|s| str::from_utf8(s).unwrap().parse::<u32>().unwrap());
             (nums_iter.next().unwrap(), nums_iter.next().unwrap(), nums_iter.next().unwrap())
@@ -203,12 +203,54 @@ impl ChunkManager {
         // Like stored values, these start with chunk ids. But instead of just rewriting the
         // key, we need to sum up all the statistics across the chunks being merged.
 
-        // TODO
+        let mut statistics = HashMap::new();
+
+        /// Converts statistic key strings "s1/total_docs" into tuples of 1 i32 and a Vec<u8> (1, ['t', 'o', 't', ...])
+        fn parse_statistic_key(key: &[u8]) -> (u32, Vec<u8>) {
+            let mut parts_iter = key[1..].split(|b| *b == b'/');
+            let statistic_name = parts_iter.next().unwrap().to_vec();
+            let chunk = str::from_utf8(parts_iter.next().unwrap()).unwrap().parse::<u32>().unwrap();
+
+            (chunk, statistic_name)
+        }
+
+        // Fetch and merge statistics
+        for k in db.keys_iterator(IteratorMode::From(b"s", Direction::Forward)) {
+            if k[0] != b's' {
+                // No more statistics to merge
+                break;
+            }
+
+            let (chunk, statistic_name) = parse_statistic_key(&k);
+
+            if !source_chunks.contains(&chunk) {
+                continue;
+            }
+
+            match db.get(&k) {
+                Ok(Some(val_bytes)) => {
+                    let value = BigEndian::read_i64(&val_bytes);
+
+                    let mut stat = statistics.entry(statistic_name).or_insert(0);
+                    *stat += value;
+                }
+                Ok(None) => {},  // FIXME
+                Err(e) => {},  // FIXME
+            }
+        }
+
+        // Write merged statistics to new chunk
+        for (stat_name, stat_value) in statistics {
+            let kb = KeyBuilder::chunk_stat(dest_chunk, &stat_name);
+            let mut val_bytes = [0; 8];
+            BigEndian::write_i64(&mut val_bytes, stat_value);
+            db.put(&kb.key(), &val_bytes);
+        }
 
         // Note: Don't merge the deletion lists
         // Deletion lists can change at any time so we must lock the "document index"
-        // before merging them so they can't be altered during merge. we
-        // cannot lock this until the commit phase though.
+        // before merging them so they can't be altered during merge. we cannot lock
+        // this until the commit phase though.
 
         Ok(dest_chunk)
     }
