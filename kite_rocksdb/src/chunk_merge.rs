@@ -17,40 +17,7 @@ pub enum ChunkMergeError {
 
 
 impl RocksDBIndexStore {
-    pub fn merge_chunks(&mut self, source_chunks: Vec<u32>) -> Result<u32, ChunkMergeError> {
-        let mut dest_chunk = self.chunks.new_chunk(&self.db);
-
-        // Generate a mapping between the ids of the documents in the old chunks to the new one
-        // This packs the id spaces of the old chunks together:
-        // For example, say we have to merge 3 chunks with 100 documents each:
-        //  - The first chunk's ids will be the same as before
-        //  - The second chunk's ids will be remapped to 100 - 199
-        //  - The third chunk's ids will be remapped to 200 - 299
-
-        let mut doc_ref_mapping: HashMap<DocRef, u16> = HashMap::new();
-        let mut current_ord: u32 = 0;
-
-        for source_chunk in source_chunks.iter() {
-            let mut kb = KeyBuilder::chunk_stat(*source_chunk, b"total_docs");
-            let total_docs = match self.db.get(&kb.key()) {
-                Ok(Some(total_docs_bytes)) => {
-                    BigEndian::read_i64(&total_docs_bytes)
-                }
-                Ok(None) => continue,
-                Err(e) => continue,  // TODO: Error
-            };
-
-            for source_ord in 0..total_docs {
-                if current_ord >= 65536 {
-                    return Err(ChunkMergeError::TooManyDocs);
-                }
-
-                let from = DocRef::from_chunk_ord(*source_chunk, source_ord as u16);
-                doc_ref_mapping.insert(from, current_ord as u16);
-                current_ord += 1;
-            }
-        }
-
+    fn merge_chunk_data(&self, source_chunks: Vec<u32>, dest_chunk: u32, doc_ref_mapping: &HashMap<DocRef, u16>) {
         // Merge the term directories
         // The term directory keys are ordered to be most convenient for retrieving all the chunks
         // of for a term/field combination in one go (field/term/chunk). So we don't end up pulling
@@ -199,6 +166,46 @@ impl RocksDBIndexStore {
         // Deletion lists can change at any time so we must lock the "document index"
         // before merging them so they can't be altered during merge. we cannot lock
         // this until the commit phase though.
+    }
+
+    pub fn merge_chunks(&mut self, source_chunks: Vec<u32>) -> Result<u32, ChunkMergeError> {
+        let mut dest_chunk = self.chunks.new_chunk(&self.db);
+
+        // Generate a mapping between the ids of the documents in the old chunks to the new one
+        // This packs the id spaces of the old chunks together:
+        // For example, say we have to merge 3 chunks with 100 documents each:
+        //  - The first chunk's ids will be the same as before
+        //  - The second chunk's ids will be remapped to 100 - 199
+        //  - The third chunk's ids will be remapped to 200 - 299
+
+        let mut doc_ref_mapping: HashMap<DocRef, u16> = HashMap::new();
+        let mut current_ord: u32 = 0;
+
+        for source_chunk in source_chunks.iter() {
+            let mut kb = KeyBuilder::chunk_stat(*source_chunk, b"total_docs");
+            let total_docs = match self.db.get(&kb.key()) {
+                Ok(Some(total_docs_bytes)) => {
+                    BigEndian::read_i64(&total_docs_bytes)
+                }
+                Ok(None) => continue,
+                Err(e) => continue,  // TODO: Error
+            };
+
+            for source_ord in 0..total_docs {
+                if current_ord >= 65536 {
+                    return Err(ChunkMergeError::TooManyDocs);
+                }
+
+                let from = DocRef::from_chunk_ord(*source_chunk, source_ord as u16);
+                doc_ref_mapping.insert(from, current_ord as u16);
+                current_ord += 1;
+            }
+        }
+
+        // Merge chunk data
+        self.merge_chunk_data(source_chunks, dest_chunk, &doc_ref_mapping);
+
+        // TODO: Update document dictionary
 
         Ok(dest_chunk)
     }
