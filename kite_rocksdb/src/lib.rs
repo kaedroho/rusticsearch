@@ -204,7 +204,7 @@ impl RocksDBIndexStore {
         // Set chunk active flag, this will activate the chunk as soon as the
         // write batch is written
         let mut kb = KeyBuilder::chunk_active(doc_ref.chunk());
-        write_batch.merge(&kb.key(), &[0; 0]);
+        write_batch.put(&kb.key(), b"");
 
         // Insert contents
 
