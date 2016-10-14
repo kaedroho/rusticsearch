@@ -265,7 +265,7 @@ impl RocksDBIndexStore {
 
     pub fn remove_document_by_key(&self, doc_key: &str) -> bool {
         match self.document_index.delete_document_by_key(&self.db, &doc_key.as_bytes().iter().cloned().collect()) {
-            Some(doc_ref) => true,
+            Some(_doc_ref) => true,
             None => false,
         }
     }
@@ -376,9 +376,9 @@ mod tests {
 
     fn make_test_store(path: &str) -> RocksDBIndexStore {
         let mut store = RocksDBIndexStore::create(path).unwrap();
-        let title_field = store.add_field("title".to_string(), FieldType::Text, FIELD_INDEXED).unwrap();
-        let body_field = store.add_field("body".to_string(), FieldType::Text, FIELD_INDEXED).unwrap();
-        let pk_field = store.add_field("pk".to_string(), FieldType::I64, FIELD_STORED).unwrap();
+        store.add_field("title".to_string(), FieldType::Text, FIELD_INDEXED).unwrap();
+        store.add_field("body".to_string(), FieldType::Text, FIELD_INDEXED).unwrap();
+        store.add_field("pk".to_string(), FieldType::I64, FIELD_STORED).unwrap();
 
         store.insert_or_update_document(Document {
             key: "test_doc".to_string(),

@@ -234,7 +234,7 @@ impl<'a> RocksDBIndexReader<'a> {
                         CombinatorScorer::Avg => {
                             let mut total_score = 0.0f64;
 
-                            for i in 0..num_vals {
+                            for _ in 0..num_vals {
                                 total_score += stack.pop().expect("stack underflow");
                             }
 
@@ -243,7 +243,7 @@ impl<'a> RocksDBIndexReader<'a> {
                         CombinatorScorer::Max => {
                             let mut max_score = 0.0f64;
 
-                            for i in 0..num_vals {
+                            for _ in 0..num_vals {
                                 let score = stack.pop().expect("stack underflow");
                                 if score > max_score {
                                     max_score = score

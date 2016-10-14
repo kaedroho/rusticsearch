@@ -45,7 +45,7 @@ pub struct DocumentIndexManager {
 
 impl DocumentIndexManager {
     /// Generates a new document index
-    pub fn new(db: &DB) -> DocumentIndexManager {
+    pub fn new(_db: &DB) -> DocumentIndexManager {
         DocumentIndexManager {
             primary_key_index: RwLock::new(BTreeMap::new()),
         }
@@ -98,7 +98,7 @@ impl DocumentIndexManager {
 
         // If there was a document there previously, delete it
         if let Some(previous_doc_ref) = previous_doc_ref {
-            self.delete_document_by_ref_unchecked(&write_batch, doc_ref);
+            self.delete_document_by_ref_unchecked(&write_batch, previous_doc_ref);
         }
 
         // Write document data
