@@ -1,14 +1,15 @@
 use std::str;
 use std::sync::RwLock;
 use std::sync::atomic::{AtomicU32, Ordering};
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashMap};
 
 use rocksdb::{DB, Writable, WriteBatch, IteratorMode, Direction};
 use kite::Term;
 use kite::query::term_selector::TermSelector;
-use byteorder::{ByteOrder, BigEndian};
+use byteorder::{ByteOrder, BigEndian, WriteBytesExt};
 
 use key_builder::KeyBuilder;
+use search::doc_id_set::DocIdSet;
 
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Hash)]
@@ -125,5 +126,49 @@ impl DocumentIndexManager {
 
     pub fn contains_document_key(&self, key: &Vec<u8>) -> bool {
         self.primary_key_index.read().unwrap().contains_key(key)
+    }
+
+    pub fn commit_chunk_merge(&self, db: &DB, write_batch: WriteBatch, source_chunks: &Vec<u32>, dest_chunk: u32, doc_ref_mapping: &HashMap<DocRef, u16>) {
+        // Lock the primary key index
+        let mut primary_key_index = self.primary_key_index.write().unwrap();
+
+        // Update primary keys to point to their new locations
+        let mut keys_to_update: HashMap<Vec<u8>, DocRef> = HashMap::with_capacity(doc_ref_mapping.len());
+        for (key, doc_ref) in primary_key_index.iter() {
+            if doc_ref_mapping.contains_key(&doc_ref) {
+                keys_to_update.insert(key.clone(), *doc_ref);
+            }
+        }
+
+        for (key, doc_ref) in keys_to_update {
+            let new_doc_ord = doc_ref_mapping.get(&doc_ref).unwrap();
+            let new_doc_ref = DocRef::from_chunk_ord(dest_chunk, *new_doc_ord);
+
+            primary_key_index.insert(key, new_doc_ref);
+        }
+
+        // Merge deletion lists
+        // Must be done while the primary_key_index is locked as this prevents any more documents being deleted
+        let mut deletion_list = Vec::new();
+        for source_chunk in source_chunks {
+            let kb = KeyBuilder::chunk_del_list(*source_chunk);
+            match db.get(&kb.key()) {
+                Ok(Some(docid_set)) => {
+                    for doc_id in DocIdSet::FromRDB(docid_set).iter() {
+                        let doc_ref = DocRef::from_chunk_ord(*source_chunk, doc_id);
+                        let new_doc_id = doc_ref_mapping.get(&doc_ref).unwrap();
+                        deletion_list.write_u16::<BigEndian>(*new_doc_id);
+                    }
+                }
+                Ok(None) => {},
+                Err(e) => {},  // FIXME
+            }
+        }
+
+        let kb = KeyBuilder::chunk_del_list(dest_chunk);
+        db.put(&kb.key(), &deletion_list);
+
+        // Commit!
+        db.write(write_batch);
     }
 }
