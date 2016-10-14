@@ -11,6 +11,7 @@ extern crate chrono;
 
 pub mod key_builder;
 pub mod chunk;
+pub mod chunk_merge;
 pub mod term_dictionary;
 pub mod document_index;
 pub mod search;
@@ -416,7 +417,7 @@ mod tests {
             }
         });
 
-        store.chunks.merge_chunks(&store.db, vec![1, 2]);
+        store.merge_chunks(vec![1, 2]);
 
         store
     }
