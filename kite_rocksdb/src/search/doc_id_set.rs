@@ -77,19 +77,24 @@ impl DocIdSet {
             match (a.peek(), b.peek()) {
                 (Some(a_doc), Some(b_doc)) => {
                     let mut doc_id_bytes = [0; 2];
-                    BigEndian::write_u16(&mut doc_id_bytes, *a_doc);
-
-                    data.push(doc_id_bytes[0]);
-                    data.push(doc_id_bytes[1]);
 
                     if a_doc == b_doc {
+                        BigEndian::write_u16(&mut doc_id_bytes, *a_doc);
+
                         next_a = true;
                         next_b = true;
                     } else if a_doc > b_doc {
+                        BigEndian::write_u16(&mut doc_id_bytes, *b_doc);
+
                         next_b = true;
                     } else if a_doc < b_doc {
+                        BigEndian::write_u16(&mut doc_id_bytes, *a_doc);
+
                         next_a = true;
                     }
+
+                    data.push(doc_id_bytes[0]);
+                    data.push(doc_id_bytes[1]);
                 }
                 (Some(a_doc), None) => {
                     let mut doc_id_bytes = [0; 2];
