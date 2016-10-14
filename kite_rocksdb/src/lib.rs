@@ -343,7 +343,7 @@ mod tests {
     use rocksdb::{DB, Options, IteratorMode};
     use kite::{Term, Token, Document};
     use kite::document::FieldValue;
-    use kite::schema::{Schema, FieldType, FIELD_INDEXED, FIELD_STORED, FieldRef};
+    use kite::schema::{FieldType, FIELD_INDEXED, FIELD_STORED};
     use kite::query::Query;
     use kite::query::term_scorer::TermScorer;
     use kite::collectors::top_score::TopScoreCollector;
