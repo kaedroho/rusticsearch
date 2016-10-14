@@ -1,7 +1,7 @@
 use std::str;
 use std::collections::HashMap;
 
-use rocksdb::{DB, Writable, DBIterator, IteratorMode, Direction};
+use rocksdb::{DB, Writable, DBIterator, IteratorMode, Direction, WriteBatch};
 use byteorder::{ByteOrder, BigEndian, WriteBytesExt};
 
 use RocksDBIndexStore;
@@ -17,7 +17,7 @@ pub enum ChunkMergeError {
 
 
 impl RocksDBIndexStore {
-    fn merge_chunk_data(&self, source_chunks: Vec<u32>, dest_chunk: u32, doc_ref_mapping: &HashMap<DocRef, u16>) {
+    fn merge_chunk_data(&self, source_chunks: &Vec<u32>, dest_chunk: u32, doc_ref_mapping: &HashMap<DocRef, u16>) {
         // Merge the term directories
         // The term directory keys are ordered to be most convenient for retrieving all the chunks
         // of for a term/field combination in one go (field/term/chunk). So we don't end up pulling
@@ -168,6 +168,25 @@ impl RocksDBIndexStore {
         // this until the commit phase though.
     }
 
+    fn commit_chunk_merge(&mut self, source_chunks: &Vec<u32>, dest_chunk: u32, doc_ref_mapping: &HashMap<DocRef, u16>) {
+        let write_batch = WriteBatch::default();
+
+        // Activate new chunk
+        let mut kb = KeyBuilder::chunk_active(dest_chunk);
+        write_batch.put(&kb.key(), b"");
+
+        // Deactivate old chunks
+        for source_chunk in source_chunks.iter() {
+            // Activate new chunk
+            let mut kb = KeyBuilder::chunk_active(*source_chunk);
+            write_batch.delete(&kb.key());
+        }
+
+        // Update document index and commit
+        // This will write the write batch
+        self.document_index.commit_chunk_merge(&self.db, write_batch, source_chunks, dest_chunk, doc_ref_mapping);
+    }
+
     pub fn merge_chunks(&mut self, source_chunks: Vec<u32>) -> Result<u32, ChunkMergeError> {
         let mut dest_chunk = self.chunks.new_chunk(&self.db);
 
@@ -203,9 +222,22 @@ impl RocksDBIndexStore {
         }
 
         // Merge chunk data
-        self.merge_chunk_data(source_chunks, dest_chunk, &doc_ref_mapping);
+        // Most of the heavy lifting happens here. This merges all the immutable parts of
+        // the chunk (which is everything but the deletion list). It does not activate the
+        // chunk.
+        // This means that nothing bad will happen if it crashes half way through -- the
+        // worst that could happen is we're left with a partially-written chunk that we
+        // have to clean up.
+        self.merge_chunk_data(&source_chunks, dest_chunk, &doc_ref_mapping);
 
-        // TODO: Update document dictionary
+        // Commit the merge
+        // This activates the new chunk and updates the document index. Effectively committing
+        // the merge.
+        // Throughout this stage we need an exclusive lock to the document index. This is to
+        // prevent documents in the source chunks being deleted/updated so we don't accidentally
+        // undelete them (this will block until the merge is complete so they delete/update from
+        // the new chunk).
+        self.commit_chunk_merge(&source_chunks, dest_chunk, &doc_ref_mapping);
 
         Ok(dest_chunk)
     }
