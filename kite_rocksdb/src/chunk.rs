@@ -49,7 +49,7 @@ impl ChunkManager {
     }
 
     /// Allocates a new (inactive) chunk
-    pub fn new_chunk(&mut self, db: &DB) -> u32 {
+    pub fn new_chunk(&self, db: &DB) -> u32 {
         let next_chunk = self.next_chunk.fetch_add(1, Ordering::SeqCst);
         db.put(b".next_chunk", (next_chunk + 1).to_string().as_bytes());
         next_chunk
