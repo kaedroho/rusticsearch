@@ -27,6 +27,14 @@ impl KeyBuilder {
         kb
     }
 
+    pub fn chunk_stored_values_prefix(chunk: u32) -> KeyBuilder {
+        let mut kb = KeyBuilder::new();
+        kb.push_char(b'v');
+        kb.push_string(chunk.to_string().as_bytes());
+        kb.separator();
+        kb
+    }
+
     pub fn primary_key_index(key: &[u8]) -> KeyBuilder {
         let mut kb = KeyBuilder::with_capacity(1 + key.len());
         kb.push_char(b'k');
