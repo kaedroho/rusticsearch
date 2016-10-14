@@ -264,7 +264,7 @@ impl RocksDBIndexStore {
         self.document_index.insert_or_replace_key(&self.db, &doc.key.as_bytes().iter().cloned().collect(), doc_ref);
     }
 
-    pub fn remove_document_by_key(&mut self, doc_key: &str) -> bool {
+    pub fn remove_document_by_key(&self, doc_key: &str) -> bool {
         match self.document_index.delete_document_by_key(&self.db, &doc_key.as_bytes().iter().cloned().collect()) {
             Some(doc_ref) => true,
             None => false,
