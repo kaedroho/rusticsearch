@@ -1,4 +1,5 @@
 pub mod doc_id_set;
+pub mod statistics;
 pub mod boolean_retrieval;
 pub mod scoring;
 pub mod plan;
@@ -11,6 +12,7 @@ use key_builder::KeyBuilder;
 use document_index::DocRef;
 use super::RocksDBIndexReader;
 use search::doc_id_set::DocIdSet;
+use search::statistics::StatisticsReader;
 use search::boolean_retrieval::BooleanQueryOp;
 use search::scoring::{CombinatorScorer, ScoreFunctionOp};
 use search::plan::SearchPlan;
@@ -203,7 +205,7 @@ impl<'a> RocksDBIndexReader<'a> {
         matches
     }
 
-    fn score_doc(&self, doc_id: u16, plan: &SearchPlan, chunk: u32) -> f64 {
+    fn score_doc(&self, doc_id: u16, plan: &SearchPlan, chunk: u32, mut stats: &mut StatisticsReader) -> f64 {
         // Execute score function
         let mut stack = Vec::new();
         for op in plan.score_function.iter() {
@@ -216,7 +218,7 @@ impl<'a> RocksDBIndexReader<'a> {
                             let docid_set = DocIdSet::FromRDB(data);
 
                             if docid_set.contains_doc(doc_id) {
-                                let score = scorer.similarity_model.score(1, 1, 1, 1, 1);
+                                let score = scorer.similarity_model.score(1, 1, stats.total_tokens() as u64, stats.total_docs() as u64, 1);
                                 stack.push(score * scorer.boost);
                             } else {
                                 stack.push(0.0f64);
@@ -259,12 +261,12 @@ impl<'a> RocksDBIndexReader<'a> {
         stack.pop().expect("stack underflow")
     }
 
-    fn search_chunk<C: Collector>(&self, collector: &mut C, plan: &SearchPlan, chunk: u32) {
+    fn search_chunk<C: Collector>(&self, collector: &mut C, plan: &SearchPlan, chunk: u32, mut stats: &mut StatisticsReader) {
         let matches = self.search_chunk_boolean_phase(plan, chunk);
 
         // Score documents and pass to collector
         for doc in matches.iter() {
-            let score = self.score_doc(doc, plan, chunk);
+            let score = self.score_doc(doc, plan, chunk, &mut stats);
 
             let doc_ref = DocRef::from_chunk_ord(chunk, doc);
             let doc_match = DocumentMatch::new_scored(doc_ref.as_u64(), score);
@@ -289,9 +291,12 @@ impl<'a> RocksDBIndexReader<'a> {
         plan.boolean_query = boolean_query;
         plan.boolean_query_is_negated = boolean_query_is_negated;
 
+        // Initialise statistics reader
+        let mut stats = StatisticsReader::new(&self);
+
         // Run query on each chunk
         for chunk in self.store.chunks.iter_active(&self.snapshot) {
-            self.search_chunk(collector, &plan, chunk);
+            self.search_chunk(collector, &plan, chunk, &mut stats);
         }
     }
 }
