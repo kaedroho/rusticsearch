@@ -145,12 +145,31 @@ impl FieldMapping {
                     Json::U64(num) => self.process_value_for_index(Json::String(num.to_string())),
                     Json::F64(num) => self.process_value_for_index(Json::String(num.to_string())),
                     Json::Array(array) => {
-                        // Pack any strings into a vec, ignore nulls. Quit if we see anything else
-                        let mut strings = Vec::new();
+                        // Process each array item and merge tokens together
+                        let mut tokens = Vec::new();
+                        let mut last_token_position = 0;
 
                         for item in array {
                             match item {
-                                Json::String(string) => strings.push(string),
+                                Json::String(string) => {
+                                    if let Some(mut next_tokens) = self.process_value_for_index(Json::String(string)) {
+                                        // Increment token positions so they don't overlap with previous values
+                                        for token in next_tokens.iter_mut() {
+                                            token.position += last_token_position;
+                                        }
+
+                                        // Update last_token_position
+                                        if let Some(token) = next_tokens.last() {
+                                            last_token_position = token.position;
+                                        }
+
+                                        // Merge
+                                        tokens.reserve(next_tokens.len());
+                                        for token in next_tokens {
+                                            tokens.push(token);
+                                        }
+                                    }
+                                }
                                 Json::Null => {}
                                 _ => {
                                     return None;
@@ -158,7 +177,7 @@ impl FieldMapping {
                             }
                         }
 
-                        self.process_value_for_index(Json::String(strings.join(" ")))
+                        Some(tokens)
                     }
                     _ => None,
                 }
