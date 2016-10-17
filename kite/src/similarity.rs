@@ -5,10 +5,10 @@ pub enum SimilarityModel {
 }
 
 
-/// tf(term_frequency) = log(term_frequency) + 1.0
+/// tf(term_frequency) = log(term_frequency + 1.0) + 1.0
 #[inline]
 fn tf(term_frequency: u32) -> f64 {
-    (term_frequency as f64).ln() + 1.0
+    (term_frequency as f64 + 1.0f64).ln() + 1.0
 }
 
 
@@ -31,9 +31,9 @@ impl SimilarityModel {
             SimilarityModel::Bm25{k1, b} => {
                 let tf = tf(term_frequency);
                 let idf = idf(total_docs_with_term, total_docs);
-                let average_length = (total_tokens as f64) / (total_docs as f64);
+                let average_length = (total_tokens as f64 + 1.0f64) / (total_docs as f64 + 1.0f64);
 
-                idf * (k1 + 1.0) * (tf / (tf + (k1 * ((1.0 - b) + b * (length as f64).sqrt() / average_length.sqrt()))))
+                idf * (k1 + 1.0) * (tf / (tf + (k1 * ((1.0 - b) + b * (length as f64).sqrt() / average_length.sqrt())) + 1.0f64))
             }
         }
     }
@@ -70,6 +70,13 @@ mod tests {
         let similarity = SimilarityModel::TfIdf;
 
         assert!(similarity.score(1, 40, 1000, 20, 5) == similarity.score(1, 40, 100, 20, 5));
+    }
+
+    #[test]
+    fn test_tf_idf_handles_zeros() {
+        let similarity = SimilarityModel::TfIdf;
+
+        assert!(similarity.score(0, 0, 0, 0, 0).is_finite());
     }
 
     #[test]
@@ -110,5 +117,15 @@ mod tests {
         };
 
         assert!(similarity.score(1, 40, 1000, 20, 5) > similarity.score(1, 40, 100, 20, 5));
+    }
+
+    #[test]
+    fn test_bm25_handles_zeros() {
+        let similarity = SimilarityModel::Bm25 {
+            k1: 0.0,
+            b: 0.0,
+        };
+
+        assert!(similarity.score(0, 0, 0, 0, 0).is_finite());
     }
 }
