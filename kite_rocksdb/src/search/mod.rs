@@ -216,7 +216,8 @@ impl<'a> RocksDBIndexReader<'a> {
                             let docid_set = DocIdSet::FromRDB(data);
 
                             if docid_set.contains_doc(doc_id) {
-                                stack.push(1.0f64);
+                                let score = scorer.similarity_model.score(1, 1, 1, 1, 1);
+                                stack.push(score * scorer.boost);
                             } else {
                                 stack.push(0.0f64);
                             }

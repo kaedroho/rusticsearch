@@ -6,7 +6,7 @@ use store::IndexReader;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct TermScorer {
-    similarity_model: SimilarityModel,
+    pub similarity_model: SimilarityModel,
     pub boost: f64,
 }
 
