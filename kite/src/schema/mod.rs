@@ -24,7 +24,7 @@ impl Encodable for FieldFlags {
             flag_strings.push("STORED");
         }
 
-        s.emit_str(&flag_strings.join("|"));
+        try!(s.emit_str(&flag_strings.join("|")));
 
         Ok(())
     }

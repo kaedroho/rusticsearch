@@ -24,7 +24,7 @@ impl Collector for TotalCountCollector {
         false
     }
 
-    fn collect(&mut self, doc: DocumentMatch) {
+    fn collect(&mut self, _doc: DocumentMatch) {
         self.total_count += 1;
     }
 }

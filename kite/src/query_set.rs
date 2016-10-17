@@ -1,6 +1,5 @@
 use std::collections::VecDeque;
 
-use term::Term;
 use schema::SchemaRead;
 use store::IndexReader;
 use query::Query;
@@ -217,7 +216,7 @@ fn build_disjunction_iterator<'a, T: IndexReader<'a>>(mut iters: VecDeque<QueryS
 
 pub fn build_iterator_from_query<'a, T: IndexReader<'a>>(reader: &'a T, query: &Query) -> QuerySetIterator<'a, T> {
     match *query {
-        Query::MatchAll{score} => {
+        Query::MatchAll{..} => {
             QuerySetIterator::All {
                 iter: reader.iter_all_docs(),
             }
@@ -225,7 +224,7 @@ pub fn build_iterator_from_query<'a, T: IndexReader<'a>>(reader: &'a T, query: &
         Query::MatchNone => {
             QuerySetIterator::None
         }
-        Query::MatchTerm{ref field, ref term, ref scorer} => {
+        Query::MatchTerm{ref field, ref term, ..} => {
             if let Some(field_ref) = reader.schema().get_field_by_name(field) {
                 match reader.iter_docs_with_term(&term.to_bytes(), &field_ref) {
                     Some(iter) => {
@@ -243,7 +242,7 @@ pub fn build_iterator_from_query<'a, T: IndexReader<'a>>(reader: &'a T, query: &
                 QuerySetIterator::None
             }
         }
-        Query::MatchMultiTerm{ref field, ref term_selector, ref scorer} => {
+        Query::MatchMultiTerm{ref field, ref term_selector, ..} => {
             if let Some(field_ref) = reader.schema().get_field_by_name(field) {
                 match *term_selector {
                     TermSelector::Prefix(ref prefix) => {
@@ -323,7 +322,7 @@ pub fn build_iterator_from_query<'a, T: IndexReader<'a>>(reader: &'a T, query: &
 
             build_disjunction_iterator(iters)
         }
-        Query::NDisjunction{ref queries, minimum_should_match} => {
+        Query::NDisjunction{..} => {
             // TODO
             QuerySetIterator::None
         }

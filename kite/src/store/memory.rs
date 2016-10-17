@@ -85,7 +85,7 @@ impl<'a> IndexStore<'a> for MemoryIndexStore {
         self.schema.remove_field(field_ref);
 
         match self.fields.remove(field_ref) {
-            Some(field_ref) => true,
+            Some(_) => true,
             None => false,
         }
     }
@@ -254,18 +254,18 @@ impl<'a> DocRefIterator<'a> for MemoryIndexStoreTermDocRefIterator<'a> {
 
 #[cfg(test)]
 mod tests {
-    use super::{MemoryIndexStore, MemoryIndexStoreReader};
+    use super::{MemoryIndexStore};
 
     use term::Term;
     use token::Token;
     use document::Document;
-    use schema::{Schema, SchemaRead, FieldType, FIELD_INDEXED, FieldRef};
+    use schema::{SchemaRead, FieldType, FIELD_INDEXED};
     use store::{IndexStore, IndexReader};
 
     fn make_test_store() -> MemoryIndexStore {
         let mut store = MemoryIndexStore::new();
-        let mut title_field = store.add_field("title".to_string(), FieldType::Text, FIELD_INDEXED).unwrap();
-        let mut body_field = store.add_field("body".to_string(), FieldType::Text, FIELD_INDEXED).unwrap();
+        store.add_field("title".to_string(), FieldType::Text, FIELD_INDEXED).unwrap();
+        store.add_field("body".to_string(), FieldType::Text, FIELD_INDEXED).unwrap();
 
         store.insert_or_update_document(Document {
             key: "test_doc".to_string(),

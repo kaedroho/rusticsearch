@@ -126,10 +126,10 @@ impl Query {
                 *score *= add_boost;
             },
             Query::MatchNone => (),
-            Query::MatchTerm{ref field, ref term, ref mut scorer} => {
+            Query::MatchTerm{ref mut scorer, ..} => {
                 scorer.boost *= add_boost;
             }
-            Query::MatchMultiTerm{ref field, ref term_selector, ref mut scorer} => {
+            Query::MatchMultiTerm{ref mut scorer, ..} => {
                 scorer.boost *= add_boost;
             }
             Query::Conjunction{ref mut queries} => {
@@ -142,7 +142,7 @@ impl Query {
                     query.boost(add_boost);
                 }
             }
-            Query::NDisjunction{ref mut queries, minimum_should_match} => {
+            Query::NDisjunction{ref mut queries, ..} => {
                 for query in queries {
                     query.boost(add_boost);
                 }
@@ -152,10 +152,10 @@ impl Query {
                     query.boost(add_boost);
                 }
             }
-            Query::Filter{ref mut query, ref filter} => {
+            Query::Filter{ref mut query, ..} => {
                 query.boost(add_boost);
             }
-            Query::Exclude{ref mut query, ref exclude} => {
+            Query::Exclude{ref mut query, ..} => {
                 query.boost(add_boost);
             }
         }
@@ -163,9 +163,9 @@ impl Query {
 
     pub fn matches(&self, doc: &Document) -> bool {
         match *self {
-            Query::MatchAll{score} => true,
+            Query::MatchAll{..} => true,
             Query::MatchNone => false,
-            Query::MatchTerm{ref field, ref term, ref scorer} => {
+            Query::MatchTerm{ref field, ref term, ..} => {
                 if let Some(field_value) = doc.indexed_fields.get(field) {
                     for field_token in field_value.iter() {
                         if &field_token.term == term {
@@ -176,7 +176,7 @@ impl Query {
 
                 false
             }
-            Query::MatchMultiTerm{ref field, ref term_selector, ref scorer} => {
+            Query::MatchMultiTerm{ref field, ref term_selector, ..} => {
                 if let Some(field_value) = doc.indexed_fields.get(field) {
                     for field_token in field_value.iter() {
                         if term_selector.matches(&field_token.term) {
