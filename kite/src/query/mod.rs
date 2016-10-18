@@ -228,7 +228,7 @@ impl Query {
                         }
 
                         if term_freq > 0 {
-                            return Some(scorer.score(index_reader, &field_ref, term, term_freq, field_value.len() as u32));
+                            return Some(scorer.score(index_reader, &field_ref, term, term_freq, field_value.len() as f64));
                         }
                     }
                 }
@@ -250,7 +250,7 @@ impl Query {
                             let mut score = 0.0f64;
 
                             for (term, term_freq) in term_frequencies.iter() {
-                                score += scorer.score(index_reader, &field_ref, term, *term_freq, field_value.len() as u32);
+                                score += scorer.score(index_reader, &field_ref, term, *term_freq, field_value.len() as f64);
                             }
 
                             return Some(score);

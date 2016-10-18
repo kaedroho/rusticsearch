@@ -20,7 +20,7 @@ fn idf(term_docs: u64, total_docs: u64) -> f64 {
 
 
 impl SimilarityModel {
-    pub fn score(&self, term_frequency: u32, length: u32, total_tokens: u64, total_docs: u64, total_docs_with_term: u64) -> f64 {
+    pub fn score(&self, term_frequency: u32, length: f64, total_tokens: u64, total_docs: u64, total_docs_with_term: u64) -> f64 {
         match *self {
             SimilarityModel::TfIdf => {
                 let tf = tf(term_frequency);
@@ -33,7 +33,7 @@ impl SimilarityModel {
                 let idf = idf(total_docs_with_term, total_docs);
                 let average_length = (total_tokens as f64 + 1.0f64) / (total_docs as f64 + 1.0f64);
 
-                idf * (k1 + 1.0) * (tf / (tf + (k1 * ((1.0 - b) + b * (length as f64).sqrt() / average_length.sqrt())) + 1.0f64))
+                idf * (k1 + 1.0) * (tf / (tf + (k1 * ((1.0 - b) + b * length.sqrt() / average_length.sqrt())) + 1.0f64))
             }
         }
     }
