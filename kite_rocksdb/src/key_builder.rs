@@ -104,6 +104,46 @@ impl KeyBuilder {
         KeyBuilder::chunk_stat(chunk, &stat_name)
     }
 
+    pub fn chunk_stat_total_field_tokens_stat_name(field_ord: u32) -> Vec<u8> {
+        let mut stat_name = Vec::new();
+        for c in b"fttok" {
+            stat_name.push(*c);
+        }
+
+        stat_name.push(b'-');
+
+        for c in field_ord.to_string().as_bytes() {
+            stat_name.push(*c);
+        }
+
+        stat_name
+    }
+
+    pub fn chunk_stat_total_field_tokens(chunk: u32, field_ord: u32) -> KeyBuilder {
+        let stat_name = KeyBuilder::chunk_stat_total_field_tokens_stat_name(field_ord);
+        KeyBuilder::chunk_stat(chunk, &stat_name)
+    }
+
+    pub fn chunk_stat_total_field_docs_stat_name(field_ord: u32) -> Vec<u8> {
+        let mut stat_name = Vec::new();
+        for c in b"ftdoc" {
+            stat_name.push(*c);
+        }
+
+        stat_name.push(b'-');
+
+        for c in field_ord.to_string().as_bytes() {
+            stat_name.push(*c);
+        }
+
+        stat_name
+    }
+
+    pub fn chunk_stat_total_field_docs(chunk: u32, field_ord: u32) -> KeyBuilder {
+        let stat_name = KeyBuilder::chunk_stat_total_field_docs_stat_name(field_ord);
+        KeyBuilder::chunk_stat(chunk, &stat_name)
+    }
+
     pub fn chunk_del_list(chunk: u32) -> KeyBuilder {
         let mut kb = KeyBuilder::new();
         kb.push_char(b'x');

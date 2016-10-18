@@ -10,8 +10,8 @@ use key_builder::KeyBuilder;
 
 pub struct StatisticsReader<'a> {
     index_reader: &'a RocksDBIndexReader<'a>,
-    total_docs: Option<i64>,
-    total_tokens: Option<i64>,
+    total_docs: HashMap<FieldRef, i64>,
+    total_tokens: HashMap<FieldRef, i64>,
     term_document_frequencies: HashMap<(FieldRef, TermRef), i64>,
 }
 
@@ -20,8 +20,8 @@ impl<'a> StatisticsReader<'a> {
     pub fn new(index_reader: &'a RocksDBIndexReader) -> StatisticsReader<'a> {
         StatisticsReader {
             index_reader: index_reader,
-            total_docs: None,
-            total_tokens: None,
+            total_docs: HashMap::new(),
+            total_tokens: HashMap::new(),
             term_document_frequencies: HashMap::new(),
         }
     }
@@ -32,8 +32,8 @@ impl<'a> StatisticsReader<'a> {
         for chunk in self.index_reader.store.chunks.iter_active(&self.index_reader.snapshot) {
             let kb = KeyBuilder::chunk_stat(chunk, name);
             match self.index_reader.snapshot.get(&kb.key()) {
-                Ok(Some(total_docs)) => {
-                    val += BigEndian::read_i64(&total_docs);
+                Ok(Some(new_val)) => {
+                    val += BigEndian::read_i64(&new_val);
                 }
                 Ok(None) => {},
                 Err(e) => {},  // FIXME
@@ -43,23 +43,25 @@ impl<'a> StatisticsReader<'a> {
         val
     }
 
-    pub fn total_docs(&mut self) -> i64 {
-        if let Some(val) = self.total_docs {
-            return val;
+    pub fn total_docs(&mut self, field_ref: FieldRef) -> i64 {
+        if let Some(val) = self.total_docs.get(&field_ref) {
+            return *val;
         }
 
-        let val = self.get_statistic(b"total_docs");
-        self.total_docs = Some(val);
+        let stat_name = KeyBuilder::chunk_stat_total_field_docs_stat_name(field_ref.ord());
+        let val = self.get_statistic(&stat_name);
+        self.total_docs.insert(field_ref, val);
         val
     }
 
-    pub fn total_tokens(&mut self) -> i64 {
-        if let Some(val) = self.total_tokens {
-            return val;
+    pub fn total_tokens(&mut self, field_ref: FieldRef) -> i64 {
+        if let Some(val) = self.total_tokens.get(&field_ref) {
+            return *val;
         }
 
-        let val = self.get_statistic(b"total_tokens");
-        self.total_tokens = Some(val);
+        let stat_name = KeyBuilder::chunk_stat_total_field_tokens_stat_name(field_ref.ord());
+        let val = self.get_statistic(&stat_name);
+        self.total_tokens.insert(field_ref, val);
         val
     }
 
