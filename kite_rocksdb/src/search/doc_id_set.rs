@@ -12,12 +12,19 @@ pub enum DocIdSet {
 
 
 impl DocIdSet {
-    pub fn new_filled(num_docs: u16) -> DocIdSet {
+    pub fn new_filled(mut num_docs: u32) -> DocIdSet {
         let mut data: Vec<u8> = Vec::new();
 
+        // Cap num_docs to 65536
+        // Note: we cannot simply make num_docs a u16 as 65536 is a valid length
+        if num_docs > 65536 {
+            num_docs = 65536;
+        }
+
         for doc_id in 0..num_docs {
+            // Note: As num_docs is limited to 65536, doc_id cannot be greater than 65535
             let mut doc_id_bytes = [0; 2];
-            BigEndian::write_u16(&mut doc_id_bytes, doc_id);
+            BigEndian::write_u16(&mut doc_id_bytes, doc_id as u16);
 
             data.push(doc_id_bytes[0]);
             data.push(doc_id_bytes[1]);

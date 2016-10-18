@@ -195,7 +195,7 @@ impl<'a> RocksDBIndexReader<'a> {
         if plan.boolean_query_is_negated {
             let kb = KeyBuilder::chunk_stat(chunk, b"total_docs");
             let total_docs = match self.snapshot.get(&kb.key()) {
-                Ok(Some(total_docs)) => BigEndian::read_i64(&total_docs) as u16,
+                Ok(Some(total_docs)) => BigEndian::read_i64(&total_docs) as u32,
                 Ok(None) => 0,
                 Err(e) => 0,  // FIXME
             };
