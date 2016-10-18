@@ -83,10 +83,15 @@ impl RocksDBIndexStore {
         // - Remap their doc ids to the one in the new chunk
         // - Write the value back with the new chunk/doc ids in the key
 
-        /// Converts stored value key strings "v1/2/3" into tuples of 3 i32s (1, 2, 3)
-        fn parse_stored_value_key(key: &[u8]) -> (u32, u32, u32) {
-            let mut nums_iter = key[1..].split(|b| *b == b'/').map(|s| str::from_utf8(s).unwrap().parse::<u32>().unwrap());
-            (nums_iter.next().unwrap(), nums_iter.next().unwrap(), nums_iter.next().unwrap())
+        /// Converts stored value key strings "v1/2/3/v" into tuples of 3 i32s and a u8 (1, 2, 3, 'v'])
+        fn parse_stored_value_key(key: &[u8]) -> (u32, u32, u32, u8) {
+            let mut parts_iter = key[1..].split(|b| *b == b'/');
+            let chunk = str::from_utf8(parts_iter.next().unwrap()).unwrap().parse::<u32>().unwrap();
+            let doc_id = str::from_utf8(parts_iter.next().unwrap()).unwrap().parse::<u32>().unwrap();
+            let field_ord = str::from_utf8(parts_iter.next().unwrap()).unwrap().parse::<u32>().unwrap();
+            let value_type = parts_iter.next().unwrap()[0];
+
+            (chunk, doc_id, field_ord, value_type)
         }
 
         for source_chunk in source_chunks.iter() {
@@ -97,7 +102,7 @@ impl RocksDBIndexStore {
                     break;
                 }
 
-                let (chunk, doc_id, field) = parse_stored_value_key(&k);
+                let (chunk, doc_id, field, value_type) = parse_stored_value_key(&k);
 
                 if chunk != *source_chunk {
                     // Chunk finished
@@ -109,7 +114,7 @@ impl RocksDBIndexStore {
                 let new_doc_id = doc_ref_mapping.get(&doc_ref).unwrap();
 
                 // Write value into new chunk
-                let kb = KeyBuilder::stored_field_value(dest_chunk, *new_doc_id, field);
+                let kb = KeyBuilder::stored_field_value(dest_chunk, *new_doc_id, field, value_type);
                 self.db.put(&kb.key(), &v);
             }
         }
