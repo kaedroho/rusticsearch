@@ -12,7 +12,7 @@ pub struct TermScorer {
 
 
 impl TermScorer {
-    pub fn score<'a, R: IndexReader<'a>>(&self, index_reader: &'a R, field_ref: &FieldRef, term: &Term, term_frequency: u32, length: u32) -> f64 {
+    pub fn score<'a, R: IndexReader<'a>>(&self, index_reader: &'a R, field_ref: &FieldRef, term: &Term, term_frequency: u32, length: f64) -> f64 {
         let term_bytes = term.to_bytes();
         let total_tokens = index_reader.total_tokens(field_ref);
         let total_docs = index_reader.num_docs() as u64;
