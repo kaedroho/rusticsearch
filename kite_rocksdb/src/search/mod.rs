@@ -218,7 +218,7 @@ impl<'a> RocksDBIndexReader<'a> {
                             let docid_set = DocIdSet::FromRDB(data);
 
                             if docid_set.contains_doc(doc_id) {
-                                let score = scorer.similarity_model.score(1, 1, stats.total_tokens() as u64, stats.total_docs() as u64, 1);
+                                let score = scorer.similarity_model.score(1, 1, stats.total_tokens() as u64, stats.total_docs() as u64, stats.term_document_frequency(field_ref, term_ref) as u64);
                                 stack.push(score * scorer.boost);
                             } else {
                                 stack.push(0.0f64);
