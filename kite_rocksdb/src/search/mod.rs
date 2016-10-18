@@ -218,7 +218,19 @@ impl<'a> RocksDBIndexReader<'a> {
                             let docid_set = DocIdSet::FromRDB(data);
 
                             if docid_set.contains_doc(doc_id) {
-                                let score = scorer.similarity_model.score(1, 1, stats.total_tokens() as u64, stats.total_docs() as u64, stats.term_document_frequency(field_ref, term_ref) as u64);
+                                // Read field length
+                                // TODO: we only need this for BM25
+                                let kb = KeyBuilder::stored_field_value(chunk, doc_id, field_ref.ord(), b'l');
+                                let field_length = match self.snapshot.get(&kb.key()) {
+                                    Ok(Some(value)) => {
+                                        let length_sqrt = (value[0] as f64) / 3.0 + 1.0;
+                                        length_sqrt * length_sqrt
+                                    }
+                                    Ok(None) => 1.0,
+                                    Err(e) => 1.0,  // TODO Error
+                                };
+
+                                let score = scorer.similarity_model.score(1, field_length, stats.total_tokens() as u64, stats.total_docs() as u64, stats.term_document_frequency(field_ref, term_ref) as u64);
                                 stack.push(score * scorer.boost);
                             } else {
                                 stack.push(0.0f64);

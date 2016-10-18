@@ -219,8 +219,12 @@ impl RocksDBIndexStore {
                 }
             };
 
+            let mut field_token_count = 0;
+
             for token in tokens.iter() {
                 token_count += 1;
+                field_token_count += 1;
+
                 let term_ref = self.term_dictionary.get_or_create(&self.db, &token.term);
 
                 // Term frequency
@@ -241,6 +245,15 @@ impl RocksDBIndexStore {
                 let mut inc_bytes = [0; 8];
                 BigEndian::write_i64(&mut inc_bytes, 1);
                 write_batch.merge(&kb.key(), &inc_bytes);
+            }
+
+            // Field length
+            // Used by the BM25 similarity model
+            let length = ((field_token_count as f64).sqrt() - 1.0) * 3.0;
+            let length = if length > 255.0 { 255.0 } else { length } as u8;
+            if length != 0 {
+                let kb = KeyBuilder::stored_field_value(doc_ref.chunk(), doc_ref.ord(), field_ref.ord(), b'l');
+                write_batch.merge(&kb.key(), &[length]);
             }
         }
 
