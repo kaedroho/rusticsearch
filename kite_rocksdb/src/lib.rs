@@ -18,7 +18,7 @@ pub mod search;
 
 use std::str;
 use std::sync::{Arc, RwLock};
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashMap};
 
 use rocksdb::{DB, WriteBatch, Writable, Options, MergeOperands};
 use rocksdb::rocksdb::Snapshot;
@@ -209,6 +209,7 @@ impl RocksDBIndexStore {
 
         // Indexed fields
         let mut token_count: i64 = 0;
+        let mut term_frequencies = HashMap::new();
         for (field_name, tokens) in doc.indexed_fields.iter() {
             let field_ref = match self.schema.get_field_by_name(field_name) {
                 Some(field_ref) => field_ref,
@@ -222,11 +223,24 @@ impl RocksDBIndexStore {
                 token_count += 1;
                 let term_ref = self.term_dictionary.get_or_create(&self.db, &token.term);
 
+                // Term frequency
+                let mut term_frequency = term_frequencies.entry(term_ref).or_insert(0);
+                *term_frequency += 1;
+
                 // Write directory list
                 let kb = KeyBuilder::chunk_dir_list(doc_ref.chunk(), field_ref.ord(), term_ref.ord());
                 let mut doc_id_bytes = [0; 2];
                 BigEndian::write_u16(&mut doc_id_bytes, doc_ref.ord());
                 write_batch.merge(&kb.key(), &doc_id_bytes);
+            }
+
+            // Term frequencies
+            for (term_ref, frequency) in term_frequencies.drain() {
+                // Increment term document frequency
+                let kb = KeyBuilder::chunk_stat_term_doc_frequency(doc_ref.chunk(), field_ref.ord(), term_ref.ord());
+                let mut inc_bytes = [0; 8];
+                BigEndian::write_i64(&mut inc_bytes, 1);
+                write_batch.merge(&kb.key(), &inc_bytes);
             }
         }
 

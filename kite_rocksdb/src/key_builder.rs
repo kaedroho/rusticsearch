@@ -76,6 +76,32 @@ impl KeyBuilder {
         kb
     }
 
+    pub fn chunk_stat_term_doc_frequency_stat_name(field_ord: u32, term_ord: u32) -> Vec<u8> {
+        let mut stat_name = Vec::new();
+        for c in b"tdf" {
+            stat_name.push(*c);
+        }
+
+        stat_name.push(b'-');
+
+        for c in field_ord.to_string().as_bytes() {
+            stat_name.push(*c);
+        }
+
+        stat_name.push(b'-');
+
+        for c in term_ord.to_string().as_bytes() {
+            stat_name.push(*c);
+        }
+
+        stat_name
+    }
+
+    pub fn chunk_stat_term_doc_frequency(chunk: u32, field_ord: u32, term_ord: u32) -> KeyBuilder {
+        let stat_name = KeyBuilder::chunk_stat_term_doc_frequency_stat_name(field_ord, term_ord);
+        KeyBuilder::chunk_stat(chunk, &stat_name)
+    }
+
     pub fn chunk_del_list(chunk: u32) -> KeyBuilder {
         let mut kb = KeyBuilder::new();
         kb.push_char(b'x');
