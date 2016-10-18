@@ -255,6 +255,18 @@ impl RocksDBIndexStore {
                 let kb = KeyBuilder::stored_field_value(doc_ref.chunk(), doc_ref.ord(), field_ref.ord(), b'l');
                 write_batch.merge(&kb.key(), &[length]);
             }
+
+            // Increment total field docs
+            let kb = KeyBuilder::chunk_stat_total_field_docs(doc_ref.chunk(), field_ref.ord());
+            let mut inc_bytes = [0; 8];
+            BigEndian::write_i64(&mut inc_bytes, 1);
+            write_batch.merge(&kb.key(), &inc_bytes);
+
+            // Increment total field tokens
+            let kb = KeyBuilder::chunk_stat_total_field_tokens(doc_ref.chunk(), field_ref.ord());
+            let mut inc_bytes = [0; 8];
+            BigEndian::write_i64(&mut inc_bytes, field_token_count);
+            write_batch.merge(&kb.key(), &inc_bytes);
         }
 
         // Stored fields
@@ -275,12 +287,6 @@ impl RocksDBIndexStore {
         let kb = KeyBuilder::chunk_stat(doc_ref.chunk(), b"total_docs");
         let mut inc_bytes = [0; 8];
         BigEndian::write_i64(&mut inc_bytes, 1);
-        write_batch.merge(&kb.key(), &inc_bytes);
-
-        // Increment total tokens
-        let kb = KeyBuilder::chunk_stat(doc_ref.chunk(), b"total_tokens");
-        let mut inc_bytes = [0; 8];
-        BigEndian::write_i64(&mut inc_bytes, token_count);
         write_batch.merge(&kb.key(), &inc_bytes);
 
         // Write document data

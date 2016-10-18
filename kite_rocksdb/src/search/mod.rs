@@ -230,7 +230,7 @@ impl<'a> RocksDBIndexReader<'a> {
                                     Err(e) => 1.0,  // TODO Error
                                 };
 
-                                let score = scorer.similarity_model.score(1, field_length, stats.total_tokens() as u64, stats.total_docs() as u64, stats.term_document_frequency(field_ref, term_ref) as u64);
+                                let score = scorer.similarity_model.score(1, field_length, stats.total_tokens(field_ref) as u64, stats.total_docs(field_ref) as u64, stats.term_document_frequency(field_ref, term_ref) as u64);
                                 stack.push(score * scorer.boost);
                             } else {
                                 stack.push(0.0f64);
