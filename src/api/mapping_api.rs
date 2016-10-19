@@ -42,7 +42,7 @@ pub fn view_put_mapping(req: &mut Request) -> IronResult<Response> {
     // Insert mapping
     let mapping_builder = match parse_mapping(&data) {
         Ok(mapping_builder) => mapping_builder,
-        Err(e) => {
+        Err(_) => {
             // TODO: Better error
             return Ok(json_response(status::BadRequest, "{\"acknowledged\": false}"));
         }

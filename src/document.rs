@@ -1,9 +1,9 @@
 use std::collections::HashMap;
 
 use rustc_serialize::json::Json;
-use kite::{Term, Token, Document};
+use kite::Document;
 
-use mapping::{Mapping, FieldMapping};
+use mapping::Mapping;
 
 
 #[derive(Debug)]

@@ -13,7 +13,6 @@ use kite::schema::FieldRef;
 use analysis::AnalyzerSpec;
 use analysis::tokenizers::TokenizerSpec;
 use analysis::filters::FilterSpec;
-use analysis::registry::AnalyzerRegistry;
 
 
 // TEMPORARY

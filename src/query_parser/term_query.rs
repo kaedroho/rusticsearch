@@ -7,7 +7,7 @@ use query_parser::{QueryParseContext, QueryParseError};
 use query_parser::utils::parse_float;
 
 
-pub fn parse(context: &QueryParseContext, json: &Json) -> Result<Query, QueryParseError> {
+pub fn parse(_context: &QueryParseContext, json: &Json) -> Result<Query, QueryParseError> {
     let object = try!(json.as_object().ok_or(QueryParseError::ExpectedObject));
 
     let field_name = if object.len() == 1 {
@@ -17,12 +17,6 @@ pub fn parse(context: &QueryParseContext, json: &Json) -> Result<Query, QueryPar
     };
 
     let object = object.get(field_name).unwrap();
-
-    // Get mapping for field
-    let field_mapping = match context.mappings {
-        Some(mappings) => mappings.get_field(field_name),
-        None => None,
-    };
 
     // Get configuration
     let mut term: Option<Term> = None;

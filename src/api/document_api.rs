@@ -17,7 +17,7 @@ pub fn view_get_doc(req: &mut Request) -> IronResult<Response> {
     let ref system = get_system!(req);
     let ref index_name = read_path_parameter!(req, "index").unwrap_or("");
     let ref mapping_name = read_path_parameter!(req, "mapping").unwrap_or("");
-    let ref doc_key = read_path_parameter!(req, "doc").unwrap_or("");
+    // let ref doc_key = read_path_parameter!(req, "doc").unwrap_or("");
 
     // Lock index array
     let indices = system.indices.read().unwrap();
@@ -31,6 +31,7 @@ pub fn view_get_doc(req: &mut Request) -> IronResult<Response> {
     }
 
     // Find document
+    /*
     let index_reader = index.store.reader();
     let doc = match index_reader.get_document_by_key(doc_key) {
         Some(doc) => doc,
@@ -38,11 +39,12 @@ pub fn view_get_doc(req: &mut Request) -> IronResult<Response> {
             return Ok(json_response(status::NotFound, "{\"message\": \"Document not found\"}"));
         }
     };
+    */
 
 
     // Build JSON document
     // TODO: This is probably completely wrong
-    let mut json_object = BTreeMap::new();
+    let json_object = BTreeMap::new();
     // FIXME: for (field_name, field_value) in doc.fields.iter() {
     // FIXME:     json_object.insert(field_name.clone(), Json::Array(field_value.iter().map(|v| v.term.as_json()).collect::<Vec<_>>()));
     // FIXME: }
