@@ -252,7 +252,7 @@ impl RocksDBIndexStore {
             let length = ((field_token_count as f64).sqrt() - 1.0) * 3.0;
             let length = if length > 255.0 { 255.0 } else { length } as u8;
             if length != 0 {
-                let kb = KeyBuilder::stored_field_value(doc_ref.chunk(), doc_ref.ord(), field_ref.ord(), b'l');
+                let kb = KeyBuilder::stored_field_value(doc_ref.chunk(), doc_ref.ord(), field_ref.ord(), b"len");
                 write_batch.merge(&kb.key(), &[length]);
             }
 
@@ -279,7 +279,7 @@ impl RocksDBIndexStore {
                 }
             };
 
-            let kb = KeyBuilder::stored_field_value(doc_ref.chunk(), doc_ref.ord(), field_ref.ord(), b'v');
+            let kb = KeyBuilder::stored_field_value(doc_ref.chunk(), doc_ref.ord(), field_ref.ord(), b"val");
             write_batch.merge(&kb.key(), &value.to_bytes());
         }
 
@@ -334,7 +334,7 @@ impl<'a> RocksDBIndexReader<'a> {
             None => return None,  // TODO Error?
         };
 
-        let kb = KeyBuilder::stored_field_value(doc_ref.chunk(), doc_ref.ord(), field_ref.ord(), b'v');
+        let kb = KeyBuilder::stored_field_value(doc_ref.chunk(), doc_ref.ord(), field_ref.ord(), b"val");
 
         match self.snapshot.get(&kb.key()) {
             Ok(Some(value)) => {
