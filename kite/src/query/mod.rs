@@ -32,10 +32,6 @@ pub enum Query {
     Disjunction {
         queries: Vec<Query>,
     },
-    NDisjunction {
-        queries: Vec<Query>,
-        minimum_should_match: i32,
-    },
     DisjunctionMax {
         queries: Vec<Query>,
     },
@@ -141,11 +137,6 @@ impl Query {
                     query.boost(add_boost);
                 }
             }
-            Query::NDisjunction{ref mut queries, ..} => {
-                for query in queries {
-                    query.boost(add_boost);
-                }
-            }
             Query::DisjunctionMax{ref mut queries} => {
                 for query in queries {
                     query.boost(add_boost);
@@ -199,21 +190,6 @@ impl Query {
                 for query in queries {
                     if query.matches(doc) {
                         return true;
-                    }
-                }
-
-                return false;
-            }
-            Query::NDisjunction{ref queries, minimum_should_match} => {
-                let mut should_matched = 0;
-
-                for query in queries {
-                    if query.matches(doc) {
-                        should_matched += 1;
-
-                        if should_matched >= minimum_should_match {
-                            return true;
-                        }
                     }
                 }
 
@@ -314,23 +290,6 @@ impl Query {
                 } else {
                     None
                 }
-            }
-            Query::NDisjunction{ref queries, minimum_should_match} => {
-                let mut should_matched = 0;
-                let mut total_score = 0.0f64;
-
-                for query in queries {
-                    if let Some(score) = query.rank(index_reader, doc) {
-                        should_matched += 1;
-                        total_score += score;
-                    }
-                }
-
-                if should_matched < minimum_should_match {
-                    return None;
-                }
-
-                Some(total_score / queries.len() as f64)
             }
             Query::DisjunctionMax{ref queries} => {
                 let mut something_matched = false;
