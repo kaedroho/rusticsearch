@@ -24,7 +24,7 @@ use rocksdb::{DB, WriteBatch, Writable, Options, MergeOperands};
 use rocksdb::rocksdb::Snapshot;
 use kite::Document;
 use kite::document::FieldValue;
-use kite::schema::{Schema, SchemaRead, SchemaWrite, FieldType, FieldFlags, FieldRef, AddFieldError};
+use kite::schema::{Schema, FieldType, FieldFlags, FieldRef, AddFieldError};
 use rustc_serialize::json;
 use byteorder::{ByteOrder, BigEndian};
 use chrono::{NaiveDateTime, DateTime, UTC};

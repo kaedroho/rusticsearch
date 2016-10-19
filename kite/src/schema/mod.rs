@@ -112,17 +112,6 @@ pub enum AddFieldError {
 }
 
 
-pub trait SchemaRead {
-    fn get_field_by_name(&self, name: &str) -> Option<FieldRef>;
-}
-
-
-pub trait SchemaWrite {
-    fn add_field(&mut self, name: String, field_type: FieldType, field_flags: FieldFlags) -> Result<FieldRef, AddFieldError>;
-    fn remove_field(&mut self, field_ref: &FieldRef) -> bool;
-}
-
-
 #[derive(Debug, Clone, RustcEncodable, RustcDecodable)]
 pub struct Schema {
     next_field_id: u32,
@@ -146,18 +135,12 @@ impl Schema {
 
         field_ref
     }
-}
 
-
-impl SchemaRead for Schema {
-    fn get_field_by_name(&self, name: &str) -> Option<FieldRef> {
+    pub fn get_field_by_name(&self, name: &str) -> Option<FieldRef> {
         self.field_names.get(name).cloned()
     }
-}
 
-
-impl SchemaWrite for Schema {
-    fn add_field(&mut self, name: String, field_type: FieldType, field_flags: FieldFlags) -> Result<FieldRef, AddFieldError> {
+    pub fn add_field(&mut self, name: String, field_type: FieldType, field_flags: FieldFlags) -> Result<FieldRef, AddFieldError> {
         if self.field_names.contains_key(&name) {
             return Err(AddFieldError::FieldAlreadyExists(name));
         }
@@ -171,7 +154,7 @@ impl SchemaWrite for Schema {
         Ok(field_ref)
     }
 
-    fn remove_field(&mut self, field_ref: &FieldRef) -> bool {
+    pub fn remove_field(&mut self, field_ref: &FieldRef) -> bool {
         match self.fields.remove(field_ref) {
             Some(removed_field) => {
                 self.field_names.remove(&removed_field.name);
