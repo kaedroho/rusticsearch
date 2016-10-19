@@ -83,13 +83,13 @@ impl RocksDBIndexStore {
         // - Remap their doc ids to the one in the new chunk
         // - Write the value back with the new chunk/doc ids in the key
 
-        /// Converts stored value key strings "v1/2/3/v" into tuples of 3 i32s and a u8 (1, 2, 3, 'v'])
-        fn parse_stored_value_key(key: &[u8]) -> (u32, u32, u32, u8) {
+        /// Converts stored value key strings "v1/2/3/v" into tuples of 3 i32s and a Vec<u8> (1, 2, 3, vec![b'v', b'a', b'l'])
+        fn parse_stored_value_key(key: &[u8]) -> (u32, u32, u32, Vec<u8>) {
             let mut parts_iter = key[1..].split(|b| *b == b'/');
             let chunk = str::from_utf8(parts_iter.next().unwrap()).unwrap().parse::<u32>().unwrap();
             let doc_id = str::from_utf8(parts_iter.next().unwrap()).unwrap().parse::<u32>().unwrap();
             let field_ord = str::from_utf8(parts_iter.next().unwrap()).unwrap().parse::<u32>().unwrap();
-            let value_type = parts_iter.next().unwrap()[0];
+            let value_type = parts_iter.next().unwrap().to_vec();
 
             (chunk, doc_id, field_ord, value_type)
         }
@@ -114,7 +114,7 @@ impl RocksDBIndexStore {
                 let new_doc_id = doc_ref_mapping.get(&doc_ref).unwrap();
 
                 // Write value into new chunk
-                let kb = KeyBuilder::stored_field_value(dest_chunk, *new_doc_id, field, value_type);
+                let kb = KeyBuilder::stored_field_value(dest_chunk, *new_doc_id, field, &value_type);
                 self.db.put(&kb.key(), &v);
             }
         }

@@ -220,7 +220,7 @@ impl<'a> RocksDBIndexReader<'a> {
                             if docid_set.contains_doc(doc_id) {
                                 // Read field length
                                 // TODO: we only need this for BM25
-                                let kb = KeyBuilder::stored_field_value(chunk, doc_id, field_ref.ord(), b'l');
+                                let kb = KeyBuilder::stored_field_value(chunk, doc_id, field_ref.ord(), b"len");
                                 let field_length = match self.snapshot.get(&kb.key()) {
                                     Ok(Some(value)) => {
                                         let length_sqrt = (value[0] as f64) / 3.0 + 1.0;
