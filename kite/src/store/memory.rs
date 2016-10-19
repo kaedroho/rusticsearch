@@ -4,7 +4,7 @@ use std::collections::{BTreeMap, HashMap};
 use std::collections::btree_map::Keys;
 
 use document::Document;
-use schema::{Schema, SchemaRead, SchemaWrite, FieldType, FieldFlags, FieldRef, AddFieldError};
+use schema::{Schema, FieldType, FieldFlags, FieldRef, AddFieldError};
 use store::{IndexStore, IndexReader, DocRefIterator};
 
 
@@ -259,7 +259,7 @@ mod tests {
     use term::Term;
     use token::Token;
     use document::Document;
-    use schema::{SchemaRead, FieldType, FIELD_INDEXED};
+    use schema::{FieldType, FIELD_INDEXED};
     use store::{IndexStore, IndexReader};
 
     fn make_test_store() -> MemoryIndexStore {

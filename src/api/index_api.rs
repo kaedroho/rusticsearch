@@ -109,7 +109,7 @@ pub fn view_delete_index(req: &mut Request) -> IronResult<Response> {
 }
 
 
-pub fn view_post_refresh_index(req: &mut Request) -> IronResult<Response> {
+pub fn view_post_refresh_index(_req: &mut Request) -> IronResult<Response> {
     // let ref system = get_system!(req);
     // let ref index_name = read_path_parameter!(req, "index").unwrap_or("");
 

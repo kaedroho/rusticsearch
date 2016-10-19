@@ -3,7 +3,6 @@ pub mod boolean_retrieval;
 pub mod scoring;
 pub mod plan;
 
-use kite::schema::SchemaRead;
 use kite::query::Query;
 use kite::collectors::{Collector, DocumentMatch};
 use byteorder::{ByteOrder, BigEndian};
@@ -115,9 +114,6 @@ impl<'a> RocksDBIndexReader<'a> {
             }
             Query::Disjunction{ref queries} => {
                 self.plan_query_combinator(&mut plan, queries, BooleanQueryOp::Or, score, CombinatorScorer::Avg);
-            }
-            Query::NDisjunction{ref queries, minimum_should_match} => {
-                self.plan_query_combinator(&mut plan, queries, BooleanQueryOp::Or, score, CombinatorScorer::Avg);  // FIXME
             }
             Query::DisjunctionMax{ref queries} => {
                 self.plan_query_combinator(&mut plan, queries, BooleanQueryOp::Or, score, CombinatorScorer::Max);

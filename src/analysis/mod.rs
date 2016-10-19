@@ -19,7 +19,6 @@ use kite::token::Token;
 
 use analysis::tokenizers::TokenizerSpec;
 use analysis::filters::FilterSpec;
-use analysis::ngram_generator::Edge;
 
 
 /// Defines an analyzer

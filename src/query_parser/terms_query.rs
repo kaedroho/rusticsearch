@@ -2,24 +2,17 @@
 
 use rustc_serialize::json::Json;
 use kite::{Term, Query, TermScorer};
-use kite::schema::SchemaRead;
 
 use query_parser::{QueryParseContext, QueryParseError};
 
 
-pub fn parse(context: &QueryParseContext, json: &Json) -> Result<Query, QueryParseError> {
+pub fn parse(_context: &QueryParseContext, json: &Json) -> Result<Query, QueryParseError> {
     let object = try!(json.as_object().ok_or(QueryParseError::ExpectedObject));
 
     let field_name = if object.len() == 1 {
         object.keys().collect::<Vec<_>>()[0]
     } else {
         return Err(QueryParseError::ExpectedSingleKey);
-    };
-
-    // Get mapping for field
-    let field_mapping = match context.mappings {
-        Some(mappings) => mappings.get_field(field_name),
-        None => None,
     };
 
     // Get configuration

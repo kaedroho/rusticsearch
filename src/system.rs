@@ -31,7 +31,7 @@ impl System {
         dir
     }
 
-    fn load_index(&self, name: String, path: &Path) -> Index {
+    fn load_index(&self, name: String, _path: &Path) -> Index {
         Index::new(name, MemoryIndexStore::new())
     }
 

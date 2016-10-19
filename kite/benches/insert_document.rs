@@ -9,7 +9,7 @@ use test::Bencher;
 
 use kite::term::Term;
 use kite::token::Token;
-use kite::schema::{SchemaRead, FieldType, FIELD_INDEXED};
+use kite::schema::{FieldType, FIELD_INDEXED};
 use kite::document::Document;
 use kite::store::{IndexStore, IndexReader};
 use kite::store::memory::{MemoryIndexStore, MemoryIndexStoreReader};

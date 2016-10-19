@@ -1,7 +1,7 @@
 use std::io::Read;
 use std::collections::HashMap;
 
-use kite::schema::{SchemaRead, FieldType, FieldFlags, FIELD_INDEXED, FIELD_STORED};
+use kite::schema::{FieldType, FieldFlags, FIELD_INDEXED, FIELD_STORED};
 use kite::store::{IndexStore, IndexReader};
 use rustc_serialize::json::Json;
 
@@ -42,7 +42,7 @@ pub fn view_put_mapping(req: &mut Request) -> IronResult<Response> {
     // Insert mapping
     let mapping_builder = match parse_mapping(&data) {
         Ok(mapping_builder) => mapping_builder,
-        Err(e) => {
+        Err(_) => {
             // TODO: Better error
             return Ok(json_response(status::BadRequest, "{\"acknowledged\": false}"));
         }

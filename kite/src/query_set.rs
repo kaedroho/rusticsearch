@@ -1,6 +1,5 @@
 use std::collections::VecDeque;
 
-use schema::SchemaRead;
 use store::IndexReader;
 use query::Query;
 use query::term_selector::TermSelector;
@@ -321,10 +320,6 @@ pub fn build_iterator_from_query<'a, T: IndexReader<'a>>(reader: &'a T, query: &
             }
 
             build_disjunction_iterator(iters)
-        }
-        Query::NDisjunction{..} => {
-            // TODO
-            QuerySetIterator::None
         }
         Query::DisjunctionMax{ref queries} => {
             let mut iters = VecDeque::with_capacity(queries.len());
