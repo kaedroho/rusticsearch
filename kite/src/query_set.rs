@@ -1,6 +1,5 @@
 use std::collections::VecDeque;
 
-use schema::SchemaRead;
 use store::IndexReader;
 use query::Query;
 use query::term_selector::TermSelector;

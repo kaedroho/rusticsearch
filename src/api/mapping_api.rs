@@ -1,7 +1,7 @@
 use std::io::Read;
 use std::collections::HashMap;
 
-use kite::schema::{SchemaRead, FieldType};
+use kite::schema::FieldType;
 use kite::store::{IndexStore, IndexReader};
 use rustc_serialize::json::Json;
 

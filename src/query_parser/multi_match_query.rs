@@ -2,7 +2,6 @@
 
 use rustc_serialize::json::Json;
 use kite::{Term, Token, Query, TermScorer};
-use kite::schema::SchemaRead;
 
 use mapping::{FieldMapping, FieldSearchOptions};
 

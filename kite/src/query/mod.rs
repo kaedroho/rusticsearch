@@ -4,7 +4,6 @@ pub mod term_scorer;
 use std::collections::HashMap;
 
 use term::Term;
-use schema::SchemaRead;
 use document::Document;
 use store::IndexReader;
 use query::term_selector::TermSelector;
