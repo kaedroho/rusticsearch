@@ -240,6 +240,18 @@ impl RocksDBIndexStore {
 
             // Term frequencies
             for (term_ref, frequency) in term_frequencies.drain() {
+                // Write term frequency
+                // 1 is by far the most common frequency. At search time, we interpret a missing
+                // key as meaning there is a term frequency of 1
+                if frequency != 1 {
+                    let mut value_type = vec![b't', b'f'];
+                    value_type.extend(term_ref.ord().to_string().as_bytes());
+                    let kb = KeyBuilder::stored_field_value(doc_ref.chunk(), doc_ref.ord(), field_ref.ord(), &value_type);
+                    let mut frequency_bytes = [0; 8];
+                    BigEndian::write_i64(&mut frequency_bytes, frequency);
+                    write_batch.merge(&kb.key(), &frequency_bytes);
+                }
+
                 // Increment term document frequency
                 let kb = KeyBuilder::chunk_stat_term_doc_frequency(doc_ref.chunk(), field_ref.ord(), term_ref.ord());
                 let mut inc_bytes = [0; 8];
