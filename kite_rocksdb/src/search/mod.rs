@@ -2,7 +2,7 @@ pub mod doc_id_set;
 pub mod statistics;
 pub mod boolean_retrieval;
 pub mod scoring;
-pub mod plan;
+pub mod planner;
 
 use kite::query::Query;
 use kite::collectors::{Collector, DocumentMatch};
@@ -15,8 +15,8 @@ use search::doc_id_set::DocIdSet;
 use search::statistics::StatisticsReader;
 use search::boolean_retrieval::BooleanQueryOp;
 use search::scoring::{CombinatorScorer, ScoreFunctionOp};
-use search::plan::{SearchPlan, plan_query};
-use search::plan::boolean_query_builder::BooleanQueryBuilder;
+use search::planner::{SearchPlan, plan_query};
+use search::planner::boolean_query::BooleanQueryBuilder;
 
 
 impl<'a> RocksDBIndexReader<'a> {

@@ -1,4 +1,4 @@
-pub mod boolean_query_builder;
+pub mod boolean_query;
 
 use kite::Query;
 
