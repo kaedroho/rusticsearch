@@ -230,6 +230,16 @@ impl<'a> RocksDBIndexReader<'a> {
                                     Err(e) => 1.0,  // TODO Error
                                 };
 
+                                // Read term frequency
+                                let mut value_type = vec![b't', b'f'];
+                                value_type.extend(term_ref.ord().to_string().as_bytes());
+                                let kb = KeyBuilder::stored_field_value(chunk, doc_id, field_ref.ord(), &value_type);
+                                let term_frequency = match self.snapshot.get(&kb.key()) {
+                                    Ok(Some(value)) => BigEndian::read_i64(&value),
+                                    Ok(None) => 1,
+                                    Err(e) => 1,  // TODO Error
+                                };
+
                                 let score = scorer.similarity_model.score(1, field_length, stats.total_tokens(field_ref) as u64, stats.total_docs(field_ref) as u64, stats.term_document_frequency(field_ref, term_ref) as u64);
                                 stack.push(score * scorer.boost);
                             } else {
