@@ -5,6 +5,7 @@ use kite::Query;
 use RocksDBIndexReader;
 use search::boolean_retrieval::BooleanQueryOp;
 use search::scoring::{CombinatorScorer, ScoreFunctionOp};
+use search::planner::boolean_query::BooleanQueryBuilder;
 
 
 #[derive(Debug)]
@@ -219,8 +220,23 @@ fn plan_score_function(index_reader: &RocksDBIndexReader, mut plan: &mut SearchP
 
 
 pub fn plan_query(index_reader: &RocksDBIndexReader, mut plan: &mut SearchPlan, query: &Query, score: bool) {
+    // Plan boolean query
     plan_boolean_query(index_reader, plan, query);
 
+    // Add operations to exclude deleted documents to boolean query
+    plan.boolean_query.push(BooleanQueryOp::PushDeletionList);
+    plan.boolean_query.push(BooleanQueryOp::AndNot);
+
+    // Optimise boolean query
+    let mut optimiser = BooleanQueryBuilder::new();
+    for op in plan.boolean_query.iter() {
+        optimiser.push_op(op);
+    }
+    let (boolean_query, boolean_query_is_negated) = optimiser.build();
+    plan.boolean_query = boolean_query;
+    plan.boolean_query_is_negated = boolean_query_is_negated;
+
+    // Plan score function
     if score {
         plan_score_function(index_reader, plan, query);
     } else {
