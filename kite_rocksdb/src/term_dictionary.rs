@@ -7,6 +7,7 @@ use rocksdb::{DB, Writable, IteratorMode, Direction};
 use kite::Term;
 use kite::query::term_selector::TermSelector;
 
+use errors::RocksDBWriteError;
 use key_builder::KeyBuilder;
 
 
@@ -91,18 +92,20 @@ impl TermDictionaryManager {
 
     /// Retrieves the TermRef for the given term, adding the term to the
     /// dictionary if it doesn't exist
-    pub fn get_or_create(&self, db: &DB, term: &Term) -> TermRef {
+    pub fn get_or_create(&self, db: &DB, term: &Term) -> Result<TermRef, RocksDBWriteError> {
         let term_bytes = term.to_bytes();
 
         if let Some(term_ref) = self.get(&term_bytes) {
-            return term_ref;
+            return Ok(term_ref);
         }
 
         // Term doesn't exist in the term dictionary
 
         // Increment next_term_ref
         let next_term_ref = self.next_term_ref.fetch_add(1, Ordering::SeqCst);
-        db.put(b".next_term_ref", (next_term_ref + 1).to_string().as_bytes());
+        if let Err(e) = db.put(b".next_term_ref", (next_term_ref + 1).to_string().as_bytes()) {
+            return Err(RocksDBWriteError::new_put(b".next_term_ref".to_vec(), e));
+        }
 
         // Create term ref
         let term_ref = TermRef(next_term_ref);
@@ -114,16 +117,18 @@ impl TermDictionaryManager {
         // since we checked earlier. If this is the case, We should forget about
         // writing our TermRef and use the one that has been inserted already.
         if let Some(term_ref) = terms.get(&term_bytes) {
-            return *term_ref;
+            return Ok(*term_ref);
         }
 
         // Write it to the on-disk term dictionary
         let kb = KeyBuilder::term_dict_mapping(&term_bytes);
-        db.put(kb.key(), next_term_ref.to_string().as_bytes());
+        if let Err(e) = db.put(kb.key(), next_term_ref.to_string().as_bytes()) {
+            return Err(RocksDBWriteError::new_put(kb.key().to_vec(), e));
+        }
 
         // Write it to the term dictionary
         terms.insert(term_bytes, term_ref);
 
-        term_ref
+        Ok(term_ref)
     }
 }
