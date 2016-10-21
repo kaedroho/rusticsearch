@@ -118,7 +118,6 @@ impl From<RocksDBWriteError> for DocumentInsertError {
 }
 
 
-
 pub struct RocksDBIndexStore {
     schema: Arc<Schema>,
     db: DB,
@@ -349,15 +348,15 @@ impl RocksDBIndexStore {
         }
 
         // Update document index
-        self.document_index.insert_or_replace_key(&self.db, &doc.key.as_bytes().iter().cloned().collect(), doc_ref);
+        try!(self.document_index.insert_or_replace_key(&self.db, &doc.key.as_bytes().iter().cloned().collect(), doc_ref));
 
         Ok(())
     }
 
-    pub fn remove_document_by_key(&self, doc_key: &str) -> bool {
-        match self.document_index.delete_document_by_key(&self.db, &doc_key.as_bytes().iter().cloned().collect()) {
-            Some(_doc_ref) => true,
-            None => false,
+    pub fn remove_document_by_key(&self, doc_key: &str) -> Result<bool, RocksDBWriteError> {
+        match try!(self.document_index.delete_document_by_key(&self.db, &doc_key.as_bytes().iter().cloned().collect())) {
+            Some(_doc_ref) => Ok(true),
+            None => Ok(false),
         }
     }
 
