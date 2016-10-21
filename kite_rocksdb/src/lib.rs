@@ -18,8 +18,8 @@ pub mod document_index;
 pub mod search;
 
 use std::str;
-use std::sync::{Arc, RwLock};
-use std::collections::{BTreeMap, HashMap};
+use std::sync::Arc;
+use std::collections::HashMap;
 
 use rocksdb::{DB, WriteBatch, Writable, Options, MergeOperands};
 use rocksdb::rocksdb::Snapshot;
@@ -124,7 +124,6 @@ pub struct RocksDBIndexStore {
     term_dictionary: TermDictionaryManager,
     segments: SegmentManager,
     document_index: DocumentIndexManager,
-    doc_key_mapping: RwLock<BTreeMap<Vec<u8>, DocRef>>,
 }
 
 
@@ -154,7 +153,6 @@ impl RocksDBIndexStore {
             term_dictionary: term_dictionary,
             segments: segments,
             document_index: document_index,
-            doc_key_mapping: RwLock::new(BTreeMap::new()),
         })
     }
 
@@ -187,7 +185,6 @@ impl RocksDBIndexStore {
             term_dictionary: term_dictionary,
             segments: segments,
             document_index: document_index,
-            doc_key_mapping: RwLock::new(BTreeMap::new()),
         })
     }
 
