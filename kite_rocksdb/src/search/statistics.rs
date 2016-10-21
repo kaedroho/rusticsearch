@@ -4,6 +4,7 @@ use kite::schema::FieldRef;
 use byteorder::{ByteOrder, BigEndian};
 
 use RocksDBIndexReader;
+use errors::RocksDBReadError;
 use term_dictionary::TermRef;
 use key_builder::KeyBuilder;
 
@@ -26,7 +27,7 @@ impl<'a> StatisticsReader<'a> {
         }
     }
 
-    fn get_statistic(&self, name: &[u8]) -> i64 {
+    fn get_statistic(&self, name: &[u8]) -> Result<i64, RocksDBReadError> {
         let mut val = 0;
 
         for chunk in self.index_reader.store.chunks.iter_active(&self.index_reader.snapshot) {
@@ -36,43 +37,43 @@ impl<'a> StatisticsReader<'a> {
                     val += BigEndian::read_i64(&new_val);
                 }
                 Ok(None) => {},
-                Err(e) => {},  // FIXME
+                Err(e) => return Err(RocksDBReadError::new(kb.key().to_vec(), e))
             }
         }
 
-        val
+        Ok(val)
     }
 
-    pub fn total_docs(&mut self, field_ref: FieldRef) -> i64 {
+    pub fn total_docs(&mut self, field_ref: FieldRef) -> Result<i64, RocksDBReadError> {
         if let Some(val) = self.total_docs.get(&field_ref) {
-            return *val;
+            return Ok(*val);
         }
 
         let stat_name = KeyBuilder::chunk_stat_total_field_docs_stat_name(field_ref.ord());
-        let val = self.get_statistic(&stat_name);
+        let val = try!(self.get_statistic(&stat_name));
         self.total_docs.insert(field_ref, val);
-        val
+        Ok(val)
     }
 
-    pub fn total_tokens(&mut self, field_ref: FieldRef) -> i64 {
+    pub fn total_tokens(&mut self, field_ref: FieldRef) -> Result<i64, RocksDBReadError> {
         if let Some(val) = self.total_tokens.get(&field_ref) {
-            return *val;
+            return Ok(*val);
         }
 
         let stat_name = KeyBuilder::chunk_stat_total_field_tokens_stat_name(field_ref.ord());
-        let val = self.get_statistic(&stat_name);
+        let val = try!(self.get_statistic(&stat_name));
         self.total_tokens.insert(field_ref, val);
-        val
+        Ok(val)
     }
 
-    pub fn term_document_frequency(&mut self, field_ref: FieldRef, term_ref: TermRef) -> i64 {
+    pub fn term_document_frequency(&mut self, field_ref: FieldRef, term_ref: TermRef) -> Result<i64, RocksDBReadError> {
         if let Some(val) = self.term_document_frequencies.get(&(field_ref, term_ref)) {
-            return *val;
+            return Ok(*val);
         }
 
         let stat_name = KeyBuilder::chunk_stat_term_doc_frequency_stat_name(field_ref.ord(), term_ref.ord());
-        let val = self.get_statistic(&stat_name);
+        let val = try!(self.get_statistic(&stat_name));
         self.term_document_frequencies.insert((field_ref, term_ref), val);
-        val
+        Ok(val)
     }
 }

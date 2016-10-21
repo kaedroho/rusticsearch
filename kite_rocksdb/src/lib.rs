@@ -9,6 +9,7 @@ extern crate maplit;
 extern crate byteorder;
 extern crate chrono;
 
+pub mod errors;
 pub mod key_builder;
 pub mod chunk;
 pub mod chunk_merge;

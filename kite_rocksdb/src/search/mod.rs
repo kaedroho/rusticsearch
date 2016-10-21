@@ -6,6 +6,7 @@ use kite::query::Query;
 use kite::collectors::{Collector, DocumentMatch};
 use byteorder::{ByteOrder, BigEndian};
 
+use errors::RocksDBReadError;
 use key_builder::KeyBuilder;
 use document_index::DocRef;
 use super::RocksDBIndexReader;
@@ -18,7 +19,7 @@ use search::planner::score_function::{CombinatorScorer, ScoreFunctionOp};
 
 
 impl<'a> RocksDBIndexReader<'a> {
-    fn search_chunk_boolean_phase(&self, boolean_query: &Vec<BooleanQueryOp>, is_negated: bool, chunk: u32) -> DocIdSet {
+    fn search_chunk_boolean_phase(&self, boolean_query: &Vec<BooleanQueryOp>, is_negated: bool, chunk: u32) -> Result<DocIdSet, RocksDBReadError> {
         // Execute boolean query
         let mut stack = Vec::new();
         for op in boolean_query.iter() {
@@ -37,7 +38,7 @@ impl<'a> RocksDBIndexReader<'a> {
                             stack.push(data);
                         }
                         Ok(None) => stack.push(DocIdSet::new_filled(0)),
-                        Err(e) => {},  // FIXME
+                        Err(e) => return Err(RocksDBReadError::new(kb.key().to_vec(), e))
                     }
                 }
                 BooleanQueryOp::PushDeletionList => {
@@ -48,29 +49,30 @@ impl<'a> RocksDBIndexReader<'a> {
                             stack.push(data);
                         }
                         Ok(None) => stack.push(DocIdSet::new_filled(0)),
-                        Err(e) => {},  // FIXME
+                        Err(e) => return Err(RocksDBReadError::new(kb.key().to_vec(), e))
                     }
                 }
                 BooleanQueryOp::And => {
-                    let b = stack.pop().expect("stack underflow");
-                    let a = stack.pop().expect("stack underflow");
+                    let b = stack.pop().expect("boolean query executor: stack underflow");
+                    let a = stack.pop().expect("boolean query executor: stack underflow");
                     stack.push(a.intersection(&b));
                 }
                 BooleanQueryOp::Or => {
-                    let b = stack.pop().expect("stack underflow");
-                    let a = stack.pop().expect("stack underflow");
+                    let b = stack.pop().expect("boolean query executor: stack underflow");
+                    let a = stack.pop().expect("boolean query executor: stack underflow");
                     stack.push(a.union(&b));
                 }
                 BooleanQueryOp::AndNot => {
-                    let b = stack.pop().expect("stack underflow");
-                    let a = stack.pop().expect("stack underflow");
+                    let b = stack.pop().expect("boolean query executor: stack underflow");
+                    let a = stack.pop().expect("boolean query executor: stack underflow");
                     stack.push(a.exclusion(&b));
                 }
             }
         }
 
         if !stack.len() == 1 {
-            // TODO: Error
+            // This shouldn't be possible unless there's a bug in the planner
+            panic!("boolean query executor: stack size too big ({})", stack.len());
         }
         let mut matches = stack.pop().unwrap();
 
@@ -80,17 +82,17 @@ impl<'a> RocksDBIndexReader<'a> {
             let total_docs = match self.snapshot.get(&kb.key()) {
                 Ok(Some(total_docs)) => BigEndian::read_i64(&total_docs) as u32,
                 Ok(None) => 0,
-                Err(e) => 0,  // FIXME
+                Err(e) => return Err(RocksDBReadError::new(kb.key().to_vec(), e))
             };
 
             let all_docs = DocIdSet::new_filled(total_docs);
             matches = all_docs.exclusion(&matches);
         }
 
-        matches
+        Ok(matches)
     }
 
-    fn score_doc(&self, doc_id: u16, score_function: &Vec<ScoreFunctionOp>, chunk: u32, mut stats: &mut StatisticsReader) -> f64 {
+    fn score_doc(&self, doc_id: u16, score_function: &Vec<ScoreFunctionOp>, chunk: u32, mut stats: &mut StatisticsReader) -> Result<f64, RocksDBReadError> {
         // Execute score function
         let mut stack = Vec::new();
         for op in score_function.iter() {
@@ -112,7 +114,7 @@ impl<'a> RocksDBIndexReader<'a> {
                                         length_sqrt * length_sqrt
                                     }
                                     Ok(None) => 1.0,
-                                    Err(e) => 1.0,  // TODO Error
+                                    Err(e) => return Err(RocksDBReadError::new(kb.key().to_vec(), e))
                                 };
 
                                 // Read term frequency
@@ -122,17 +124,17 @@ impl<'a> RocksDBIndexReader<'a> {
                                 let term_frequency = match self.snapshot.get(&kb.key()) {
                                     Ok(Some(value)) => BigEndian::read_i64(&value),
                                     Ok(None) => 1,
-                                    Err(e) => 1,  // TODO Error
+                                    Err(e) => return Err(RocksDBReadError::new(kb.key().to_vec(), e))
                                 };
 
-                                let score = scorer.similarity_model.score(1, field_length, stats.total_tokens(field_ref) as u64, stats.total_docs(field_ref) as u64, stats.term_document_frequency(field_ref, term_ref) as u64);
+                                let score = scorer.similarity_model.score(1, field_length, try!(stats.total_tokens(field_ref)) as u64, try!(stats.total_docs(field_ref)) as u64, try!(stats.term_document_frequency(field_ref, term_ref)) as u64);
                                 stack.push(score * scorer.boost);
                             } else {
                                 stack.push(0.0f64);
                             }
                         }
                         Ok(None) => stack.push(0.0f64),
-                        Err(e) => {},  // FIXME
+                        Err(e) => return Err(RocksDBReadError::new(kb.key().to_vec(), e))
                     }
                 }
                 ScoreFunctionOp::CombinatorScorer(num_vals, ref scorer) => {
@@ -141,7 +143,7 @@ impl<'a> RocksDBIndexReader<'a> {
                             let mut total_score = 0.0f64;
 
                             for _ in 0..num_vals {
-                                total_score += stack.pop().expect("stack underflow");
+                                total_score += stack.pop().expect("document scorer: stack underflow");
                             }
 
                             total_score / num_vals as f64
@@ -150,7 +152,7 @@ impl<'a> RocksDBIndexReader<'a> {
                             let mut max_score = 0.0f64;
 
                             for _ in 0..num_vals {
-                                let score = stack.pop().expect("stack underflow");
+                                let score = stack.pop().expect("document scorer: stack underflow");
                                 if score > max_score {
                                     max_score = score
                                 }
@@ -165,23 +167,30 @@ impl<'a> RocksDBIndexReader<'a> {
             }
         }
 
-        stack.pop().expect("stack underflow")
+        if !stack.len() == 1 {
+            // This shouldn't be possible unless there's a bug in the planner
+            panic!("document scorer: stack size too big ({})", stack.len());
+        }
+
+        Ok(stack.pop().expect("document scorer: stack underflow"))
     }
 
-    fn search_chunk<C: Collector>(&self, collector: &mut C, plan: &SearchPlan, chunk: u32, mut stats: &mut StatisticsReader) {
-        let matches = self.search_chunk_boolean_phase(&plan.boolean_query, plan.boolean_query_is_negated, chunk);
+    fn search_chunk<C: Collector>(&self, collector: &mut C, plan: &SearchPlan, chunk: u32, mut stats: &mut StatisticsReader) -> Result<(), RocksDBReadError> {
+        let matches = try!(self.search_chunk_boolean_phase(&plan.boolean_query, plan.boolean_query_is_negated, chunk));
 
         // Score documents and pass to collector
         for doc in matches.iter() {
-            let score = self.score_doc(doc, &plan.score_function, chunk, &mut stats);
+            let score = try!(self.score_doc(doc, &plan.score_function, chunk, &mut stats));
 
             let doc_ref = DocRef::from_chunk_ord(chunk, doc);
             let doc_match = DocumentMatch::new_scored(doc_ref.as_u64(), score);
             collector.collect(doc_match);
         }
+
+        Ok(())
     }
 
-    pub fn search<C: Collector>(&self, collector: &mut C, query: &Query) {
+    pub fn search<C: Collector>(&self, collector: &mut C, query: &Query) -> Result<(), RocksDBReadError> {
         // Plan query
         let plan = plan_query(&self, query, collector.needs_score());
 
@@ -190,7 +199,9 @@ impl<'a> RocksDBIndexReader<'a> {
 
         // Run query on each chunk
         for chunk in self.store.chunks.iter_active(&self.snapshot) {
-            self.search_chunk(collector, &plan, chunk, &mut stats);
+            try!(self.search_chunk(collector, &plan, chunk, &mut stats));
         }
+
+        Ok(())
     }
 }
