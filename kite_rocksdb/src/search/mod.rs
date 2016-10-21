@@ -18,10 +18,10 @@ use search::planner::score_function::{CombinatorScorer, ScoreFunctionOp};
 
 
 impl<'a> RocksDBIndexReader<'a> {
-    fn search_chunk_boolean_phase(&self, plan: &SearchPlan, chunk: u32) -> DocIdSet {
+    fn search_chunk_boolean_phase(&self, boolean_query: &Vec<BooleanQueryOp>, is_negated: bool, chunk: u32) -> DocIdSet {
         // Execute boolean query
         let mut stack = Vec::new();
-        for op in plan.boolean_query.iter() {
+        for op in boolean_query.iter() {
             match *op {
                 BooleanQueryOp::PushEmpty => {
                     stack.push(DocIdSet::new_filled(0));
@@ -75,7 +75,7 @@ impl<'a> RocksDBIndexReader<'a> {
         let mut matches = stack.pop().unwrap();
 
         // Invert the list if the query is negated
-        if plan.boolean_query_is_negated {
+        if is_negated {
             let kb = KeyBuilder::chunk_stat(chunk, b"total_docs");
             let total_docs = match self.snapshot.get(&kb.key()) {
                 Ok(Some(total_docs)) => BigEndian::read_i64(&total_docs) as u32,
@@ -90,10 +90,10 @@ impl<'a> RocksDBIndexReader<'a> {
         matches
     }
 
-    fn score_doc(&self, doc_id: u16, plan: &SearchPlan, chunk: u32, mut stats: &mut StatisticsReader) -> f64 {
+    fn score_doc(&self, doc_id: u16, score_function: &Vec<ScoreFunctionOp>, chunk: u32, mut stats: &mut StatisticsReader) -> f64 {
         // Execute score function
         let mut stack = Vec::new();
-        for op in plan.score_function.iter() {
+        for op in score_function.iter() {
             match *op {
                 ScoreFunctionOp::Literal(val) => stack.push(val),
                 ScoreFunctionOp::TermScorer(field_ref, term_ref, ref scorer) => {
@@ -169,11 +169,11 @@ impl<'a> RocksDBIndexReader<'a> {
     }
 
     fn search_chunk<C: Collector>(&self, collector: &mut C, plan: &SearchPlan, chunk: u32, mut stats: &mut StatisticsReader) {
-        let matches = self.search_chunk_boolean_phase(plan, chunk);
+        let matches = self.search_chunk_boolean_phase(&plan.boolean_query, plan.boolean_query_is_negated, chunk);
 
         // Score documents and pass to collector
         for doc in matches.iter() {
-            let score = self.score_doc(doc, plan, chunk, &mut stats);
+            let score = self.score_doc(doc, &plan.score_function, chunk, &mut stats);
 
             let doc_ref = DocRef::from_chunk_ord(chunk, doc);
             let doc_match = DocumentMatch::new_scored(doc_ref.as_u64(), score);
