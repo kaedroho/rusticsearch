@@ -17,15 +17,15 @@ impl RocksDBReadError {
 
 #[derive(Debug)]
 enum RocksDBWriteOperation {
-    Put,
-    Merge,
-    Delete,
+    Put(Vec<u8>),
+    Merge(Vec<u8>),
+    Delete(Vec<u8>),
+    CommitWriteBatch,
 }
 
 
 #[derive(Debug)]
 pub struct RocksDBWriteError {
-    key: Vec<u8>,
     operation: RocksDBWriteOperation,
     message: String,
 }
@@ -34,24 +34,28 @@ pub struct RocksDBWriteError {
 impl RocksDBWriteError {
     pub fn new_put(key: Vec<u8>, message: String) -> RocksDBWriteError {
         RocksDBWriteError {
-            key: key,
-            operation: RocksDBWriteOperation::Put,
+            operation: RocksDBWriteOperation::Put(key),
             message: message,
         }
     }
 
     pub fn new_merge(key: Vec<u8>, message: String) -> RocksDBWriteError {
         RocksDBWriteError {
-            key: key,
-            operation: RocksDBWriteOperation::Merge,
+            operation: RocksDBWriteOperation::Merge(key),
             message: message,
         }
     }
 
     pub fn new_delete(key: Vec<u8>, message: String) -> RocksDBWriteError {
         RocksDBWriteError {
-            key: key,
-            operation: RocksDBWriteOperation::Delete,
+            operation: RocksDBWriteOperation::Delete(key),
+            message: message,
+        }
+    }
+
+    pub fn new_commit_write_batch(message: String) -> RocksDBWriteError {
+        RocksDBWriteError {
+            operation: RocksDBWriteOperation::CommitWriteBatch,
             message: message,
         }
     }
