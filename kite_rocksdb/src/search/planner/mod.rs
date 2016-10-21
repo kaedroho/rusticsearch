@@ -29,7 +29,9 @@ impl SearchPlan {
 }
 
 
-pub fn plan_query(index_reader: &RocksDBIndexReader, mut plan: &mut SearchPlan, query: &Query, score: bool) {
+pub fn plan_query(index_reader: &RocksDBIndexReader, query: &Query, score: bool) -> SearchPlan {
+    let mut plan = SearchPlan::new();
+
     // Plan boolean query
     let mut builder = BooleanQueryBuilder::new();
     plan_boolean_query(index_reader, &mut builder, query);
@@ -44,8 +46,10 @@ pub fn plan_query(index_reader: &RocksDBIndexReader, mut plan: &mut SearchPlan, 
 
     // Plan score function
     if score {
-        plan_score_function(index_reader, plan, query);
+        plan_score_function(index_reader, &mut plan, query);
     } else {
         plan.score_function.push(ScoreFunctionOp::Literal(0.0f64));
     }
+
+    plan
 }

@@ -185,8 +185,7 @@ impl<'a> RocksDBIndexReader<'a> {
 
     pub fn search<C: Collector>(&self, collector: &mut C, query: &Query) {
         // Plan query
-        let mut plan = SearchPlan::new();
-        plan_query(&self, &mut plan, query, true);
+        let plan = plan_query(&self, query, collector.needs_score());
 
         // Initialise statistics reader
         let mut stats = StatisticsReader::new(&self);
