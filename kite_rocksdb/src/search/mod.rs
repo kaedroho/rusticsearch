@@ -19,7 +19,7 @@ use search::planner::score_function::{CombinatorScorer, ScoreFunctionOp};
 
 
 impl<'a> RocksDBIndexReader<'a> {
-    fn search_chunk_boolean_phase(&self, boolean_query: &Vec<BooleanQueryOp>, is_negated: bool, chunk: u32) -> Result<DocIdSet, RocksDBReadError> {
+    fn search_segment_boolean_phase(&self, boolean_query: &Vec<BooleanQueryOp>, is_negated: bool, segment: u32) -> Result<DocIdSet, RocksDBReadError> {
         // Execute boolean query
         let mut stack = Vec::new();
         for op in boolean_query.iter() {
@@ -31,7 +31,7 @@ impl<'a> RocksDBIndexReader<'a> {
                     stack.push(DocIdSet::new_filled(65536));
                 }
                 BooleanQueryOp::PushTermDirectory(field_ref, term_ref) => {
-                    let kb = KeyBuilder::chunk_dir_list(chunk, field_ref.ord(), term_ref.ord());
+                    let kb = KeyBuilder::segment_dir_list(segment, field_ref.ord(), term_ref.ord());
                     match self.snapshot.get(&kb.key()) {
                         Ok(Some(docid_set)) => {
                             let data = DocIdSet::FromRDB(docid_set);
@@ -42,7 +42,7 @@ impl<'a> RocksDBIndexReader<'a> {
                     }
                 }
                 BooleanQueryOp::PushDeletionList => {
-                    let kb = KeyBuilder::chunk_del_list(chunk);
+                    let kb = KeyBuilder::segment_del_list(segment);
                     match self.snapshot.get(&kb.key()) {
                         Ok(Some(deletion_list)) => {
                             let data = DocIdSet::FromRDB(deletion_list);
@@ -78,7 +78,7 @@ impl<'a> RocksDBIndexReader<'a> {
 
         // Invert the list if the query is negated
         if is_negated {
-            let kb = KeyBuilder::chunk_stat(chunk, b"total_docs");
+            let kb = KeyBuilder::segment_stat(segment, b"total_docs");
             let total_docs = match self.snapshot.get(&kb.key()) {
                 Ok(Some(total_docs)) => BigEndian::read_i64(&total_docs) as u32,
                 Ok(None) => 0,
@@ -92,14 +92,14 @@ impl<'a> RocksDBIndexReader<'a> {
         Ok(matches)
     }
 
-    fn score_doc(&self, doc_id: u16, score_function: &Vec<ScoreFunctionOp>, chunk: u32, mut stats: &mut StatisticsReader) -> Result<f64, RocksDBReadError> {
+    fn score_doc(&self, doc_id: u16, score_function: &Vec<ScoreFunctionOp>, segment: u32, mut stats: &mut StatisticsReader) -> Result<f64, RocksDBReadError> {
         // Execute score function
         let mut stack = Vec::new();
         for op in score_function.iter() {
             match *op {
                 ScoreFunctionOp::Literal(val) => stack.push(val),
                 ScoreFunctionOp::TermScorer(field_ref, term_ref, ref scorer) => {
-                    let kb = KeyBuilder::chunk_dir_list(chunk, field_ref.ord(), term_ref.ord());
+                    let kb = KeyBuilder::segment_dir_list(segment, field_ref.ord(), term_ref.ord());
                     match self.snapshot.get(&kb.key()) {
                         Ok(Some(data)) => {
                             let docid_set = DocIdSet::FromRDB(data);
@@ -107,7 +107,7 @@ impl<'a> RocksDBIndexReader<'a> {
                             if docid_set.contains_doc(doc_id) {
                                 // Read field length
                                 // TODO: we only need this for BM25
-                                let kb = KeyBuilder::stored_field_value(chunk, doc_id, field_ref.ord(), b"len");
+                                let kb = KeyBuilder::stored_field_value(segment, doc_id, field_ref.ord(), b"len");
                                 let field_length = match self.snapshot.get(&kb.key()) {
                                     Ok(Some(value)) => {
                                         let length_sqrt = (value[0] as f64) / 3.0 + 1.0;
@@ -120,7 +120,7 @@ impl<'a> RocksDBIndexReader<'a> {
                                 // Read term frequency
                                 let mut value_type = vec![b't', b'f'];
                                 value_type.extend(term_ref.ord().to_string().as_bytes());
-                                let kb = KeyBuilder::stored_field_value(chunk, doc_id, field_ref.ord(), &value_type);
+                                let kb = KeyBuilder::stored_field_value(segment, doc_id, field_ref.ord(), &value_type);
                                 let term_frequency = match self.snapshot.get(&kb.key()) {
                                     Ok(Some(value)) => BigEndian::read_i64(&value),
                                     Ok(None) => 1,
@@ -175,14 +175,14 @@ impl<'a> RocksDBIndexReader<'a> {
         Ok(stack.pop().expect("document scorer: stack underflow"))
     }
 
-    fn search_chunk<C: Collector>(&self, collector: &mut C, plan: &SearchPlan, chunk: u32, mut stats: &mut StatisticsReader) -> Result<(), RocksDBReadError> {
-        let matches = try!(self.search_chunk_boolean_phase(&plan.boolean_query, plan.boolean_query_is_negated, chunk));
+    fn search_segment<C: Collector>(&self, collector: &mut C, plan: &SearchPlan, segment: u32, mut stats: &mut StatisticsReader) -> Result<(), RocksDBReadError> {
+        let matches = try!(self.search_segment_boolean_phase(&plan.boolean_query, plan.boolean_query_is_negated, segment));
 
         // Score documents and pass to collector
         for doc in matches.iter() {
-            let score = try!(self.score_doc(doc, &plan.score_function, chunk, &mut stats));
+            let score = try!(self.score_doc(doc, &plan.score_function, segment, &mut stats));
 
-            let doc_ref = DocRef::from_chunk_ord(chunk, doc);
+            let doc_ref = DocRef::from_segment_ord(segment, doc);
             let doc_match = DocumentMatch::new_scored(doc_ref.as_u64(), score);
             collector.collect(doc_match);
         }
@@ -197,9 +197,9 @@ impl<'a> RocksDBIndexReader<'a> {
         // Initialise statistics reader
         let mut stats = StatisticsReader::new(&self);
 
-        // Run query on each chunk
-        for chunk in self.store.chunks.iter_active(&self.snapshot) {
-            try!(self.search_chunk(collector, &plan, chunk, &mut stats));
+        // Run query on each segment
+        for segment in self.store.segments.iter_active(&self.snapshot) {
+            try!(self.search_segment(collector, &plan, segment, &mut stats));
         }
 
         Ok(())

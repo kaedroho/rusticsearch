@@ -16,10 +16,10 @@ impl KeyBuilder {
         }
     }
 
-    pub fn stored_field_value(chunk: u32, doc_ord: u16, field_ord: u32, value_type: &[u8]) -> KeyBuilder {
+    pub fn stored_field_value(segment: u32, doc_ord: u16, field_ord: u32, value_type: &[u8]) -> KeyBuilder {
         let mut kb = KeyBuilder::new();
         kb.push_char(b'v');
-        kb.push_string(chunk.to_string().as_bytes());
+        kb.push_string(segment.to_string().as_bytes());
         kb.separator();
         kb.push_string(doc_ord.to_string().as_bytes());
         kb.separator();
@@ -29,10 +29,10 @@ impl KeyBuilder {
         kb
     }
 
-    pub fn chunk_stored_values_prefix(chunk: u32) -> KeyBuilder {
+    pub fn segment_stored_values_prefix(segment: u32) -> KeyBuilder {
         let mut kb = KeyBuilder::new();
         kb.push_char(b'v');
-        kb.push_string(chunk.to_string().as_bytes());
+        kb.push_string(segment.to_string().as_bytes());
         kb.separator();
         kb
     }
@@ -51,34 +51,34 @@ impl KeyBuilder {
         kb
     }
 
-    pub fn chunk_active(chunk: u32) -> KeyBuilder {
+    pub fn segment_active(segment: u32) -> KeyBuilder {
         let mut kb = KeyBuilder::new();
         kb.push_char(b'a');
-        kb.push_string(chunk.to_string().as_bytes());
+        kb.push_string(segment.to_string().as_bytes());
         kb
     }
 
-    pub fn chunk_dir_list(chunk: u32, field_ord: u32, term_ord: u32) -> KeyBuilder {
+    pub fn segment_dir_list(segment: u32, field_ord: u32, term_ord: u32) -> KeyBuilder {
         let mut kb = KeyBuilder::new();
         kb.push_char(b'd');
         kb.push_string(field_ord.to_string().as_bytes());
         kb.separator();
         kb.push_string(term_ord.to_string().as_bytes());
         kb.separator();
-        kb.push_string(chunk.to_string().as_bytes());
+        kb.push_string(segment.to_string().as_bytes());
         kb
     }
 
-    pub fn chunk_stat(chunk: u32, name: &[u8]) -> KeyBuilder {
+    pub fn segment_stat(segment: u32, name: &[u8]) -> KeyBuilder {
         let mut kb = KeyBuilder::new();
         kb.push_char(b's');
         kb.push_string(name);
         kb.separator();
-        kb.push_string(chunk.to_string().as_bytes());
+        kb.push_string(segment.to_string().as_bytes());
         kb
     }
 
-    pub fn chunk_stat_term_doc_frequency_stat_name(field_ord: u32, term_ord: u32) -> Vec<u8> {
+    pub fn segment_stat_term_doc_frequency_stat_name(field_ord: u32, term_ord: u32) -> Vec<u8> {
         let mut stat_name = Vec::new();
         for c in b"tdf" {
             stat_name.push(*c);
@@ -99,12 +99,12 @@ impl KeyBuilder {
         stat_name
     }
 
-    pub fn chunk_stat_term_doc_frequency(chunk: u32, field_ord: u32, term_ord: u32) -> KeyBuilder {
-        let stat_name = KeyBuilder::chunk_stat_term_doc_frequency_stat_name(field_ord, term_ord);
-        KeyBuilder::chunk_stat(chunk, &stat_name)
+    pub fn segment_stat_term_doc_frequency(segment: u32, field_ord: u32, term_ord: u32) -> KeyBuilder {
+        let stat_name = KeyBuilder::segment_stat_term_doc_frequency_stat_name(field_ord, term_ord);
+        KeyBuilder::segment_stat(segment, &stat_name)
     }
 
-    pub fn chunk_stat_total_field_tokens_stat_name(field_ord: u32) -> Vec<u8> {
+    pub fn segment_stat_total_field_tokens_stat_name(field_ord: u32) -> Vec<u8> {
         let mut stat_name = Vec::new();
         for c in b"fttok" {
             stat_name.push(*c);
@@ -119,12 +119,12 @@ impl KeyBuilder {
         stat_name
     }
 
-    pub fn chunk_stat_total_field_tokens(chunk: u32, field_ord: u32) -> KeyBuilder {
-        let stat_name = KeyBuilder::chunk_stat_total_field_tokens_stat_name(field_ord);
-        KeyBuilder::chunk_stat(chunk, &stat_name)
+    pub fn segment_stat_total_field_tokens(segment: u32, field_ord: u32) -> KeyBuilder {
+        let stat_name = KeyBuilder::segment_stat_total_field_tokens_stat_name(field_ord);
+        KeyBuilder::segment_stat(segment, &stat_name)
     }
 
-    pub fn chunk_stat_total_field_docs_stat_name(field_ord: u32) -> Vec<u8> {
+    pub fn segment_stat_total_field_docs_stat_name(field_ord: u32) -> Vec<u8> {
         let mut stat_name = Vec::new();
         for c in b"ftdoc" {
             stat_name.push(*c);
@@ -139,15 +139,15 @@ impl KeyBuilder {
         stat_name
     }
 
-    pub fn chunk_stat_total_field_docs(chunk: u32, field_ord: u32) -> KeyBuilder {
-        let stat_name = KeyBuilder::chunk_stat_total_field_docs_stat_name(field_ord);
-        KeyBuilder::chunk_stat(chunk, &stat_name)
+    pub fn segment_stat_total_field_docs(segment: u32, field_ord: u32) -> KeyBuilder {
+        let stat_name = KeyBuilder::segment_stat_total_field_docs_stat_name(field_ord);
+        KeyBuilder::segment_stat(segment, &stat_name)
     }
 
-    pub fn chunk_del_list(chunk: u32) -> KeyBuilder {
+    pub fn segment_del_list(segment: u32) -> KeyBuilder {
         let mut kb = KeyBuilder::new();
         kb.push_char(b'x');
-        kb.push_string(chunk.to_string().as_bytes());
+        kb.push_string(segment.to_string().as_bytes());
         kb
     }
 
