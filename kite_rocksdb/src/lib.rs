@@ -525,7 +525,7 @@ mod tests {
         let mut collector = TopScoreCollector::new(10);
         index_reader.search(&mut collector, &query);
 
-        let docs = collector.iter().collect::<Vec<_>>();
+        let docs = collector.into_sorted_vec();
         println!("{:?}", docs);
     }
 }
