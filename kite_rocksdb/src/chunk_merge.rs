@@ -5,7 +5,7 @@ use rocksdb::{Writable, IteratorMode, Direction, WriteBatch};
 use byteorder::{ByteOrder, BigEndian, WriteBytesExt};
 
 use RocksDBIndexStore;
-use errors::RocksDBReadError;
+use errors::{RocksDBReadError, RocksDBWriteError};
 use document_index::DocRef;
 use key_builder::KeyBuilder;
 use search::doc_id_set::DocIdSet;
@@ -15,12 +15,20 @@ use search::doc_id_set::DocIdSet;
 pub enum ChunkMergeError {
     TooManyDocs,
     RocksDBReadError(RocksDBReadError),
+    RocksDBWriteError(RocksDBWriteError),
 }
 
 
 impl From<RocksDBReadError> for ChunkMergeError {
     fn from(e: RocksDBReadError) -> ChunkMergeError {
         ChunkMergeError::RocksDBReadError(e)
+    }
+}
+
+
+impl From<RocksDBWriteError> for ChunkMergeError {
+    fn from(e: RocksDBWriteError) -> ChunkMergeError {
+        ChunkMergeError::RocksDBWriteError(e)
     }
 }
 
@@ -58,7 +66,9 @@ impl RocksDBIndexStore {
                 // Finished current term directory. Write it to the DB and start the next one
                 if let Some((field, term)) = current_td_key {
                     let kb = KeyBuilder::chunk_dir_list(dest_chunk, field, term);
-                    self.db.put(&kb.key(), &current_td);
+                    if let Err(e) = self.db.put(&kb.key(), &current_td) {
+                        return Err(RocksDBWriteError::new_put(kb.key().to_vec(), e).into());
+                    }
                     current_td.clear();
                 }
 
@@ -71,7 +81,7 @@ impl RocksDBIndexStore {
                     for doc_id in DocIdSet::FromRDB(docid_set).iter() {
                         let doc_ref = DocRef::from_chunk_ord(chunk, doc_id);
                         let new_doc_id = doc_ref_mapping.get(&doc_ref).unwrap();
-                        current_td.write_u16::<BigEndian>(*new_doc_id);
+                        current_td.write_u16::<BigEndian>(*new_doc_id).unwrap();
                     }
                 }
                 Ok(None) => {},  // FIXME
@@ -82,7 +92,9 @@ impl RocksDBIndexStore {
         // All done, write the last term directory
         if let Some((field, term)) = current_td_key {
             let kb = KeyBuilder::chunk_dir_list(dest_chunk, field, term);
-            self.db.put(&kb.key(), &current_td);
+            if let Err(e) = self.db.put(&kb.key(), &current_td) {
+                return Err(RocksDBWriteError::new_put(kb.key().to_vec(), e).into());
+            }
             current_td.clear();
         }
 
@@ -124,7 +136,9 @@ impl RocksDBIndexStore {
 
                 // Write value into new chunk
                 let kb = KeyBuilder::stored_field_value(dest_chunk, *new_doc_id, field, &value_type);
-                self.db.put(&kb.key(), &v);
+                if let Err(e) = self.db.put(&kb.key(), &v) {
+                    return Err(RocksDBWriteError::new_put(kb.key().to_vec(), e).into());
+                }
             }
         }
 
@@ -173,7 +187,9 @@ impl RocksDBIndexStore {
             let kb = KeyBuilder::chunk_stat(dest_chunk, &stat_name);
             let mut val_bytes = [0; 8];
             BigEndian::write_i64(&mut val_bytes, stat_value);
-            self.db.put(&kb.key(), &val_bytes);
+            if let Err(e) = self.db.put(&kb.key(), &val_bytes) {
+                return Err(RocksDBWriteError::new_put(kb.key().to_vec(), e).into());
+            }
         }
 
         // Note: Don't merge the deletion lists
@@ -184,23 +200,29 @@ impl RocksDBIndexStore {
         Ok(())
     }
 
-    fn commit_chunk_merge(&self, source_chunks: &Vec<u32>, dest_chunk: u32, doc_ref_mapping: &HashMap<DocRef, u16>) {
+    fn commit_chunk_merge(&self, source_chunks: &Vec<u32>, dest_chunk: u32, doc_ref_mapping: &HashMap<DocRef, u16>) -> Result<(), ChunkMergeError> {
         let write_batch = WriteBatch::default();
 
         // Activate new chunk
         let kb = KeyBuilder::chunk_active(dest_chunk);
-        write_batch.put(&kb.key(), b"");
+        if let Err(e) = write_batch.put(&kb.key(), b"") {
+            return Err(RocksDBWriteError::new_put(kb.key().to_vec(), e).into());
+        }
 
         // Deactivate old chunks
         for source_chunk in source_chunks.iter() {
             // Activate new chunk
             let kb = KeyBuilder::chunk_active(*source_chunk);
-            write_batch.delete(&kb.key());
+            if let Err(e) = write_batch.delete(&kb.key()) {
+                return Err(RocksDBWriteError::new_delete(kb.key().to_vec(), e).into());
+            }
         }
 
         // Update document index and commit
         // This will write the write batch
         self.document_index.commit_chunk_merge(&self.db, write_batch, source_chunks, dest_chunk, doc_ref_mapping);
+
+        Ok(())
     }
 
     pub fn merge_chunks(&self, source_chunks: Vec<u32>) -> Result<u32, ChunkMergeError> {
@@ -253,7 +275,7 @@ impl RocksDBIndexStore {
         // prevent documents in the source chunks being deleted/updated so we don't accidentally
         // undelete them (this will block until the merge is complete so they delete/update from
         // the new chunk).
-        self.commit_chunk_merge(&source_chunks, dest_chunk, &doc_ref_mapping);
+        try!(self.commit_chunk_merge(&source_chunks, dest_chunk, &doc_ref_mapping));
 
         Ok(dest_chunk)
     }
