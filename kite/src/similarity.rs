@@ -48,35 +48,35 @@ mod tests {
     fn test_tf_idf_higher_term_freq_increases_score() {
         let similarity = SimilarityModel::TfIdf;
 
-        assert!(similarity.score(2, 40, 100, 10, 5) > similarity.score(1, 40, 100, 10, 5));
+        assert!(similarity.score(2, 40.0, 100, 10, 5) > similarity.score(1, 40.0, 100, 10, 5));
     }
 
     #[test]
     fn test_tf_idf_lower_term_docs_increases_score() {
         let similarity = SimilarityModel::TfIdf;
 
-        assert!(similarity.score(1, 40, 100, 10, 5) > similarity.score(1, 40, 100, 10, 10));
+        assert!(similarity.score(1, 40.0, 100, 10, 5) > similarity.score(1, 40.0, 100, 10, 10));
     }
 
     #[test]
     fn test_tf_idf_field_length_doesnt_affect_score() {
         let similarity = SimilarityModel::TfIdf;
 
-        assert!(similarity.score(1, 100, 100, 20, 5) == similarity.score(1, 40, 100, 20, 5));
+        assert!(similarity.score(1, 100.0, 100, 20, 5) == similarity.score(1, 40.0, 100, 20, 5));
     }
 
     #[test]
     fn test_tf_idf_total_tokens_doesnt_affect_score() {
         let similarity = SimilarityModel::TfIdf;
 
-        assert!(similarity.score(1, 40, 1000, 20, 5) == similarity.score(1, 40, 100, 20, 5));
+        assert!(similarity.score(1, 40.0, 1000, 20, 5) == similarity.score(1, 40.0, 100, 20, 5));
     }
 
     #[test]
     fn test_tf_idf_handles_zeros() {
         let similarity = SimilarityModel::TfIdf;
 
-        assert!(similarity.score(0, 0, 0, 0, 0).is_finite());
+        assert!(similarity.score(0, 0.0, 0, 0, 0).is_finite());
     }
 
     #[test]
@@ -86,7 +86,7 @@ mod tests {
             b: 0.75,
         };
 
-        assert!(similarity.score(2, 40, 100, 10, 5) > similarity.score(1, 40, 100, 10, 5));
+        assert!(similarity.score(2, 40.0, 100, 10, 5) > similarity.score(1, 40.0, 100, 10, 5));
     }
 
     #[test]
@@ -96,7 +96,7 @@ mod tests {
             b: 0.75,
         };
 
-        assert!(similarity.score(1, 40, 100, 10, 5) > similarity.score(1, 40, 100, 10, 10));
+        assert!(similarity.score(1, 40.0, 100, 10, 5) > similarity.score(1, 40.0, 100, 10, 10));
     }
 
     #[test]
@@ -106,7 +106,7 @@ mod tests {
             b: 0.75,
         };
 
-        assert!(similarity.score(1, 40, 100, 20, 5) > similarity.score(1, 100, 100, 20, 5));
+        assert!(similarity.score(1, 40.0, 100, 20, 5) > similarity.score(1, 100.0, 100, 20, 5));
     }
 
     #[test]
@@ -116,7 +116,7 @@ mod tests {
             b: 0.75,
         };
 
-        assert!(similarity.score(1, 40, 1000, 20, 5) > similarity.score(1, 40, 100, 20, 5));
+        assert!(similarity.score(1, 40.0, 1000, 20, 5) > similarity.score(1, 40.0, 100, 20, 5));
     }
 
     #[test]
@@ -126,6 +126,6 @@ mod tests {
             b: 0.0,
         };
 
-        assert!(similarity.score(0, 0, 0, 0, 0).is_finite());
+        assert!(similarity.score(0, 0.0, 0, 0, 0).is_finite());
     }
 }
