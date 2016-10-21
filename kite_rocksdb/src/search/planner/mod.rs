@@ -44,7 +44,7 @@ pub fn plan_query(index_reader: &RocksDBIndexReader, query: &Query, score: bool)
 
     // Plan score function
     if score {
-        plan_score_function(index_reader, &mut plan, query);
+        plan_score_function(index_reader, &mut plan.score_function, query);
     } else {
         plan.score_function.push(ScoreFunctionOp::Literal(0.0f64));
     }
