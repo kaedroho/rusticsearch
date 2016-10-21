@@ -30,6 +30,7 @@ use rustc_serialize::json;
 use byteorder::{ByteOrder, BigEndian};
 use chrono::{NaiveDateTime, DateTime, UTC};
 
+use errors::RocksDBReadError;
 use key_builder::KeyBuilder;
 use chunk::ChunkManager;
 use term_dictionary::TermDictionaryManager;
@@ -325,6 +326,31 @@ impl RocksDBIndexStore {
 }
 
 
+pub enum StoredFieldReadError {
+    /// The provided FieldRef wasn't valid for this index
+    InvalidFieldRef(FieldRef),
+
+    /// A RocksDB error occurred while reading from the disk
+    RocksDBReadError(RocksDBReadError),
+
+    /// A UTF-8 decode error occured while reading a Text field
+    TextFieldUTF8DecodeError(Vec<u8>, str::Utf8Error),
+
+    /// A boolean field was read but the value wasn't a boolean
+    BooleanFieldDecodeError(Vec<u8>),
+
+    /// An integer/datetime field was read but the value wasn't 8 bytes
+    IntegerFieldValueSizeError(usize),
+}
+
+
+impl From<RocksDBReadError> for StoredFieldReadError {
+    fn from(e: RocksDBReadError) -> StoredFieldReadError {
+        StoredFieldReadError::RocksDBReadError(e)
+    }
+}
+
+
 pub struct RocksDBIndexReader<'a> {
     store: &'a RocksDBIndexStore,
     snapshot: Snapshot<'a>
@@ -341,10 +367,10 @@ impl<'a> RocksDBIndexReader<'a> {
         self.store.document_index.contains_document_key(&doc_key.as_bytes().iter().cloned().collect())
     }
 
-    pub fn read_stored_field(&self, field_ref: FieldRef, doc_ref: DocRef) -> Option<FieldValue> {
+    pub fn read_stored_field(&self, field_ref: FieldRef, doc_ref: DocRef) -> Result<Option<FieldValue>, StoredFieldReadError> {
         let field_info = match self.schema().get(&field_ref) {
             Some(field_info) => field_info,
-            None => return None,  // TODO Error?
+            None => return Err(StoredFieldReadError::InvalidFieldRef(field_ref)),
         };
 
         let kb = KeyBuilder::stored_field_value(doc_ref.chunk(), doc_ref.ord(), field_ref.ord(), b"val");
@@ -353,30 +379,47 @@ impl<'a> RocksDBIndexReader<'a> {
             Ok(Some(value)) => {
                 match field_info.field_type {
                     FieldType::Text | FieldType::PlainString => {
-                        Some(FieldValue::String(str::from_utf8(&value).unwrap().to_string()))
+                        match str::from_utf8(&value) {
+                            Ok(value_str) => {
+                                Ok(Some(FieldValue::String(value_str.to_string())))
+                            }
+                            Err(e) => {
+                                Err(StoredFieldReadError::TextFieldUTF8DecodeError(value.to_vec(), e))
+                            }
+                        }
                     }
                     FieldType::I64 => {
-                        Some(FieldValue::Integer(BigEndian::read_i64(&value)))
+                        if value.len() != 8 {
+                            return Err(StoredFieldReadError::IntegerFieldValueSizeError(value.len()));
+                        }
+
+                        Ok(Some(FieldValue::Integer(BigEndian::read_i64(&value))))
                     }
                     FieldType::Boolean => {
                         match value[..] {
-                            [b't'] => Some(FieldValue::Boolean(true)),
-                            [b'f'] => Some(FieldValue::Boolean(false)),
-                            _ => None  // TODO Error
+                            [b't'] => Ok(Some(FieldValue::Boolean(true))),
+                            [b'f'] => Ok(Some(FieldValue::Boolean(false))),
+                            _ => {
+                                Err(StoredFieldReadError::BooleanFieldDecodeError(value.to_vec()))
+                            }
                         }
                     }
                     FieldType::DateTime => {
+                        if value.len() != 8 {
+                            return Err(StoredFieldReadError::IntegerFieldValueSizeError(value.len()))
+                        }
+
                         let timestamp_with_micros = BigEndian::read_i64(&value);
                         let timestamp = timestamp_with_micros / 1000000;
                         let micros = timestamp_with_micros % 1000000;
                         let nanos = micros * 1000;
                         let datetime = NaiveDateTime::from_timestamp(timestamp, nanos as u32);
-                        Some(FieldValue::DateTime(DateTime::from_utc(datetime, UTC)))
+                        Ok(Some(FieldValue::DateTime(DateTime::from_utc(datetime, UTC))))
                     }
                 }
             }
-            Ok(None) => None,
-            Err(e) => None,  // TODO Error
+            Ok(None) => Ok(None),
+            Err(e) => Err(RocksDBReadError::new(kb.key().to_vec(), e).into())
         }
     }
 }
