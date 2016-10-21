@@ -111,10 +111,10 @@ pub fn plan_score_function(index_reader: &RocksDBIndexReader, mut score_function
         Query::DisjunctionMax{ref queries} => {
             plan_score_function_combinator(index_reader, &mut score_function, queries, CombinatorScorer::Max);
         }
-        Query::Filter{ref query, ref filter} => {
+        Query::Filter{ref query, ..} => {
             plan_score_function(index_reader, &mut score_function, query);
         }
-        Query::Exclude{ref query, ref exclude} => {
+        Query::Exclude{ref query, ..} => {
             plan_score_function(index_reader, &mut score_function, query);
         }
     }
