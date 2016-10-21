@@ -13,7 +13,7 @@ pub struct DocRef(u32, u16);
 
 
 impl DocRef {
-    pub fn chunk(&self) -> u32 {
+    pub fn segment(&self) -> u32 {
         self.0
     }
 
@@ -25,14 +25,14 @@ impl DocRef {
         (self.0 as u64) << 16 | (self.1 as u64)
     }
 
-    pub fn from_chunk_ord(chunk: u32, ord: u16) -> DocRef {
-        DocRef(chunk, ord)
+    pub fn from_segment_ord(segment: u32, ord: u16) -> DocRef {
+        DocRef(segment, ord)
     }
 
     pub fn from_u64(val: u64) -> DocRef {
-        let chunk = (val >> 16) & 0xFFFFFFFF;
+        let segment = (val >> 16) & 0xFFFFFFFF;
         let ord = val & 0xFFFF;
-        DocRef(chunk as u32, ord as u16)
+        DocRef(segment as u32, ord as u16)
     }
 }
 
@@ -60,9 +60,9 @@ impl DocumentIndexManager {
                 break;
             }
 
-            let chunk = BigEndian::read_u32(&v[0..4]);
+            let segment = BigEndian::read_u32(&v[0..4]);
             let ord = BigEndian::read_u16(&v[4..6]);
-            let doc_ref = DocRef::from_chunk_ord(chunk, ord);
+            let doc_ref = DocRef::from_segment_ord(segment, ord);
 
             primary_key_index.insert(k[1..].to_vec(), doc_ref);
         }
@@ -73,13 +73,13 @@ impl DocumentIndexManager {
     }
 
     fn delete_document_by_ref_unchecked(&self, write_batch: &WriteBatch, doc_ref: DocRef) {
-        let kb = KeyBuilder::chunk_del_list(doc_ref.chunk());
+        let kb = KeyBuilder::segment_del_list(doc_ref.segment());
         let mut previous_doc_id_bytes = [0; 2];
         BigEndian::write_u16(&mut previous_doc_id_bytes, doc_ref.ord());
         write_batch.merge(&kb.key(), &previous_doc_id_bytes);
 
         // Increment deleted docs
-        let kb = KeyBuilder::chunk_stat(doc_ref.chunk(), b"deleted_docs");
+        let kb = KeyBuilder::segment_stat(doc_ref.segment(), b"deleted_docs");
         let mut inc_bytes = [0; 8];
         BigEndian::write_i64(&mut inc_bytes, 1);
         write_batch.merge(&kb.key(), &inc_bytes);
@@ -92,7 +92,7 @@ impl DocumentIndexManager {
 
         let kb = KeyBuilder::primary_key_index(key);
         let mut doc_ref_bytes = [0; 6];
-        BigEndian::write_u32(&mut doc_ref_bytes, doc_ref.chunk());
+        BigEndian::write_u32(&mut doc_ref_bytes, doc_ref.segment());
         BigEndian::write_u16(&mut doc_ref_bytes[4..], doc_ref.ord());
         write_batch.put(&kb.key(), &doc_ref_bytes);
 
@@ -124,7 +124,7 @@ impl DocumentIndexManager {
         self.primary_key_index.read().unwrap().contains_key(key)
     }
 
-    pub fn commit_chunk_merge(&self, db: &DB, write_batch: WriteBatch, source_chunks: &Vec<u32>, dest_chunk: u32, doc_ref_mapping: &HashMap<DocRef, u16>) {
+    pub fn commit_segment_merge(&self, db: &DB, write_batch: WriteBatch, source_segments: &Vec<u32>, dest_segment: u32, doc_ref_mapping: &HashMap<DocRef, u16>) {
         // Lock the primary key index
         let mut primary_key_index = self.primary_key_index.write().unwrap();
 
@@ -138,7 +138,7 @@ impl DocumentIndexManager {
 
         for (key, doc_ref) in keys_to_update {
             let new_doc_ord = doc_ref_mapping.get(&doc_ref).unwrap();
-            let new_doc_ref = DocRef::from_chunk_ord(dest_chunk, *new_doc_ord);
+            let new_doc_ref = DocRef::from_segment_ord(dest_segment, *new_doc_ord);
 
             primary_key_index.insert(key, new_doc_ref);
         }
@@ -146,12 +146,12 @@ impl DocumentIndexManager {
         // Merge deletion lists
         // Must be done while the primary_key_index is locked as this prevents any more documents being deleted
         let mut deletion_list = Vec::new();
-        for source_chunk in source_chunks {
-            let kb = KeyBuilder::chunk_del_list(*source_chunk);
+        for source_segment in source_segments {
+            let kb = KeyBuilder::segment_del_list(*source_segment);
             match db.get(&kb.key()) {
                 Ok(Some(docid_set)) => {
                     for doc_id in DocIdSet::FromRDB(docid_set).iter() {
-                        let doc_ref = DocRef::from_chunk_ord(*source_chunk, doc_id);
+                        let doc_ref = DocRef::from_segment_ord(*source_segment, doc_id);
                         let new_doc_id = doc_ref_mapping.get(&doc_ref).unwrap();
                         deletion_list.write_u16::<BigEndian>(*new_doc_id);
                     }
@@ -161,7 +161,7 @@ impl DocumentIndexManager {
             }
         }
 
-        let kb = KeyBuilder::chunk_del_list(dest_chunk);
+        let kb = KeyBuilder::segment_del_list(dest_segment);
         db.put(&kb.key(), &deletion_list);
 
         // Commit!

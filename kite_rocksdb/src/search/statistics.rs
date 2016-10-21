@@ -30,8 +30,8 @@ impl<'a> StatisticsReader<'a> {
     fn get_statistic(&self, name: &[u8]) -> Result<i64, RocksDBReadError> {
         let mut val = 0;
 
-        for chunk in self.index_reader.store.chunks.iter_active(&self.index_reader.snapshot) {
-            let kb = KeyBuilder::chunk_stat(chunk, name);
+        for segment in self.index_reader.store.segments.iter_active(&self.index_reader.snapshot) {
+            let kb = KeyBuilder::segment_stat(segment, name);
             match self.index_reader.snapshot.get(&kb.key()) {
                 Ok(Some(new_val)) => {
                     val += BigEndian::read_i64(&new_val);
@@ -49,7 +49,7 @@ impl<'a> StatisticsReader<'a> {
             return Ok(*val);
         }
 
-        let stat_name = KeyBuilder::chunk_stat_total_field_docs_stat_name(field_ref.ord());
+        let stat_name = KeyBuilder::segment_stat_total_field_docs_stat_name(field_ref.ord());
         let val = try!(self.get_statistic(&stat_name));
         self.total_docs.insert(field_ref, val);
         Ok(val)
@@ -60,7 +60,7 @@ impl<'a> StatisticsReader<'a> {
             return Ok(*val);
         }
 
-        let stat_name = KeyBuilder::chunk_stat_total_field_tokens_stat_name(field_ref.ord());
+        let stat_name = KeyBuilder::segment_stat_total_field_tokens_stat_name(field_ref.ord());
         let val = try!(self.get_statistic(&stat_name));
         self.total_tokens.insert(field_ref, val);
         Ok(val)
@@ -71,7 +71,7 @@ impl<'a> StatisticsReader<'a> {
             return Ok(*val);
         }
 
-        let stat_name = KeyBuilder::chunk_stat_term_doc_frequency_stat_name(field_ref.ord(), term_ref.ord());
+        let stat_name = KeyBuilder::segment_stat_term_doc_frequency_stat_name(field_ref.ord(), term_ref.ord());
         let val = try!(self.get_statistic(&stat_name));
         self.term_document_frequencies.insert((field_ref, term_ref), val);
         Ok(val)

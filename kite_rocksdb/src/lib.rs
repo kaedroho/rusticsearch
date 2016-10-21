@@ -11,8 +11,8 @@ extern crate chrono;
 
 pub mod errors;
 pub mod key_builder;
-pub mod chunk;
-pub mod chunk_merge;
+pub mod segment;
+pub mod segment_merge;
 pub mod term_dictionary;
 pub mod document_index;
 pub mod search;
@@ -32,7 +32,7 @@ use chrono::{NaiveDateTime, DateTime, UTC};
 
 use errors::RocksDBReadError;
 use key_builder::KeyBuilder;
-use chunk::ChunkManager;
+use segment::SegmentManager;
 use term_dictionary::TermDictionaryManager;
 use document_index::{DocumentIndexManager, DocRef};
 
@@ -96,7 +96,7 @@ pub struct RocksDBIndexStore {
     schema: Arc<Schema>,
     db: DB,
     term_dictionary: TermDictionaryManager,
-    chunks: ChunkManager,
+    segments: SegmentManager,
     document_index: DocumentIndexManager,
     doc_key_mapping: RwLock<BTreeMap<Vec<u8>, DocRef>>,
 }
@@ -113,8 +113,8 @@ impl RocksDBIndexStore {
         let schema = Schema::new();
         db.put(b".schema", json::encode(&schema).unwrap().as_bytes());
 
-        // Chunk manager
-        let chunks = ChunkManager::new(&db);
+        // Segment manager
+        let segments = SegmentManager::new(&db);
 
         // Term dictionary manager
         let term_dictionary = TermDictionaryManager::new(&db);
@@ -126,7 +126,7 @@ impl RocksDBIndexStore {
             schema: Arc::new(schema),
             db: db,
             term_dictionary: term_dictionary,
-            chunks: chunks,
+            segments: segments,
             document_index: document_index,
             doc_key_mapping: RwLock::new(BTreeMap::new()),
         })
@@ -146,8 +146,8 @@ impl RocksDBIndexStore {
             Err(_) => Schema::new(),  // TODO: error
         };
 
-        // Chunk manager
-        let chunks = ChunkManager::open(&db);
+        // Segment manager
+        let segments = SegmentManager::open(&db);
 
         // Term dictionary manager
         let term_dictionary = TermDictionaryManager::open(&db);
@@ -159,7 +159,7 @@ impl RocksDBIndexStore {
             schema: Arc::new(schema),
             db: db,
             term_dictionary: term_dictionary,
-            chunks: chunks,
+            segments: segments,
             document_index: document_index,
             doc_key_mapping: RwLock::new(BTreeMap::new()),
         })
@@ -188,23 +188,23 @@ impl RocksDBIndexStore {
     }
 
     pub fn insert_or_update_document(&self, doc: Document) {
-        // Allocate a new chunk for the document
-        // Chunk merges are very slow so we should avoid doing them at runtime
-        // which is why each new document is created in a fresh chunk.
-        // Later on, a background process will come and merge any small chunks
+        // Allocate a new segment for the document
+        // Segment merges are very slow so we should avoid doing them at runtime
+        // which is why each new document is created in a fresh segment.
+        // Later on, a background process will come and merge any small segments
         // together. (For best performance, documents should be
         // inserted/updated in batches)
-        let chunk = self.chunks.new_chunk(&self.db);
+        let segment = self.segments.new_segment(&self.db);
 
         // Create doc ref
-        let doc_ref = DocRef::from_chunk_ord(chunk, 0);
+        let doc_ref = DocRef::from_segment_ord(segment, 0);
 
         // Start write batch
         let write_batch = WriteBatch::default();
 
-        // Set chunk active flag, this will activate the chunk as soon as the
+        // Set segment active flag, this will activate the segment as soon as the
         // write batch is written
-        let kb = KeyBuilder::chunk_active(doc_ref.chunk());
+        let kb = KeyBuilder::segment_active(doc_ref.segment());
         write_batch.put(&kb.key(), b"");
 
         // Insert contents
@@ -234,7 +234,7 @@ impl RocksDBIndexStore {
                 *term_frequency += 1;
 
                 // Write directory list
-                let kb = KeyBuilder::chunk_dir_list(doc_ref.chunk(), field_ref.ord(), term_ref.ord());
+                let kb = KeyBuilder::segment_dir_list(doc_ref.segment(), field_ref.ord(), term_ref.ord());
                 let mut doc_id_bytes = [0; 2];
                 BigEndian::write_u16(&mut doc_id_bytes, doc_ref.ord());
                 write_batch.merge(&kb.key(), &doc_id_bytes);
@@ -248,14 +248,14 @@ impl RocksDBIndexStore {
                 if frequency != 1 {
                     let mut value_type = vec![b't', b'f'];
                     value_type.extend(term_ref.ord().to_string().as_bytes());
-                    let kb = KeyBuilder::stored_field_value(doc_ref.chunk(), doc_ref.ord(), field_ref.ord(), &value_type);
+                    let kb = KeyBuilder::stored_field_value(doc_ref.segment(), doc_ref.ord(), field_ref.ord(), &value_type);
                     let mut frequency_bytes = [0; 8];
                     BigEndian::write_i64(&mut frequency_bytes, frequency);
                     write_batch.merge(&kb.key(), &frequency_bytes);
                 }
 
                 // Increment term document frequency
-                let kb = KeyBuilder::chunk_stat_term_doc_frequency(doc_ref.chunk(), field_ref.ord(), term_ref.ord());
+                let kb = KeyBuilder::segment_stat_term_doc_frequency(doc_ref.segment(), field_ref.ord(), term_ref.ord());
                 let mut inc_bytes = [0; 8];
                 BigEndian::write_i64(&mut inc_bytes, 1);
                 write_batch.merge(&kb.key(), &inc_bytes);
@@ -266,18 +266,18 @@ impl RocksDBIndexStore {
             let length = ((field_token_count as f64).sqrt() - 1.0) * 3.0;
             let length = if length > 255.0 { 255.0 } else { length } as u8;
             if length != 0 {
-                let kb = KeyBuilder::stored_field_value(doc_ref.chunk(), doc_ref.ord(), field_ref.ord(), b"len");
+                let kb = KeyBuilder::stored_field_value(doc_ref.segment(), doc_ref.ord(), field_ref.ord(), b"len");
                 write_batch.merge(&kb.key(), &[length]);
             }
 
             // Increment total field docs
-            let kb = KeyBuilder::chunk_stat_total_field_docs(doc_ref.chunk(), field_ref.ord());
+            let kb = KeyBuilder::segment_stat_total_field_docs(doc_ref.segment(), field_ref.ord());
             let mut inc_bytes = [0; 8];
             BigEndian::write_i64(&mut inc_bytes, 1);
             write_batch.merge(&kb.key(), &inc_bytes);
 
             // Increment total field tokens
-            let kb = KeyBuilder::chunk_stat_total_field_tokens(doc_ref.chunk(), field_ref.ord());
+            let kb = KeyBuilder::segment_stat_total_field_tokens(doc_ref.segment(), field_ref.ord());
             let mut inc_bytes = [0; 8];
             BigEndian::write_i64(&mut inc_bytes, field_token_count);
             write_batch.merge(&kb.key(), &inc_bytes);
@@ -293,12 +293,12 @@ impl RocksDBIndexStore {
                 }
             };
 
-            let kb = KeyBuilder::stored_field_value(doc_ref.chunk(), doc_ref.ord(), field_ref.ord(), b"val");
+            let kb = KeyBuilder::stored_field_value(doc_ref.segment(), doc_ref.ord(), field_ref.ord(), b"val");
             write_batch.merge(&kb.key(), &value.to_bytes());
         }
 
         // Increment total docs
-        let kb = KeyBuilder::chunk_stat(doc_ref.chunk(), b"total_docs");
+        let kb = KeyBuilder::segment_stat(doc_ref.segment(), b"total_docs");
         let mut inc_bytes = [0; 8];
         BigEndian::write_i64(&mut inc_bytes, 1);
         write_batch.merge(&kb.key(), &inc_bytes);
@@ -373,7 +373,7 @@ impl<'a> RocksDBIndexReader<'a> {
             None => return Err(StoredFieldReadError::InvalidFieldRef(field_ref)),
         };
 
-        let kb = KeyBuilder::stored_field_value(doc_ref.chunk(), doc_ref.ord(), field_ref.ord(), b"val");
+        let kb = KeyBuilder::stored_field_value(doc_ref.segment(), doc_ref.ord(), field_ref.ord(), b"val");
 
         match self.snapshot.get(&kb.key()) {
             Ok(Some(value)) => {
@@ -505,7 +505,7 @@ mod tests {
             }
         });
 
-        store.merge_chunks(vec![1, 2]);
+        store.merge_segments(vec![1, 2]);
 
         store
     }

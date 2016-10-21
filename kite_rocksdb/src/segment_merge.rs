@@ -12,34 +12,34 @@ use search::doc_id_set::DocIdSet;
 
 
 #[derive(Debug)]
-pub enum ChunkMergeError {
+pub enum SegmentMergeError {
     TooManyDocs,
     RocksDBReadError(RocksDBReadError),
     RocksDBWriteError(RocksDBWriteError),
 }
 
 
-impl From<RocksDBReadError> for ChunkMergeError {
-    fn from(e: RocksDBReadError) -> ChunkMergeError {
-        ChunkMergeError::RocksDBReadError(e)
+impl From<RocksDBReadError> for SegmentMergeError {
+    fn from(e: RocksDBReadError) -> SegmentMergeError {
+        SegmentMergeError::RocksDBReadError(e)
     }
 }
 
 
-impl From<RocksDBWriteError> for ChunkMergeError {
-    fn from(e: RocksDBWriteError) -> ChunkMergeError {
-        ChunkMergeError::RocksDBWriteError(e)
+impl From<RocksDBWriteError> for SegmentMergeError {
+    fn from(e: RocksDBWriteError) -> SegmentMergeError {
+        SegmentMergeError::RocksDBWriteError(e)
     }
 }
 
 
 impl RocksDBIndexStore {
-    fn merge_chunk_data(&self, source_chunks: &Vec<u32>, dest_chunk: u32, doc_ref_mapping: &HashMap<DocRef, u16>) -> Result<(), ChunkMergeError> {
+    fn merge_segment_data(&self, source_segments: &Vec<u32>, dest_segment: u32, doc_ref_mapping: &HashMap<DocRef, u16>) -> Result<(), SegmentMergeError> {
         // Merge the term directories
-        // The term directory keys are ordered to be most convenient for retrieving all the chunks
-        // of for a term/field combination in one go (field/term/chunk). So we don't end up pulling
-        // in a lot of unwanted data, we firstly iterate the keys, it they one of the source chunks
-        // looking for then we load them and append them to our new chunk.
+        // The term directory keys are ordered to be most convenient for retrieving all the segments
+        // of for a term/field combination in one go (field/term/segment). So we don't end up pulling
+        // in a lot of unwanted data, we firstly iterate the keys, it they one of the source segments
+        // looking for then we load them and append them to our new segment.
 
         /// Converts term directory key strings "d1/2/3" into tuples of 3 i32s (1, 2, 3)
         fn parse_term_directory_key(key: &[u8]) -> (u32, u32, u32) {
@@ -56,16 +56,16 @@ impl RocksDBIndexStore {
                 break;
             }
 
-            let (field, term, chunk) = parse_term_directory_key(&k);
+            let (field, term, segment) = parse_term_directory_key(&k);
 
-            if !source_chunks.contains(&chunk) {
+            if !source_segments.contains(&segment) {
                 continue;
             }
 
             if current_td_key != Some((field, term)) {
                 // Finished current term directory. Write it to the DB and start the next one
                 if let Some((field, term)) = current_td_key {
-                    let kb = KeyBuilder::chunk_dir_list(dest_chunk, field, term);
+                    let kb = KeyBuilder::segment_dir_list(dest_segment, field, term);
                     if let Err(e) = self.db.put(&kb.key(), &current_td) {
                         return Err(RocksDBWriteError::new_put(kb.key().to_vec(), e).into());
                     }
@@ -79,7 +79,7 @@ impl RocksDBIndexStore {
             match self.db.get(&k) {
                 Ok(Some(docid_set)) => {
                     for doc_id in DocIdSet::FromRDB(docid_set).iter() {
-                        let doc_ref = DocRef::from_chunk_ord(chunk, doc_id);
+                        let doc_ref = DocRef::from_segment_ord(segment, doc_id);
                         let new_doc_id = doc_ref_mapping.get(&doc_ref).unwrap();
                         current_td.write_u16::<BigEndian>(*new_doc_id).unwrap();
                     }
@@ -91,7 +91,7 @@ impl RocksDBIndexStore {
 
         // All done, write the last term directory
         if let Some((field, term)) = current_td_key {
-            let kb = KeyBuilder::chunk_dir_list(dest_chunk, field, term);
+            let kb = KeyBuilder::segment_dir_list(dest_segment, field, term);
             if let Err(e) = self.db.put(&kb.key(), &current_td) {
                 return Err(RocksDBWriteError::new_put(kb.key().to_vec(), e).into());
             }
@@ -99,43 +99,43 @@ impl RocksDBIndexStore {
         }
 
         // Merge the stored values
-        // All stored value keys start with the chunk id. So we need to:
-        // - Iterate all stored value keys that are prefixed by one of the stored chunk ids
-        // - Remap their doc ids to the one in the new chunk
-        // - Write the value back with the new chunk/doc ids in the key
+        // All stored value keys start with the segment id. So we need to:
+        // - Iterate all stored value keys that are prefixed by one of the stored segment ids
+        // - Remap their doc ids to the one in the new segment
+        // - Write the value back with the new segment/doc ids in the key
 
         /// Converts stored value key strings "v1/2/3/v" into tuples of 3 i32s and a Vec<u8> (1, 2, 3, vec![b'v', b'a', b'l'])
         fn parse_stored_value_key(key: &[u8]) -> (u32, u32, u32, Vec<u8>) {
             let mut parts_iter = key[1..].split(|b| *b == b'/');
-            let chunk = str::from_utf8(parts_iter.next().unwrap()).unwrap().parse::<u32>().unwrap();
+            let segment = str::from_utf8(parts_iter.next().unwrap()).unwrap().parse::<u32>().unwrap();
             let doc_id = str::from_utf8(parts_iter.next().unwrap()).unwrap().parse::<u32>().unwrap();
             let field_ord = str::from_utf8(parts_iter.next().unwrap()).unwrap().parse::<u32>().unwrap();
             let value_type = parts_iter.next().unwrap().to_vec();
 
-            (chunk, doc_id, field_ord, value_type)
+            (segment, doc_id, field_ord, value_type)
         }
 
-        for source_chunk in source_chunks.iter() {
-            let kb = KeyBuilder::chunk_stored_values_prefix(*source_chunk);
+        for source_segment in source_segments.iter() {
+            let kb = KeyBuilder::segment_stored_values_prefix(*source_segment);
             for (k, v) in self.db.iterator(IteratorMode::From(&kb.key(), Direction::Forward)) {
                 if k[0] != b'v' {
                     // No more stored values to move
                     break;
                 }
 
-                let (chunk, doc_id, field, value_type) = parse_stored_value_key(&k);
+                let (segment, doc_id, field, value_type) = parse_stored_value_key(&k);
 
-                if chunk != *source_chunk {
-                    // Chunk finished
+                if segment != *source_segment {
+                    // Segment finished
                     break;
                 }
 
                 // Remap doc id
-                let doc_ref = DocRef::from_chunk_ord(chunk, doc_id as u16);
+                let doc_ref = DocRef::from_segment_ord(segment, doc_id as u16);
                 let new_doc_id = doc_ref_mapping.get(&doc_ref).unwrap();
 
-                // Write value into new chunk
-                let kb = KeyBuilder::stored_field_value(dest_chunk, *new_doc_id, field, &value_type);
+                // Write value into new segment
+                let kb = KeyBuilder::stored_field_value(dest_segment, *new_doc_id, field, &value_type);
                 if let Err(e) = self.db.put(&kb.key(), &v) {
                     return Err(RocksDBWriteError::new_put(kb.key().to_vec(), e).into());
                 }
@@ -143,8 +143,8 @@ impl RocksDBIndexStore {
         }
 
         // Merge the statistics
-        // Like stored values, these start with chunk ids. But instead of just rewriting the
-        // key, we need to sum up all the statistics across the chunks being merged.
+        // Like stored values, these start with segment ids. But instead of just rewriting the
+        // key, we need to sum up all the statistics across the segments being merged.
 
         let mut statistics = HashMap::new();
 
@@ -152,9 +152,9 @@ impl RocksDBIndexStore {
         fn parse_statistic_key(key: &[u8]) -> (u32, Vec<u8>) {
             let mut parts_iter = key[1..].split(|b| *b == b'/');
             let statistic_name = parts_iter.next().unwrap().to_vec();
-            let chunk = str::from_utf8(parts_iter.next().unwrap()).unwrap().parse::<u32>().unwrap();
+            let segment = str::from_utf8(parts_iter.next().unwrap()).unwrap().parse::<u32>().unwrap();
 
-            (chunk, statistic_name)
+            (segment, statistic_name)
         }
 
         // Fetch and merge statistics
@@ -164,9 +164,9 @@ impl RocksDBIndexStore {
                 break;
             }
 
-            let (chunk, statistic_name) = parse_statistic_key(&k);
+            let (segment, statistic_name) = parse_statistic_key(&k);
 
-            if !source_chunks.contains(&chunk) {
+            if !source_segments.contains(&segment) {
                 continue;
             }
 
@@ -182,9 +182,9 @@ impl RocksDBIndexStore {
             }
         }
 
-        // Write merged statistics to new chunk
+        // Write merged statistics to new segment
         for (stat_name, stat_value) in statistics {
-            let kb = KeyBuilder::chunk_stat(dest_chunk, &stat_name);
+            let kb = KeyBuilder::segment_stat(dest_segment, &stat_name);
             let mut val_bytes = [0; 8];
             BigEndian::write_i64(&mut val_bytes, stat_value);
             if let Err(e) = self.db.put(&kb.key(), &val_bytes) {
@@ -200,19 +200,19 @@ impl RocksDBIndexStore {
         Ok(())
     }
 
-    fn commit_chunk_merge(&self, source_chunks: &Vec<u32>, dest_chunk: u32, doc_ref_mapping: &HashMap<DocRef, u16>) -> Result<(), ChunkMergeError> {
+    fn commit_segment_merge(&self, source_segments: &Vec<u32>, dest_segment: u32, doc_ref_mapping: &HashMap<DocRef, u16>) -> Result<(), SegmentMergeError> {
         let write_batch = WriteBatch::default();
 
-        // Activate new chunk
-        let kb = KeyBuilder::chunk_active(dest_chunk);
+        // Activate new segment
+        let kb = KeyBuilder::segment_active(dest_segment);
         if let Err(e) = write_batch.put(&kb.key(), b"") {
             return Err(RocksDBWriteError::new_put(kb.key().to_vec(), e).into());
         }
 
-        // Deactivate old chunks
-        for source_chunk in source_chunks.iter() {
-            // Activate new chunk
-            let kb = KeyBuilder::chunk_active(*source_chunk);
+        // Deactivate old segments
+        for source_segment in source_segments.iter() {
+            // Activate new segment
+            let kb = KeyBuilder::segment_active(*source_segment);
             if let Err(e) = write_batch.delete(&kb.key()) {
                 return Err(RocksDBWriteError::new_delete(kb.key().to_vec(), e).into());
             }
@@ -220,26 +220,26 @@ impl RocksDBIndexStore {
 
         // Update document index and commit
         // This will write the write batch
-        self.document_index.commit_chunk_merge(&self.db, write_batch, source_chunks, dest_chunk, doc_ref_mapping);
+        self.document_index.commit_segment_merge(&self.db, write_batch, source_segments, dest_segment, doc_ref_mapping);
 
         Ok(())
     }
 
-    pub fn merge_chunks(&self, source_chunks: Vec<u32>) -> Result<u32, ChunkMergeError> {
-        let dest_chunk = self.chunks.new_chunk(&self.db);
+    pub fn merge_segments(&self, source_segments: Vec<u32>) -> Result<u32, SegmentMergeError> {
+        let dest_segment = self.segments.new_segment(&self.db);
 
-        // Generate a mapping between the ids of the documents in the old chunks to the new one
-        // This packs the id spaces of the old chunks together:
-        // For example, say we have to merge 3 chunks with 100 documents each:
-        //  - The first chunk's ids will be the same as before
-        //  - The second chunk's ids will be remapped to 100 - 199
-        //  - The third chunk's ids will be remapped to 200 - 299
+        // Generate a mapping between the ids of the documents in the old segments to the new one
+        // This packs the id spaces of the old segments together:
+        // For example, say we have to merge 3 segments with 100 documents each:
+        //  - The first segment's ids will be the same as before
+        //  - The second segment's ids will be remapped to 100 - 199
+        //  - The third segment's ids will be remapped to 200 - 299
 
         let mut doc_ref_mapping: HashMap<DocRef, u16> = HashMap::new();
         let mut current_ord: u32 = 0;
 
-        for source_chunk in source_chunks.iter() {
-            let kb = KeyBuilder::chunk_stat(*source_chunk, b"total_docs");
+        for source_segment in source_segments.iter() {
+            let kb = KeyBuilder::segment_stat(*source_segment, b"total_docs");
             let total_docs = match self.db.get(&kb.key()) {
                 Ok(Some(total_docs_bytes)) => {
                     BigEndian::read_i64(&total_docs_bytes)
@@ -250,33 +250,33 @@ impl RocksDBIndexStore {
 
             for source_ord in 0..total_docs {
                 if current_ord >= 65536 {
-                    return Err(ChunkMergeError::TooManyDocs);
+                    return Err(SegmentMergeError::TooManyDocs);
                 }
 
-                let from = DocRef::from_chunk_ord(*source_chunk, source_ord as u16);
+                let from = DocRef::from_segment_ord(*source_segment, source_ord as u16);
                 doc_ref_mapping.insert(from, current_ord as u16);
                 current_ord += 1;
             }
         }
 
-        // Merge chunk data
+        // Merge segment data
         // Most of the heavy lifting happens here. This merges all the immutable parts of
-        // the chunk (which is everything but the deletion list). It does not activate the
-        // chunk.
+        // the segment (which is everything but the deletion list). It does not activate the
+        // segment.
         // This means that nothing bad will happen if it crashes half way through -- the
-        // worst that could happen is we're left with a partially-written chunk that we
+        // worst that could happen is we're left with a partially-written segment that we
         // have to clean up.
-        try!(self.merge_chunk_data(&source_chunks, dest_chunk, &doc_ref_mapping));
+        try!(self.merge_segment_data(&source_segments, dest_segment, &doc_ref_mapping));
 
         // Commit the merge
-        // This activates the new chunk and updates the document index. Effectively committing
+        // This activates the new segment and updates the document index. Effectively committing
         // the merge.
         // Throughout this stage we need an exclusive lock to the document index. This is to
-        // prevent documents in the source chunks being deleted/updated so we don't accidentally
+        // prevent documents in the source segments being deleted/updated so we don't accidentally
         // undelete them (this will block until the merge is complete so they delete/update from
-        // the new chunk).
-        try!(self.commit_chunk_merge(&source_chunks, dest_chunk, &doc_ref_mapping));
+        // the new segment).
+        try!(self.commit_segment_merge(&source_segments, dest_segment, &doc_ref_mapping));
 
-        Ok(dest_chunk)
+        Ok(dest_segment)
     }
 }
