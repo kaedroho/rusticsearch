@@ -250,7 +250,7 @@ impl RocksDBIndexStore {
             for token in tokens.iter() {
                 field_token_count += 1;
 
-                let term_ref = self.term_dictionary.get_or_create(&self.db, &token.term);
+                let term_ref = try!(self.term_dictionary.get_or_create(&self.db, &token.term));
 
                 // Term frequency
                 let mut term_frequency = term_frequencies.entry(term_ref).or_insert(0);
