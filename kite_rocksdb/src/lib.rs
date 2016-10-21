@@ -210,7 +210,6 @@ impl RocksDBIndexStore {
         // Insert contents
 
         // Indexed fields
-        let mut token_count: i64 = 0;
         let mut term_frequencies = HashMap::new();
         for (field_name, tokens) in doc.indexed_fields.iter() {
             let field_ref = match self.schema.get_field_by_name(field_name) {
@@ -224,7 +223,6 @@ impl RocksDBIndexStore {
             let mut field_token_count = 0;
 
             for token in tokens.iter() {
-                token_count += 1;
                 field_token_count += 1;
 
                 let term_ref = self.term_dictionary.get_or_create(&self.db, &token.term);
