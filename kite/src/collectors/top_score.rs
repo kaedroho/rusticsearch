@@ -1,6 +1,5 @@
 use std::cmp::Ordering;
 use std::collections::BinaryHeap;
-use std::collections::binary_heap::{Iter as BinaryHeapIter};
 
 use collectors::{Collector, DocumentMatch};
 
@@ -39,8 +38,7 @@ struct ScoredDocument {
 
 impl Ord for ScoredDocument {
     fn cmp(&self, other: &ScoredDocument) -> Ordering {
-        // Notice that the we flip the ordering here
-        other.score.cmp(&self.score)
+        self.score.cmp(&other.score)
     }
 }
 
@@ -65,10 +63,12 @@ impl TopScoreCollector {
         }
     }
 
-    pub fn iter<'a>(&'a mut self) -> Iter<'a> {
-        Iter {
-            heap_iter: self.heap.iter(),
-        }
+    pub fn into_sorted_vec(self) -> Vec<DocumentMatch> {
+        self.heap.into_sorted_vec().iter()
+            .map(|scored_document| {
+                DocumentMatch::new_scored(scored_document.id, -scored_document.score.0)
+            })
+            .collect()
     }
 }
 
@@ -86,7 +86,7 @@ impl Collector for TopScoreCollector {
         let scored_document = match score {
             Some(score) => {
                 // Convert to RealF64 which is orderable but does not support NaN
-                match RealF64::new(score) {
+                match RealF64::new(-score) {
                     Some(real_score) => {
                         ScoredDocument {
                             id: doc_id,
@@ -115,26 +115,6 @@ impl Collector for TopScoreCollector {
 }
 
 
-pub struct Iter<'a> {
-    heap_iter: BinaryHeapIter<'a, ScoredDocument>,
-}
-
-
-impl<'a> Iterator for Iter<'a> {
-    type Item = DocumentMatch;
-
-    fn next(&mut self) -> Option<DocumentMatch> {
-        match self.heap_iter.next_back() {
-            Some(scored_document) => {
-                // Convert ScoredDocument back into DocumentMatch
-                Some(DocumentMatch::new_scored(scored_document.id, scored_document.score.0))
-            }
-            None => None
-        }
-    }
-}
-
-
 #[cfg(test)]
 mod tests {
     use collectors::{Collector, DocumentMatch};
@@ -143,9 +123,9 @@ mod tests {
 
     #[test]
     fn test_top_score_collector_inital_state() {
-        let mut collector = TopScoreCollector::new(10);
+        let collector = TopScoreCollector::new(10);
 
-        let docs = collector.iter().collect::<Vec<_>>();
+        let docs = collector.into_sorted_vec();
         assert_eq!(docs.len(), 0);
     }
 
@@ -163,12 +143,14 @@ mod tests {
         collector.collect(DocumentMatch::new_scored(0, 1.0f64));
         collector.collect(DocumentMatch::new_scored(1, 0.5f64));
         collector.collect(DocumentMatch::new_scored(2, 2.0f64));
+        collector.collect(DocumentMatch::new_scored(3, 1.5f64));
 
-        let docs = collector.iter().collect::<Vec<_>>();
-        assert_eq!(docs.len(), 3);
+        let docs = collector.into_sorted_vec();
+        assert_eq!(docs.len(), 4);
         assert_eq!(docs[0].id, 2);
-        assert_eq!(docs[1].id, 0);
-        assert_eq!(docs[2].id, 1);
+        assert_eq!(docs[1].id, 3);
+        assert_eq!(docs[2].id, 0);
+        assert_eq!(docs[3].id, 1);
     }
 
     #[test]
@@ -179,7 +161,7 @@ mod tests {
         collector.collect(DocumentMatch::new_scored(1, 0.5f64));
         collector.collect(DocumentMatch::new_scored(2, 2.0f64));
 
-        let docs = collector.iter().collect::<Vec<_>>();
+        let docs = collector.into_sorted_vec();
         assert_eq!(docs.len(), 2);
         assert_eq!(docs[0].id, 2);
         assert_eq!(docs[1].id, 0);
