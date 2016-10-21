@@ -15,6 +15,13 @@ impl RocksDBReadError {
 }
 
 
+impl From<RocksDBReadError> for String {
+    fn from(e: RocksDBReadError) -> String {
+        e.message
+    }
+}
+
+
 #[derive(Debug)]
 enum RocksDBWriteOperation {
     Put(Vec<u8>),
@@ -58,5 +65,12 @@ impl RocksDBWriteError {
             operation: RocksDBWriteOperation::CommitWriteBatch,
             message: message,
         }
+    }
+}
+
+
+impl From<RocksDBWriteError> for String {
+    fn from(e: RocksDBWriteError) -> String {
+        e.message
     }
 }

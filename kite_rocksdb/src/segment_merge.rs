@@ -226,7 +226,7 @@ impl RocksDBIndexStore {
     }
 
     pub fn merge_segments(&self, source_segments: Vec<u32>) -> Result<u32, SegmentMergeError> {
-        let dest_segment = self.segments.new_segment(&self.db);
+        let dest_segment = try!(self.segments.new_segment(&self.db));
 
         // Generate a mapping between the ids of the documents in the old segments to the new one
         // This packs the id spaces of the old segments together:
