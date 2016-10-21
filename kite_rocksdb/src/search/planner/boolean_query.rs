@@ -89,12 +89,12 @@ impl BooleanQueryBuilder {
         }));
     }
 
-    pub fn push_op(&mut self, op: &BooleanQueryOp) {
+    pub fn push_op(&mut self, op: BooleanQueryOp) {
         use search::boolean_retrieval::BooleanQueryOp::*;
         use self::BooleanQueryBlock::*;
         use self::BooleanQueryBlockReturnType::*;
 
-        match *op {
+        match op {
             PushEmpty => {
                 self.push_empty();
             }

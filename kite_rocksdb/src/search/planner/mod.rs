@@ -27,32 +27,32 @@ impl SearchPlan {
 }
 
 
-fn plan_boolean_query_combinator(index_reader: &RocksDBIndexReader, mut plan: &mut SearchPlan, queries: &Vec<Query>, join_op: BooleanQueryOp) {
+fn plan_boolean_query_combinator(index_reader: &RocksDBIndexReader, mut builder: &mut BooleanQueryBuilder, queries: &Vec<Query>, join_op: BooleanQueryOp) {
     match queries.len() {
         0 => {
-            plan.boolean_query.push(BooleanQueryOp::PushEmpty);
+            builder.push_op(BooleanQueryOp::PushEmpty);
         }
-        1 =>  plan_boolean_query(index_reader, &mut plan, &queries[0]),
+        1 =>  plan_boolean_query(index_reader, &mut builder, &queries[0]),
         _ => {
             let mut query_iter = queries.iter();
-            plan_boolean_query(index_reader, &mut plan, query_iter.next().unwrap());
+            plan_boolean_query(index_reader, &mut builder, query_iter.next().unwrap());
 
             for query in query_iter {
-                plan_boolean_query(index_reader, &mut plan, query);
-                plan.boolean_query.push(join_op.clone());
+                plan_boolean_query(index_reader, &mut builder, query);
+                builder.push_op(join_op.clone());
             }
         }
     }
 }
 
 
-fn plan_boolean_query(index_reader: &RocksDBIndexReader, mut plan: &mut SearchPlan, query: &Query) {
+fn plan_boolean_query(index_reader: &RocksDBIndexReader, mut builder: &mut BooleanQueryBuilder, query: &Query) {
     match *query {
         Query::MatchAll{ref score} => {
-            plan.boolean_query.push(BooleanQueryOp::PushFull);
+            builder.push_op(BooleanQueryOp::PushFull);
         }
         Query::MatchNone => {
-            plan.boolean_query.push(BooleanQueryOp::PushEmpty);
+            builder.push_op(BooleanQueryOp::PushEmpty);
         }
         Query::MatchTerm{ref field, ref term, ref scorer} => {
             // Get field
@@ -60,7 +60,7 @@ fn plan_boolean_query(index_reader: &RocksDBIndexReader, mut plan: &mut SearchPl
                 Some(field_ref) => field_ref,
                 None => {
                     // Field doesn't exist, so will never match
-                    plan.boolean_query.push(BooleanQueryOp::PushEmpty);
+                    builder.push_op(BooleanQueryOp::PushEmpty);
                     return
                 }
             };
@@ -71,12 +71,12 @@ fn plan_boolean_query(index_reader: &RocksDBIndexReader, mut plan: &mut SearchPl
                 Some(term_ref) => term_ref,
                 None => {
                     // Term doesn't exist, so will never match
-                    plan.boolean_query.push(BooleanQueryOp::PushEmpty);
+                    builder.push_op(BooleanQueryOp::PushEmpty);
                     return
                 }
             };
 
-            plan.boolean_query.push(BooleanQueryOp::PushTermDirectory(field_ref, term_ref));
+            builder.push_op(BooleanQueryOp::PushTermDirectory(field_ref, term_ref));
         }
         Query::MatchMultiTerm{ref field, ref term_selector, ref scorer} => {
             // Get field
@@ -84,36 +84,36 @@ fn plan_boolean_query(index_reader: &RocksDBIndexReader, mut plan: &mut SearchPl
                 Some(field_ref) => field_ref,
                 None => {
                     // Field doesn't exist, so will never match
-                    plan.boolean_query.push(BooleanQueryOp::PushEmpty);
+                    builder.push_op(BooleanQueryOp::PushEmpty);
                     return
                 }
             };
 
             // Get terms
-            plan.boolean_query.push(BooleanQueryOp::PushEmpty);
+            builder.push_op(BooleanQueryOp::PushEmpty);
             for term_ref in index_reader.store.term_dictionary.select(term_selector) {
-                plan.boolean_query.push(BooleanQueryOp::PushTermDirectory(field_ref, term_ref));
-                plan.boolean_query.push(BooleanQueryOp::Or);
+                builder.push_op(BooleanQueryOp::PushTermDirectory(field_ref, term_ref));
+                builder.push_op(BooleanQueryOp::Or);
             }
         }
         Query::Conjunction{ref queries} => {
-            plan_boolean_query_combinator(index_reader, &mut plan, queries, BooleanQueryOp::And);
+            plan_boolean_query_combinator(index_reader, &mut builder, queries, BooleanQueryOp::And);
         }
         Query::Disjunction{ref queries} => {
-            plan_boolean_query_combinator(index_reader, &mut plan, queries, BooleanQueryOp::Or);
+            plan_boolean_query_combinator(index_reader, &mut builder, queries, BooleanQueryOp::Or);
         }
         Query::DisjunctionMax{ref queries} => {
-            plan_boolean_query_combinator(index_reader, &mut plan, queries, BooleanQueryOp::Or);
+            plan_boolean_query_combinator(index_reader, &mut builder, queries, BooleanQueryOp::Or);
         }
         Query::Filter{ref query, ref filter} => {
-            plan_boolean_query(index_reader, &mut plan, query);
-            plan_boolean_query(index_reader, &mut plan, filter);
-            plan.boolean_query.push(BooleanQueryOp::And);
+            plan_boolean_query(index_reader, &mut builder, query);
+            plan_boolean_query(index_reader, &mut builder, filter);
+            builder.push_op(BooleanQueryOp::And);
         }
         Query::Exclude{ref query, ref exclude} => {
-            plan_boolean_query(index_reader, &mut plan, query);
-            plan_boolean_query(index_reader, &mut plan, exclude);
-            plan.boolean_query.push(BooleanQueryOp::AndNot);
+            plan_boolean_query(index_reader, &mut builder, query);
+            plan_boolean_query(index_reader, &mut builder, exclude);
+            builder.push_op(BooleanQueryOp::AndNot);
         }
     }
 }
@@ -221,18 +221,14 @@ fn plan_score_function(index_reader: &RocksDBIndexReader, mut plan: &mut SearchP
 
 pub fn plan_query(index_reader: &RocksDBIndexReader, mut plan: &mut SearchPlan, query: &Query, score: bool) {
     // Plan boolean query
-    plan_boolean_query(index_reader, plan, query);
+    let mut builder = BooleanQueryBuilder::new();
+    plan_boolean_query(index_reader, &mut builder, query);
 
     // Add operations to exclude deleted documents to boolean query
-    plan.boolean_query.push(BooleanQueryOp::PushDeletionList);
-    plan.boolean_query.push(BooleanQueryOp::AndNot);
+    builder.push_op(BooleanQueryOp::PushDeletionList);
+    builder.push_op(BooleanQueryOp::AndNot);
 
-    // Optimise boolean query
-    let mut optimiser = BooleanQueryBuilder::new();
-    for op in plan.boolean_query.iter() {
-        optimiser.push_op(op);
-    }
-    let (boolean_query, boolean_query_is_negated) = optimiser.build();
+    let (boolean_query, boolean_query_is_negated) = builder.build();
     plan.boolean_query = boolean_query;
     plan.boolean_query_is_negated = boolean_query_is_negated;
 
