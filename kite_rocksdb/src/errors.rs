@@ -1,3 +1,4 @@
+#[derive(Debug)]
 pub struct RocksDBReadError {
     key: Vec<u8>,
     message: String,
