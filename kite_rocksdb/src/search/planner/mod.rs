@@ -4,10 +4,8 @@ pub mod score_function;
 use kite::Query;
 
 use RocksDBIndexReader;
-use search::boolean_retrieval::BooleanQueryOp;
-use search::scoring::ScoreFunctionOp;
-use search::planner::boolean_query::{BooleanQueryBuilder, plan_boolean_query};
-use search::planner::score_function::plan_score_function;
+use search::planner::boolean_query::{BooleanQueryOp, BooleanQueryBuilder, plan_boolean_query};
+use search::planner::score_function::{ScoreFunctionOp, plan_score_function};
 
 
 #[derive(Debug)]

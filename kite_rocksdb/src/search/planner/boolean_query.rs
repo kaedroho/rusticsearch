@@ -5,7 +5,18 @@ use kite::Query;
 
 use RocksDBIndexReader;
 use term_dictionary::TermRef;
-use search::boolean_retrieval::BooleanQueryOp;
+
+
+#[derive(Debug, Clone)]
+pub enum BooleanQueryOp {
+    PushEmpty,
+    PushFull,
+    PushTermDirectory(FieldRef, TermRef),
+    PushDeletionList,
+    And,
+    Or,
+    AndNot,
+}
 
 
 #[derive(Clone, Copy, PartialEq)]
@@ -81,7 +92,7 @@ impl BooleanQueryBuilder {
     }
 
     pub fn push_empty(&mut self) {
-        use search::boolean_retrieval::BooleanQueryOp::*;
+        use self::BooleanQueryOp::*;
         use self::BooleanQueryBlock::*;
         use self::BooleanQueryBlockReturnType::*;
 
@@ -92,7 +103,7 @@ impl BooleanQueryBuilder {
     }
 
     pub fn push_full(&mut self) {
-        use search::boolean_retrieval::BooleanQueryOp::*;
+        use self::BooleanQueryOp::*;
         use self::BooleanQueryBlock::*;
         use self::BooleanQueryBlockReturnType::*;
 
@@ -103,7 +114,7 @@ impl BooleanQueryBuilder {
     }
 
     pub fn push_term_directory(&mut self, field_ref: FieldRef, term_ref: TermRef) {
-        use search::boolean_retrieval::BooleanQueryOp::*;
+        use self::BooleanQueryOp::*;
         use self::BooleanQueryBlock::*;
         use self::BooleanQueryBlockReturnType::*;
 
@@ -114,7 +125,7 @@ impl BooleanQueryBuilder {
     }
 
     pub fn push_deletion_list(&mut self) {
-        use search::boolean_retrieval::BooleanQueryOp::*;
+        use self::BooleanQueryOp::*;
         use self::BooleanQueryBlock::*;
         use self::BooleanQueryBlockReturnType::*;
 
@@ -125,7 +136,7 @@ impl BooleanQueryBuilder {
     }
 
     pub fn and_combinator(&mut self) {
-        use search::boolean_retrieval::BooleanQueryOp::*;
+        use self::BooleanQueryOp::*;
         use self::BooleanQueryBlock::*;
         use self::BooleanQueryBlockReturnType::*;
 
@@ -184,7 +195,7 @@ impl BooleanQueryBuilder {
     }
 
     pub fn or_combinator(&mut self) {
-        use search::boolean_retrieval::BooleanQueryOp::*;
+        use self::BooleanQueryOp::*;
         use self::BooleanQueryBlock::*;
         use self::BooleanQueryBlockReturnType::*;
 
@@ -243,7 +254,7 @@ impl BooleanQueryBuilder {
     }
 
     pub fn andnot_combinator(&mut self) {
-        use search::boolean_retrieval::BooleanQueryOp::*;
+        use self::BooleanQueryOp::*;
         use self::BooleanQueryBlock::*;
         use self::BooleanQueryBlockReturnType::*;
 

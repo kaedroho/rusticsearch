@@ -1,7 +1,5 @@
 pub mod doc_id_set;
 pub mod statistics;
-pub mod boolean_retrieval;
-pub mod scoring;
 pub mod planner;
 
 use kite::query::Query;
@@ -13,10 +11,10 @@ use document_index::DocRef;
 use super::RocksDBIndexReader;
 use search::doc_id_set::DocIdSet;
 use search::statistics::StatisticsReader;
-use search::boolean_retrieval::BooleanQueryOp;
-use search::scoring::{CombinatorScorer, ScoreFunctionOp};
 use search::planner::{SearchPlan, plan_query};
-use search::planner::boolean_query::BooleanQueryBuilder;
+use search::planner::boolean_query::BooleanQueryOp;
+use search::planner::score_function::{CombinatorScorer, ScoreFunctionOp};
+
 
 
 impl<'a> RocksDBIndexReader<'a> {
