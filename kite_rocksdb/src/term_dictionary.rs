@@ -7,7 +7,7 @@ use rocksdb::{DB, Writable, IteratorMode, Direction};
 use kite::Term;
 use kite::query::term_selector::TermSelector;
 
-use errors::RocksDBWriteError;
+use errors::{RocksDBReadError, RocksDBWriteError};
 use key_builder::KeyBuilder;
 
 
@@ -37,25 +37,27 @@ pub struct TermDictionaryManager {
 
 impl TermDictionaryManager {
     /// Generates a new term dictionary
-    pub fn new(db: &DB) -> TermDictionaryManager {
+    pub fn new(db: &DB) -> Result<TermDictionaryManager, RocksDBWriteError> {
         // TODO: Raise error if .next_term_ref already exists
         // Next term ref
-        db.put(b".next_term_ref", b"1");
+        if let Err(e) = db.put(b".next_term_ref", b"1") {
+            return Err(RocksDBWriteError::new_put(b".next_term_ref".to_vec(), e));
+        }
 
-        TermDictionaryManager {
+        Ok(TermDictionaryManager {
             next_term_ref: AtomicU32::new(1),
             terms: RwLock::new(BTreeMap::new()),
-        }
+        })
     }
 
     /// Loads the term dictionary from an index
-    pub fn open(db: &DB) -> TermDictionaryManager {
+    pub fn open(db: &DB) -> Result<TermDictionaryManager, RocksDBReadError> {
         let next_term_ref = match db.get(b".next_term_ref") {
             Ok(Some(next_term_ref)) => {
                 next_term_ref.to_utf8().unwrap().parse::<u32>().unwrap()
             }
             Ok(None) => 1,  // TODO: error
-            Err(_) => 1,  // TODO: error
+            Err(e) => return Err(RocksDBReadError::new(b".next_term_ref".to_vec(), e)),
         };
 
         // Read dictionary
@@ -69,10 +71,10 @@ impl TermDictionaryManager {
             terms.insert(k[1..].to_vec(), term_ref);
         }
 
-        TermDictionaryManager {
+        Ok(TermDictionaryManager {
             next_term_ref: AtomicU32::new(next_term_ref),
             terms: RwLock::new(terms),
-        }
+        })
     }
 
     /// Retrieves the TermRef for the given term

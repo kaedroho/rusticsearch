@@ -47,14 +47,14 @@ pub struct DocumentIndexManager {
 
 impl DocumentIndexManager {
     /// Generates a new document index
-    pub fn new(_db: &DB) -> DocumentIndexManager {
-        DocumentIndexManager {
+    pub fn new(_db: &DB) -> Result<DocumentIndexManager, RocksDBWriteError> {
+        Ok(DocumentIndexManager {
             primary_key_index: RwLock::new(BTreeMap::new()),
-        }
+        })
     }
 
     /// Loads the document index from an index
-    pub fn open(db: &DB) -> DocumentIndexManager {
+    pub fn open(db: &DB) -> Result<DocumentIndexManager, RocksDBReadError> {
         // Read primary key index
         let mut primary_key_index = BTreeMap::new();
         for (k, v) in db.iterator(IteratorMode::From(b"k", Direction::Forward)) {
@@ -69,9 +69,9 @@ impl DocumentIndexManager {
             primary_key_index.insert(k[1..].to_vec(), doc_ref);
         }
 
-        DocumentIndexManager {
+        Ok(DocumentIndexManager {
             primary_key_index: RwLock::new(primary_key_index),
-        }
+        })
     }
 
     fn delete_document_by_ref_unchecked(&self, write_batch: &WriteBatch, doc_ref: DocRef) -> Result<(), RocksDBWriteError> {
@@ -169,7 +169,7 @@ impl DocumentIndexManager {
                     for doc_id in DocIdSet::FromRDB(docid_set).iter() {
                         let doc_ref = DocRef::from_segment_ord(*source_segment, doc_id);
                         let new_doc_id = doc_ref_mapping.get(&doc_ref).unwrap();
-                        deletion_list.write_u16::<BigEndian>(*new_doc_id);
+                        deletion_list.write_u16::<BigEndian>(*new_doc_id).unwrap();
                     }
                 }
                 Ok(None) => {},

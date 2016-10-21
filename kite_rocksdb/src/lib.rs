@@ -139,13 +139,13 @@ impl RocksDBIndexStore {
         db.put(b".schema", json::encode(&schema).unwrap().as_bytes());
 
         // Segment manager
-        let segments = SegmentManager::new(&db);
+        let segments = try!(SegmentManager::new(&db));
 
         // Term dictionary manager
-        let term_dictionary = TermDictionaryManager::new(&db);
+        let term_dictionary = try!(TermDictionaryManager::new(&db));
 
         // Document index
-        let document_index = DocumentIndexManager::new(&db);
+        let document_index = try!(DocumentIndexManager::new(&db));
 
         Ok(RocksDBIndexStore {
             schema: Arc::new(schema),
@@ -167,17 +167,17 @@ impl RocksDBIndexStore {
                 json::decode(&schema).unwrap()
             }
             Ok(None) => Schema::new(),  // TODO: error
-            Err(_) => Schema::new(),  // TODO: error
+            Err(e) => return Err(RocksDBReadError::new(b".schema".to_vec(), e).into()),
         };
 
         // Segment manager
-        let segments = SegmentManager::open(&db);
+        let segments = try!(SegmentManager::open(&db));
 
         // Term dictionary manager
-        let term_dictionary = TermDictionaryManager::open(&db);
+        let term_dictionary = try!(TermDictionaryManager::open(&db));
 
         // Document index
-        let document_index = DocumentIndexManager::open(&db);
+        let document_index = try!(DocumentIndexManager::open(&db));
 
         Ok(RocksDBIndexStore {
             schema: Arc::new(schema),
@@ -217,7 +217,7 @@ impl RocksDBIndexStore {
         // Later on, a background process will come and merge any small segments
         // together. (For best performance, documents should be
         // inserted/updated in batches)
-        let segment = self.segments.new_segment(&self.db);
+        let segment = try!(self.segments.new_segment(&self.db));
 
         // Create doc ref
         let doc_ref = DocRef::from_segment_ord(segment, 0);

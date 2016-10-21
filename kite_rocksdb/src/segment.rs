@@ -4,6 +4,8 @@ use std::sync::atomic::{AtomicU32, Ordering};
 use rocksdb::{DB, Writable, IteratorMode, Direction};
 use rocksdb::rocksdb::{Snapshot, DBKeysIterator};
 
+use errors::{RocksDBReadError, RocksDBWriteError};
+
 
 /// Manages "segments" within the index
 ///
@@ -17,36 +19,40 @@ pub struct SegmentManager {
 
 impl SegmentManager {
     /// Generates a new segment manager
-    pub fn new(db: &DB) -> SegmentManager {
+    pub fn new(db: &DB) -> Result<SegmentManager, RocksDBWriteError> {
         // TODO: Raise error if .next_segment already exists
         // Next segment
-        db.put(b".next_segment", b"1");
-
-        SegmentManager {
-            next_segment: AtomicU32::new(1),
+        if let Err(e) = db.put(b".next_segment", b"1") {
+            return Err(RocksDBWriteError::new_put(b".next_segment".to_vec(), e));
         }
+
+        Ok(SegmentManager {
+            next_segment: AtomicU32::new(1),
+        })
     }
 
     /// Loads the segment manager from an index
-    pub fn open(db: &DB) -> SegmentManager {
+    pub fn open(db: &DB) -> Result<SegmentManager, RocksDBReadError> {
         let next_segment = match db.get(b".next_segment") {
             Ok(Some(next_segment)) => {
                 next_segment.to_utf8().unwrap().parse::<u32>().unwrap()
             }
             Ok(None) => 1,  // TODO: error
-            Err(_) => 1,  // TODO: error
+            Err(e) => return Err(RocksDBReadError::new(b".next_segment".to_vec(), e)),
         };
 
-        SegmentManager {
+        Ok(SegmentManager {
             next_segment: AtomicU32::new(next_segment),
-        }
+        })
     }
 
     /// Allocates a new (inactive) segment
-    pub fn new_segment(&self, db: &DB) -> u32 {
+    pub fn new_segment(&self, db: &DB) -> Result<u32, RocksDBWriteError> {
         let next_segment = self.next_segment.fetch_add(1, Ordering::SeqCst);
-        db.put(b".next_segment", (next_segment + 1).to_string().as_bytes());
-        next_segment
+        if let Err(e) = db.put(b".next_segment", (next_segment + 1).to_string().as_bytes()) {
+            return Err(RocksDBWriteError::new_put(b".next_segment".to_vec(), e));
+        }
+        Ok(next_segment)
     }
 
     /// Iterates currently active segments

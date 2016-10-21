@@ -217,7 +217,7 @@ impl Clone for DocIdSet {
             }
             DocIdSet::FromRDB(ref data) => {
                 let mut new_data = Vec::with_capacity(data.len());
-                new_data.write_all(data);
+                new_data.write_all(data).unwrap();
                 DocIdSet::Owned(new_data)
             }
         }
