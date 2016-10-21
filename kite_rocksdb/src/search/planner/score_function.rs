@@ -1,8 +1,25 @@
+use kite::schema::FieldRef;
 use kite::Query;
+use kite::query::term_scorer::TermScorer;
 
 use RocksDBIndexReader;
-use search::scoring::{CombinatorScorer, ScoreFunctionOp};
+use term_dictionary::TermRef;
 use search::planner::SearchPlan;
+
+
+#[derive(Debug, Clone)]
+pub enum CombinatorScorer {
+    Avg,
+    Max,
+}
+
+
+#[derive(Debug, Clone)]
+pub enum ScoreFunctionOp {
+    Literal(f64),
+    TermScorer(FieldRef, TermRef, TermScorer),
+    CombinatorScorer(u32, CombinatorScorer),
+}
 
 
 fn plan_score_function_combinator(index_reader: &RocksDBIndexReader, mut plan: &mut SearchPlan, queries: &Vec<Query>, scorer: CombinatorScorer) {
