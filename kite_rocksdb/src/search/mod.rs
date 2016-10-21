@@ -127,7 +127,7 @@ impl<'a> RocksDBIndexReader<'a> {
                                     Err(e) => return Err(RocksDBReadError::new(kb.key().to_vec(), e))
                                 };
 
-                                let score = scorer.similarity_model.score(1, field_length, try!(stats.total_tokens(field_ref)) as u64, try!(stats.total_docs(field_ref)) as u64, try!(stats.term_document_frequency(field_ref, term_ref)) as u64);
+                                let score = scorer.similarity_model.score(term_frequency as u32, field_length, try!(stats.total_tokens(field_ref)) as u64, try!(stats.total_docs(field_ref)) as u64, try!(stats.term_document_frequency(field_ref, term_ref)) as u64);
                                 stack.push(score * scorer.boost);
                             } else {
                                 stack.push(0.0f64);
