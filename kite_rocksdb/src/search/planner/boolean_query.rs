@@ -1,10 +1,11 @@
 use std::rc::Rc;
 
 use kite::schema::FieldRef;
+use kite::Query;
 
+use RocksDBIndexReader;
 use term_dictionary::TermRef;
 use search::boolean_retrieval::BooleanQueryOp;
-
 
 
 #[derive(Clone, Copy, PartialEq)]
@@ -325,5 +326,99 @@ impl BooleanQueryBuilder {
         root_block.build(&mut boolean_query);
 
         (boolean_query, root_block.return_type() == NegatedSparse)
+    }
+}
+
+
+fn plan_boolean_query_combinator<J: Fn(&mut BooleanQueryBuilder) -> ()> (index_reader: &RocksDBIndexReader, mut builder: &mut BooleanQueryBuilder, queries: &Vec<Query>, join_cb: J) {
+    match queries.len() {
+        0 => {
+            builder.push_empty();
+        }
+        1 =>  plan_boolean_query(index_reader, &mut builder, &queries[0]),
+        _ => {
+            let mut query_iter = queries.iter();
+            plan_boolean_query(index_reader, &mut builder, query_iter.next().unwrap());
+
+            for query in query_iter {
+                plan_boolean_query(index_reader, &mut builder, query);
+
+                // Add the join operation
+                join_cb(&mut builder);
+            }
+        }
+    }
+}
+
+
+pub fn plan_boolean_query(index_reader: &RocksDBIndexReader, mut builder: &mut BooleanQueryBuilder, query: &Query) {
+    match *query {
+        Query::MatchAll{ref score} => {
+            builder.push_full();
+        }
+        Query::MatchNone => {
+            builder.push_empty();
+        }
+        Query::MatchTerm{ref field, ref term, ref scorer} => {
+            // Get field
+            let field_ref = match index_reader.schema().get_field_by_name(field) {
+                Some(field_ref) => field_ref,
+                None => {
+                    // Field doesn't exist, so will never match
+                    builder.push_empty();
+                    return
+                }
+            };
+
+            // Get term
+            let term_bytes = term.to_bytes();
+            let term_ref = match index_reader.store.term_dictionary.get(&term_bytes) {
+                Some(term_ref) => term_ref,
+                None => {
+                    // Term doesn't exist, so will never match
+                    builder.push_empty();
+                    return
+                }
+            };
+
+            builder.push_term_directory(field_ref, term_ref);
+        }
+        Query::MatchMultiTerm{ref field, ref term_selector, ref scorer} => {
+            // Get field
+            let field_ref = match index_reader.schema().get_field_by_name(field) {
+                Some(field_ref) => field_ref,
+                None => {
+                    // Field doesn't exist, so will never match
+                    builder.push_empty();
+                    return
+                }
+            };
+
+            // Get terms
+            builder.push_empty();
+            for term_ref in index_reader.store.term_dictionary.select(term_selector) {
+                builder.push_term_directory(field_ref, term_ref);
+                builder.or_combinator();
+            }
+        }
+        Query::Conjunction{ref queries} => {
+            plan_boolean_query_combinator(index_reader, &mut builder, queries, |builder| builder.and_combinator());
+        }
+        Query::Disjunction{ref queries} => {
+            plan_boolean_query_combinator(index_reader, &mut builder, queries, |builder| builder.or_combinator());
+        }
+        Query::DisjunctionMax{ref queries} => {
+            plan_boolean_query_combinator(index_reader, &mut builder, queries, |builder| builder.or_combinator());
+        }
+        Query::Filter{ref query, ref filter} => {
+            plan_boolean_query(index_reader, &mut builder, query);
+            plan_boolean_query(index_reader, &mut builder, filter);
+            builder.and_combinator();
+        }
+        Query::Exclude{ref query, ref exclude} => {
+            plan_boolean_query(index_reader, &mut builder, query);
+            plan_boolean_query(index_reader, &mut builder, exclude);
+            builder.andnot_combinator();
+        }
     }
 }
