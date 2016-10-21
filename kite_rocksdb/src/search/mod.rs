@@ -184,21 +184,9 @@ impl<'a> RocksDBIndexReader<'a> {
     }
 
     pub fn search<C: Collector>(&self, collector: &mut C, query: &Query) {
+        // Plan query
         let mut plan = SearchPlan::new();
         plan_query(&self, &mut plan, query, true);
-
-        // Add operations to exclude deleted documents to boolean query
-        plan.boolean_query.push(BooleanQueryOp::PushDeletionList);
-        plan.boolean_query.push(BooleanQueryOp::AndNot);
-
-        // Optimise boolean query
-        let mut optimiser = BooleanQueryBuilder::new();
-        for op in plan.boolean_query.iter() {
-            optimiser.push_op(op);
-        }
-        let (boolean_query, boolean_query_is_negated) = optimiser.build();
-        plan.boolean_query = boolean_query;
-        plan.boolean_query_is_negated = boolean_query_is_negated;
 
         // Initialise statistics reader
         let mut stats = StatisticsReader::new(&self);
