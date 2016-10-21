@@ -4,7 +4,9 @@ use std::collections::{BTreeMap, HashMap};
 use rocksdb::{DB, Writable, WriteBatch, IteratorMode, Direction};
 use byteorder::{ByteOrder, BigEndian, WriteBytesExt};
 
+use errors::{RocksDBReadError, RocksDBWriteError};
 use key_builder::KeyBuilder;
+use segment_merge::SegmentMergeError;
 use search::doc_id_set::DocIdSet;
 
 
@@ -72,20 +74,26 @@ impl DocumentIndexManager {
         }
     }
 
-    fn delete_document_by_ref_unchecked(&self, write_batch: &WriteBatch, doc_ref: DocRef) {
+    fn delete_document_by_ref_unchecked(&self, write_batch: &WriteBatch, doc_ref: DocRef) -> Result<(), RocksDBWriteError> {
         let kb = KeyBuilder::segment_del_list(doc_ref.segment());
         let mut previous_doc_id_bytes = [0; 2];
         BigEndian::write_u16(&mut previous_doc_id_bytes, doc_ref.ord());
-        write_batch.merge(&kb.key(), &previous_doc_id_bytes);
+        if let Err(e) = write_batch.merge(&kb.key(), &previous_doc_id_bytes) {
+            return Err(RocksDBWriteError::new_merge(kb.key().to_vec(), e));
+        }
 
         // Increment deleted docs
         let kb = KeyBuilder::segment_stat(doc_ref.segment(), b"deleted_docs");
         let mut inc_bytes = [0; 8];
         BigEndian::write_i64(&mut inc_bytes, 1);
-        write_batch.merge(&kb.key(), &inc_bytes);
+        if let Err(e) = write_batch.merge(&kb.key(), &inc_bytes) {
+            return Err(RocksDBWriteError::new_merge(kb.key().to_vec(), e));
+        }
+
+        Ok(())
     }
 
-    pub fn insert_or_replace_key(&self, db: &DB, key: &Vec<u8>, doc_ref: DocRef) -> Option<DocRef> {
+    pub fn insert_or_replace_key(&self, db: &DB, key: &Vec<u8>, doc_ref: DocRef) -> Result<Option<DocRef>, RocksDBWriteError> {
         // Update primary_key_index
         let write_batch = WriteBatch::default();
         let previous_doc_ref = self.primary_key_index.write().unwrap().insert(key.clone(), doc_ref);
@@ -94,37 +102,45 @@ impl DocumentIndexManager {
         let mut doc_ref_bytes = [0; 6];
         BigEndian::write_u32(&mut doc_ref_bytes, doc_ref.segment());
         BigEndian::write_u16(&mut doc_ref_bytes[4..], doc_ref.ord());
-        write_batch.put(&kb.key(), &doc_ref_bytes);
+        if let Err(e) = write_batch.put(&kb.key(), &doc_ref_bytes) {
+            return Err(RocksDBWriteError::new_put(kb.key().to_vec(), e));
+        }
 
         // If there was a document there previously, delete it
         if let Some(previous_doc_ref) = previous_doc_ref {
-            self.delete_document_by_ref_unchecked(&write_batch, previous_doc_ref);
+            try!(self.delete_document_by_ref_unchecked(&write_batch, previous_doc_ref));
         }
 
         // Write document data
-        db.write(write_batch);
+        if let Err(e) = db.write(write_batch) {
+            return Err(RocksDBWriteError::new_commit_write_batch(e));
+        }
 
-        previous_doc_ref
+        Ok(previous_doc_ref)
     }
 
-    pub fn delete_document_by_key(&self, db: &DB, key: &Vec<u8>) -> Option<DocRef> {
+    pub fn delete_document_by_key(&self, db: &DB, key: &Vec<u8>) -> Result<Option<DocRef>, RocksDBWriteError> {
         // Remove document from index
         let doc_ref = self.primary_key_index.write().unwrap().remove(key);
 
         if let Some(doc_ref) = doc_ref {
             let mut write_batch = WriteBatch::default();
-            self.delete_document_by_ref_unchecked(&mut write_batch, doc_ref);
-            db.write(write_batch);
+
+            try!(self.delete_document_by_ref_unchecked(&mut write_batch, doc_ref));
+
+            if let Err(e) = db.write(write_batch) {
+                return Err(RocksDBWriteError::new_commit_write_batch(e));
+            }
         }
 
-        doc_ref
+        Ok(doc_ref)
     }
 
     pub fn contains_document_key(&self, key: &Vec<u8>) -> bool {
         self.primary_key_index.read().unwrap().contains_key(key)
     }
 
-    pub fn commit_segment_merge(&self, db: &DB, write_batch: WriteBatch, source_segments: &Vec<u32>, dest_segment: u32, doc_ref_mapping: &HashMap<DocRef, u16>) {
+    pub fn commit_segment_merge(&self, db: &DB, write_batch: WriteBatch, source_segments: &Vec<u32>, dest_segment: u32, doc_ref_mapping: &HashMap<DocRef, u16>) -> Result<(), SegmentMergeError> {
         // Lock the primary key index
         let mut primary_key_index = self.primary_key_index.write().unwrap();
 
@@ -157,14 +173,20 @@ impl DocumentIndexManager {
                     }
                 }
                 Ok(None) => {},
-                Err(e) => {},  // FIXME
+                Err(e) => return Err(RocksDBReadError::new(kb.key().to_vec(), e).into()),
             }
         }
 
         let kb = KeyBuilder::segment_del_list(dest_segment);
-        db.put(&kb.key(), &deletion_list);
+        if let Err(e) = db.put(&kb.key(), &deletion_list) {
+            return Err(RocksDBWriteError::new_put(kb.key().to_vec(), e).into());
+        }
 
         // Commit!
-        db.write(write_batch);
+        if let Err(e) = db.write(write_batch) {
+            return Err(RocksDBWriteError::new_commit_write_batch(e).into());
+        }
+
+        Ok(())
     }
 }

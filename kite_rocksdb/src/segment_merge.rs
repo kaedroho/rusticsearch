@@ -220,7 +220,7 @@ impl RocksDBIndexStore {
 
         // Update document index and commit
         // This will write the write batch
-        self.document_index.commit_segment_merge(&self.db, write_batch, source_segments, dest_segment, doc_ref_mapping);
+        try!(self.document_index.commit_segment_merge(&self.db, write_batch, source_segments, dest_segment, doc_ref_mapping));
 
         Ok(())
     }
