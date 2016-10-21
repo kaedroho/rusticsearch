@@ -5,6 +5,7 @@ use rocksdb::{Writable, IteratorMode, Direction, WriteBatch};
 use byteorder::{ByteOrder, BigEndian, WriteBytesExt};
 
 use RocksDBIndexStore;
+use errors::RocksDBReadError;
 use document_index::DocRef;
 use key_builder::KeyBuilder;
 use search::doc_id_set::DocIdSet;
@@ -13,11 +14,19 @@ use search::doc_id_set::DocIdSet;
 #[derive(Debug)]
 pub enum ChunkMergeError {
     TooManyDocs,
+    RocksDBReadError(RocksDBReadError),
+}
+
+
+impl From<RocksDBReadError> for ChunkMergeError {
+    fn from(e: RocksDBReadError) -> ChunkMergeError {
+        ChunkMergeError::RocksDBReadError(e)
+    }
 }
 
 
 impl RocksDBIndexStore {
-    fn merge_chunk_data(&self, source_chunks: &Vec<u32>, dest_chunk: u32, doc_ref_mapping: &HashMap<DocRef, u16>) {
+    fn merge_chunk_data(&self, source_chunks: &Vec<u32>, dest_chunk: u32, doc_ref_mapping: &HashMap<DocRef, u16>) -> Result<(), ChunkMergeError> {
         // Merge the term directories
         // The term directory keys are ordered to be most convenient for retrieving all the chunks
         // of for a term/field combination in one go (field/term/chunk). So we don't end up pulling
@@ -66,7 +75,7 @@ impl RocksDBIndexStore {
                     }
                 }
                 Ok(None) => {},  // FIXME
-                Err(e) => {},  // FIXME
+                Err(e) => return Err(RocksDBReadError::new(k.to_vec(), e).into())
             }
         }
 
@@ -155,7 +164,7 @@ impl RocksDBIndexStore {
                     *stat += value;
                 }
                 Ok(None) => {},  // FIXME
-                Err(e) => {},  // FIXME
+                Err(e) => return Err(RocksDBReadError::new(k.to_vec(), e).into())
             }
         }
 
@@ -171,6 +180,8 @@ impl RocksDBIndexStore {
         // Deletion lists can change at any time so we must lock the "document index"
         // before merging them so they can't be altered during merge. we cannot lock
         // this until the commit phase though.
+
+        Ok(())
     }
 
     fn commit_chunk_merge(&self, source_chunks: &Vec<u32>, dest_chunk: u32, doc_ref_mapping: &HashMap<DocRef, u16>) {
@@ -212,7 +223,7 @@ impl RocksDBIndexStore {
                     BigEndian::read_i64(&total_docs_bytes)
                 }
                 Ok(None) => continue,
-                Err(e) => continue,  // TODO: Error
+                Err(e) => return Err(RocksDBReadError::new(kb.key().to_vec(), e).into())
             };
 
             for source_ord in 0..total_docs {
@@ -233,7 +244,7 @@ impl RocksDBIndexStore {
         // This means that nothing bad will happen if it crashes half way through -- the
         // worst that could happen is we're left with a partially-written chunk that we
         // have to clean up.
-        self.merge_chunk_data(&source_chunks, dest_chunk, &doc_ref_mapping);
+        try!(self.merge_chunk_data(&source_chunks, dest_chunk, &doc_ref_mapping));
 
         // Commit the merge
         // This activates the new chunk and updates the document index. Effectively committing
