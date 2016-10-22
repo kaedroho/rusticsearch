@@ -1,10 +1,31 @@
+dist: trusty
 language: rust
 
 rust:
-  - stable
+#  - stable
   - nightly
 
-sudo: false
+sudo: true
+
+addons:
+  apt:
+    sources:
+    # add PPAs with more up-to-date toolchains
+    - ubuntu-toolchain-r-test
+    - llvm-toolchain-precise-3.6
+    packages:
+    # install toolchains
+    - gcc-5
+    - g++-5
+    - clang-3.6
+
+install:
+  - sudo apt-get install -y libsnappy-dev zlib1g-dev libbz2-dev
+  - curl -L https://github.com/facebook/rocksdb/archive/4.13.fb.tar.gz | tar xvz
+  - make -C rocksdb-4.13.fb shared_lib
+
+env:
+  - LD_LIBRARY_PATH=$PWD/rocksdb-4.13.fb
 
 script:
   - cargo test
