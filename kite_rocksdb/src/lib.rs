@@ -92,6 +92,7 @@ fn merge_keys(key: &[u8], existing_val: Option<&[u8]>, operands: &mut MergeOpera
 }
 
 
+#[derive(Debug)]
 pub enum DocumentInsertError {
     /// The specified field name doesn't exist
     FieldDoesntExist(String),
@@ -136,7 +137,9 @@ impl RocksDBIndexStore {
 
         // Schema
         let schema = Schema::new();
-        db.put(b".schema", json::encode(&schema).unwrap().as_bytes());
+        if let Err(e) = db.put(b".schema", json::encode(&schema).unwrap().as_bytes()) {
+            return Err(RocksDBWriteError::new_put(b".schema".to_vec(), e).into());
+        }
 
         // Segment manager
         let segments = try!(SegmentManager::new(&db));
@@ -193,7 +196,8 @@ impl RocksDBIndexStore {
         let field_ref = try!(schema_copy.add_field(name, field_type, field_flags));
         self.schema = Arc::new(schema_copy);
 
-        self.db.put(b".schema", json::encode(&self.schema).unwrap().as_bytes());
+        // FIXME: How do we throw this error?
+        self.db.put(b".schema", json::encode(&self.schema).unwrap().as_bytes()).unwrap();
 
         Ok(field_ref)
     }
@@ -204,7 +208,9 @@ impl RocksDBIndexStore {
 
         if field_removed {
             self.schema = Arc::new(schema_copy);
-            self.db.put(b".schema", json::encode(&self.schema).unwrap().as_bytes());
+
+            // FIXME: How do we throw this error?
+            self.db.put(b".schema", json::encode(&self.schema).unwrap().as_bytes()).unwrap();
         }
 
         field_removed
@@ -481,7 +487,7 @@ mod tests {
 
     #[test]
     fn test_create() {
-        remove_dir_all("test_indices/test_create");
+        remove_dir_all("test_indices/test_create").unwrap();
 
         let store = RocksDBIndexStore::create("test_indices/test_create");
         assert!(store.is_ok());
@@ -489,7 +495,7 @@ mod tests {
 
     #[test]
     fn test_open() {
-        remove_dir_all("test_indices/test_open");
+        remove_dir_all("test_indices/test_open").unwrap();
 
         let store = RocksDBIndexStore::open("test_indices/test_open");
         assert!(store.is_err());
@@ -525,7 +531,7 @@ mod tests {
             stored_fields: hashmap! {
                 "pk".to_string() => FieldValue::Integer(1),
             }
-        });
+        }).unwrap();
 
         store.insert_or_update_document(Document {
             key: "another_test_doc".to_string(),
@@ -543,9 +549,9 @@ mod tests {
             stored_fields: hashmap! {
                 "pk".to_string() => FieldValue::Integer(2),
             }
-        });
+        }).unwrap();
 
-        store.merge_segments(vec![1, 2]);
+        store.merge_segments(vec![1, 2]).unwrap();
 
         store
     }
@@ -575,7 +581,7 @@ mod tests {
 
     #[test]
     fn test() {
-        remove_dir_all("test_indices/test");
+        remove_dir_all("test_indices/test").unwrap();
 
         make_test_store("test_indices/test");
 
@@ -607,7 +613,7 @@ mod tests {
         };
 
         let mut collector = TopScoreCollector::new(10);
-        index_reader.search(&mut collector, &query);
+        index_reader.search(&mut collector, &query).unwrap();
 
         let docs = collector.into_sorted_vec();
         println!("{:?}", docs);
