@@ -28,6 +28,6 @@ env:
   - LD_LIBRARY_PATH=$PWD/rocksdb-4.13.fb
 
 script:
-  - cd kite && cargo test
-  - cd kite_rocksdb && cargo test
+  - cargo test --manifest-path=kite/Cargo.toml
+  - cargo test --manifest-path=kite_rocksdb/Cargo.toml
   - cargo test
