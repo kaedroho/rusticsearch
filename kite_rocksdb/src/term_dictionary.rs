@@ -1,6 +1,6 @@
 use std::str;
 use std::sync::RwLock;
-use std::sync::atomic::{AtomicU32, Ordering};
+use std::sync::atomic::{AtomicUsize, Ordering};
 use std::collections::BTreeMap;
 
 use rocksdb::{DB, Writable, IteratorMode, Direction};
@@ -30,7 +30,7 @@ impl TermRef {
 /// The term dictionary is a mapping between terms and their internal IDs
 /// (aka. TermRef). It is entirely held in memory and persisted to the disk.
 pub struct TermDictionaryManager {
-    next_term_ref: AtomicU32,
+    next_term_ref: AtomicUsize,
     terms: RwLock<BTreeMap<Vec<u8>, TermRef>>,
 }
 
@@ -45,7 +45,7 @@ impl TermDictionaryManager {
         }
 
         Ok(TermDictionaryManager {
-            next_term_ref: AtomicU32::new(1),
+            next_term_ref: AtomicUsize::new(1),
             terms: RwLock::new(BTreeMap::new()),
         })
     }
@@ -72,7 +72,7 @@ impl TermDictionaryManager {
         }
 
         Ok(TermDictionaryManager {
-            next_term_ref: AtomicU32::new(next_term_ref),
+            next_term_ref: AtomicUsize::new(next_term_ref as usize),
             terms: RwLock::new(terms),
         })
     }
@@ -104,7 +104,7 @@ impl TermDictionaryManager {
         // Term doesn't exist in the term dictionary
 
         // Increment next_term_ref
-        let next_term_ref = self.next_term_ref.fetch_add(1, Ordering::SeqCst);
+        let next_term_ref = self.next_term_ref.fetch_add(1, Ordering::SeqCst) as u32;
         if let Err(e) = db.put(b".next_term_ref", (next_term_ref + 1).to_string().as_bytes()) {
             return Err(RocksDBWriteError::new_put(b".next_term_ref".to_vec(), e));
         }
