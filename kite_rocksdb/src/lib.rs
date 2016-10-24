@@ -487,7 +487,7 @@ mod tests {
 
     #[test]
     fn test_create() {
-        remove_dir_all("test_indices/test_create").unwrap();
+        remove_dir_all("test_indices/test_create");
 
         let store = RocksDBIndexStore::create("test_indices/test_create");
         assert!(store.is_ok());
@@ -495,7 +495,7 @@ mod tests {
 
     #[test]
     fn test_open() {
-        remove_dir_all("test_indices/test_open").unwrap();
+        remove_dir_all("test_indices/test_open");
 
         let store = RocksDBIndexStore::open("test_indices/test_open");
         assert!(store.is_err());
@@ -503,7 +503,7 @@ mod tests {
         // Create DB
         let mut opts = Options::default();
         opts.create_if_missing(true);
-        DB::open(&opts, "test_indices/test_open").unwrap();
+        DB::open(&opts, "test_indices/test_open");
 
         let store = RocksDBIndexStore::open("test_indices/test_open");
         assert!(store.is_ok());
@@ -581,7 +581,7 @@ mod tests {
 
     #[test]
     fn test() {
-        remove_dir_all("test_indices/test").unwrap();
+        remove_dir_all("test_indices/test");
 
         make_test_store("test_indices/test");
 
