@@ -1,5 +1,5 @@
 use std::str;
-use std::collections::HashMap;
+use std::collections::{HashMap, BTreeSet};
 
 use rocksdb::{Writable, IteratorMode, Direction, WriteBatch};
 use byteorder::{ByteOrder, BigEndian, WriteBytesExt};
@@ -42,6 +42,9 @@ impl From<SegmentMergeError> for String {
 
 impl RocksDBIndexStore {
     fn merge_segment_data(&self, source_segments: &Vec<u32>, dest_segment: u32, doc_ref_mapping: &HashMap<DocRef, u16>) -> Result<(), SegmentMergeError> {
+        // Put source_segments in a BTreeSet as this is much faster for performing contains queries against
+        let source_segments_btree = source_segments.iter().collect::<BTreeSet<_>>();
+
         // Merge the term directories
         // The term directory keys are ordered to be most convenient for retrieving all the segments
         // of for a term/field combination in one go (field/term/segment). So we don't end up pulling
@@ -65,7 +68,7 @@ impl RocksDBIndexStore {
 
             let (field, term, segment) = parse_term_directory_key(&k);
 
-            if !source_segments.contains(&segment) {
+            if !source_segments_btree.contains(&segment) {
                 continue;
             }
 
