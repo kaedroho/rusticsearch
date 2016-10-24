@@ -1,5 +1,3 @@
-#![feature(slice_patterns)]
-
 extern crate kite;
 extern crate rocksdb;
 extern crate rustc_serialize;
@@ -442,12 +440,12 @@ impl<'a> RocksDBIndexReader<'a> {
                         Ok(Some(FieldValue::Integer(BigEndian::read_i64(&value))))
                     }
                     FieldType::Boolean => {
-                        match value[..] {
-                            [b't'] => Ok(Some(FieldValue::Boolean(true))),
-                            [b'f'] => Ok(Some(FieldValue::Boolean(false))),
-                            _ => {
-                                Err(StoredFieldReadError::BooleanFieldDecodeError(value.to_vec()))
-                            }
+                        if value[..] == [b't'] {
+                            Ok(Some(FieldValue::Boolean(true)))
+                        } else if value[..] == [b'f'] {
+                            Ok(Some(FieldValue::Boolean(false)))
+                        } else {
+                            Err(StoredFieldReadError::BooleanFieldDecodeError(value.to_vec()))
                         }
                     }
                     FieldType::DateTime => {
