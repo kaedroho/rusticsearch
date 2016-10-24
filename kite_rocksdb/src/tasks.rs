@@ -111,7 +111,8 @@ impl RocksDBIndexStore {
         if group_to_merge.len() >= 5 {
             // TODO: Check that we're not merging over 65536 docs
             group_to_merge.truncate(1000);
-            try!(self.merge_segments(group_to_merge));
+            try!(self.merge_segments(&group_to_merge));
+            try!(self.purge_segments(&group_to_merge));
         }
 
         Ok(())

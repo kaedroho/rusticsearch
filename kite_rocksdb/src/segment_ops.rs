@@ -226,7 +226,7 @@ impl RocksDBIndexStore {
         Ok(())
     }
 
-    pub fn merge_segments(&self, source_segments: Vec<u32>) -> Result<u32, SegmentMergeError> {
+    pub fn merge_segments(&self, source_segments: &Vec<u32>) -> Result<u32, SegmentMergeError> {
         let dest_segment = try!(self.segments.new_segment(&self.db));
 
         // Generate a mapping between the ids of the documents in the old segments to the new one
@@ -279,5 +279,103 @@ impl RocksDBIndexStore {
         try!(self.commit_segment_merge(&source_segments, dest_segment, &doc_ref_mapping));
 
         Ok(dest_segment)
+    }
+
+    pub fn purge_segments(&self, segments: &Vec<u32>) -> Result<(), RocksDBWriteError> {
+        // Put segments in a BTreeSet as this is much faster for performing contains queries against
+        let segments_btree = segments.iter().collect::<BTreeSet<_>>();
+
+        // Purge term directories
+
+        /// Converts term directory key strings "d1/2/3" into tuples of 3 i32s (1, 2, 3)
+        fn parse_term_directory_key(key: &[u8]) -> (u32, u32, u32) {
+            let mut nums_iter = key[1..].split(|b| *b == b'/').map(|s| str::from_utf8(s).unwrap().parse::<u32>().unwrap());
+            (nums_iter.next().unwrap(), nums_iter.next().unwrap(), nums_iter.next().unwrap())
+        }
+
+        for (k, _) in self.db.iterator(IteratorMode::From(b"d", Direction::Forward)) {
+            if k[0] != b'd' {
+                // No more term directories to delete
+                break;
+            }
+
+            let (_, _, segment) = parse_term_directory_key(&k);
+
+            if segments_btree.contains(&segment) {
+                self.db.delete(&k);
+            }
+        }
+
+
+        // Purge the stored values
+
+        /// Converts stored value key strings "v1/2/3/v" into tuples of 3 i32s and a Vec<u8> (1, 2, 3, vec![b'v', b'a', b'l'])
+        fn parse_stored_value_key(key: &[u8]) -> (u32, u32, u32, Vec<u8>) {
+            let mut parts_iter = key[1..].split(|b| *b == b'/');
+            let segment = str::from_utf8(parts_iter.next().unwrap()).unwrap().parse::<u32>().unwrap();
+            let doc_id = str::from_utf8(parts_iter.next().unwrap()).unwrap().parse::<u32>().unwrap();
+            let field_ord = str::from_utf8(parts_iter.next().unwrap()).unwrap().parse::<u32>().unwrap();
+            let value_type = parts_iter.next().unwrap().to_vec();
+
+            (segment, doc_id, field_ord, value_type)
+        }
+
+        for source_segment in segments.iter() {
+            let kb = KeyBuilder::segment_stored_values_prefix(*source_segment);
+            for (k, _) in self.db.iterator(IteratorMode::From(&kb.key(), Direction::Forward)) {
+                if k[0] != b'v' {
+                    // No more stored values to delete
+                    break;
+                }
+
+                let (segment, _, _, _) = parse_stored_value_key(&k);
+
+                if segment != *source_segment {
+                    // Segment finished
+                    break;
+                }
+
+                self.db.delete(&k);
+            }
+        }
+
+        // Purge the statistics
+
+        /// Converts statistic key strings "s1/total_docs" into tuples of 1 i32 and a Vec<u8> (1, ['t', 'o', 't', ...])
+        fn parse_statistic_key(key: &[u8]) -> (u32, Vec<u8>) {
+            let mut parts_iter = key[1..].split(|b| *b == b'/');
+            let segment = str::from_utf8(parts_iter.next().unwrap()).unwrap().parse::<u32>().unwrap();
+            let statistic_name = parts_iter.next().unwrap().to_vec();
+
+            (segment, statistic_name)
+        }
+
+        for source_segment in segments.iter() {
+            let kb = KeyBuilder::segment_stat_prefix(*source_segment);
+            for (k, _) in self.db.iterator(IteratorMode::From(&kb.key(), Direction::Forward)) {
+                if k[0] != b's' {
+                    // No more statistics to purge
+                    break;
+                }
+
+                let (segment, _) = parse_statistic_key(&k);
+
+                if segment != *source_segment {
+                    // Segment finished
+                    break;
+                }
+
+                self.db.delete(&k);
+            }
+        }
+
+        // Purge the deletion lists
+
+        for source_segment in segments.iter() {
+            let kb = KeyBuilder::segment_del_list(*source_segment);
+            self.db.delete(&kb.key());
+        }
+
+        Ok(())
     }
 }

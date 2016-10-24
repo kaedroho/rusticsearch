@@ -549,7 +549,8 @@ mod tests {
             }
         }).unwrap();
 
-        store.merge_segments(vec![1, 2]).unwrap();
+        store.merge_segments(&vec![1, 2]).unwrap();
+        store.purge_segments(&vec![1, 2]).unwrap();
 
         store
     }
