@@ -69,12 +69,17 @@ impl KeyBuilder {
         kb
     }
 
-    pub fn segment_stat(segment: u32, name: &[u8]) -> KeyBuilder {
+    pub fn segment_stat_prefix(segment: u32) -> KeyBuilder {
         let mut kb = KeyBuilder::new();
         kb.push_char(b's');
-        kb.push_string(name);
-        kb.separator();
         kb.push_string(segment.to_string().as_bytes());
+        kb.separator();
+        kb
+    }
+
+    pub fn segment_stat(segment: u32, name: &[u8]) -> KeyBuilder {
+        let mut kb = KeyBuilder::segment_stat_prefix(segment);
+        kb.push_string(name);
         kb
     }
 
