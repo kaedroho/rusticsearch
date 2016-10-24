@@ -165,27 +165,24 @@ impl RocksDBIndexStore {
         }
 
         // Fetch and merge statistics
-        for k in self.db.keys_iterator(IteratorMode::From(b"s", Direction::Forward)) {
-            if k[0] != b's' {
-                // No more statistics to merge
-                break;
-            }
-
-            let (segment, statistic_name) = parse_statistic_key(&k);
-
-            if !source_segments.contains(&segment) {
-                continue;
-            }
-
-            match self.db.get(&k) {
-                Ok(Some(val_bytes)) => {
-                    let value = BigEndian::read_i64(&val_bytes);
-
-                    let mut stat = statistics.entry(statistic_name).or_insert(0);
-                    *stat += value;
+        for source_segment in source_segments.iter() {
+            let kb = KeyBuilder::segment_stat_prefix(*source_segment);
+            for (k, v) in self.db.iterator(IteratorMode::From(&kb.key(), Direction::Forward)) {
+                if k[0] != b's' {
+                    // No more statistics to merge
+                    break;
                 }
-                Ok(None) => {},  // FIXME
-                Err(e) => return Err(RocksDBReadError::new(k.to_vec(), e).into())
+
+                let (segment, statistic_name) = parse_statistic_key(&k);
+
+                if segment != *source_segment {
+                    // Segment finished
+                    break;
+                }
+
+
+                let mut stat = statistics.entry(statistic_name).or_insert(0);
+                *stat += BigEndian::read_i64(&v);
             }
         }
 
