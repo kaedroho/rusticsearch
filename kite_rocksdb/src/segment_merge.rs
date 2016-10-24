@@ -33,6 +33,13 @@ impl From<RocksDBWriteError> for SegmentMergeError {
 }
 
 
+impl From<SegmentMergeError> for String {
+    fn from(e: SegmentMergeError) -> String {
+        format!("{:?}", e).to_string()
+    }
+}
+
+
 impl RocksDBIndexStore {
     fn merge_segment_data(&self, source_segments: &Vec<u32>, dest_segment: u32, doc_ref_mapping: &HashMap<DocRef, u16>) -> Result<(), SegmentMergeError> {
         // Merge the term directories
