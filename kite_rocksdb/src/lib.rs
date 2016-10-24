@@ -16,6 +16,7 @@ pub mod segment_merge;
 pub mod term_dictionary;
 pub mod document_index;
 pub mod search;
+pub mod tasks;
 
 use std::str;
 use std::sync::Arc;
