@@ -1,5 +1,5 @@
 use std::str;
-use std::sync::atomic::{AtomicU32, Ordering};
+use std::sync::atomic::{AtomicUsize, Ordering};
 
 use rocksdb::{DB, Writable, IteratorMode, Direction};
 use rocksdb::rocksdb::{Snapshot, DBKeysIterator};
@@ -13,7 +13,7 @@ use errors::{RocksDBReadError, RocksDBWriteError};
 /// for allocating segments keeping track of which segments are active and
 /// controlling routine tasks such as merging and vacuuming
 pub struct SegmentManager {
-    next_segment: AtomicU32,
+    next_segment: AtomicUsize,
 }
 
 
@@ -27,7 +27,7 @@ impl SegmentManager {
         }
 
         Ok(SegmentManager {
-            next_segment: AtomicU32::new(1),
+            next_segment: AtomicUsize::new(1),
         })
     }
 
@@ -42,13 +42,13 @@ impl SegmentManager {
         };
 
         Ok(SegmentManager {
-            next_segment: AtomicU32::new(next_segment),
+            next_segment: AtomicUsize::new(next_segment as usize),
         })
     }
 
     /// Allocates a new (inactive) segment
     pub fn new_segment(&self, db: &DB) -> Result<u32, RocksDBWriteError> {
-        let next_segment = self.next_segment.fetch_add(1, Ordering::SeqCst);
+        let next_segment = self.next_segment.fetch_add(1, Ordering::SeqCst) as u32;
         if let Err(e) = db.put(b".next_segment", (next_segment + 1).to_string().as_bytes()) {
             return Err(RocksDBWriteError::new_put(b".next_segment".to_vec(), e));
         }

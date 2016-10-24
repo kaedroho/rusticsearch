@@ -1,4 +1,3 @@
-#![feature(integer_atomics)]
 #![feature(slice_patterns)]
 
 extern crate kite;
