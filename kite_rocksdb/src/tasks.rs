@@ -77,7 +77,7 @@ impl RocksDBIndexStore {
         // Group 5: 10000 - 65536 docs
 
         // The group with the most active segments can perform a merge. A merge can be done on
-        // between 5 - 15 segments at a time. The smallest segments get merged first.
+        // between 5 - 1000 segments at a time. The smallest segments get merged first.
 
         // Sort by total_docs in ascending order
         // TODO: Check that this is ascending order
@@ -109,7 +109,8 @@ impl RocksDBIndexStore {
         let mut group_to_merge = segments_grouped.pop().unwrap();
 
         if group_to_merge.len() >= 5 {
-            group_to_merge.truncate(15);
+            // TODO: Check that we're not merging over 65536 docs
+            group_to_merge.truncate(1000);
             try!(self.merge_segments(group_to_merge));
         }
 
