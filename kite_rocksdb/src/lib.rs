@@ -9,7 +9,7 @@ extern crate chrono;
 pub mod errors;
 pub mod key_builder;
 pub mod segment;
-pub mod segment_merge;
+pub mod segment_ops;
 pub mod term_dictionary;
 pub mod document_index;
 pub mod search;

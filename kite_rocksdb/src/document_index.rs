@@ -6,7 +6,7 @@ use byteorder::{ByteOrder, BigEndian, WriteBytesExt};
 
 use errors::{RocksDBReadError, RocksDBWriteError};
 use key_builder::KeyBuilder;
-use segment_merge::SegmentMergeError;
+use segment_ops::SegmentMergeError;
 use search::doc_id_set::DocIdSet;
 
 
