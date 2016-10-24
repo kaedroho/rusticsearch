@@ -60,7 +60,7 @@ impl RocksDBIndexStore {
         let mut current_td_key: Option<(u32, u32)> = None;
         let mut current_td = Vec::new();
 
-        for k in self.db.keys_iterator(IteratorMode::From(b"d", Direction::Forward)) {
+        for (k, v) in self.db.iterator(IteratorMode::From(b"d", Direction::Forward)) {
             if k[0] != b'd' {
                 // No more term directories to merge
                 break;
@@ -86,16 +86,10 @@ impl RocksDBIndexStore {
             }
 
             // Merge term directory into the new one (and remap the doc ids)
-            match self.db.get(&k) {
-                Ok(Some(docid_set)) => {
-                    for doc_id in DocIdSet::FromRDB(docid_set).iter() {
-                        let doc_ref = DocRef::from_segment_ord(segment, doc_id);
-                        let new_doc_id = doc_ref_mapping.get(&doc_ref).unwrap();
-                        current_td.write_u16::<BigEndian>(*new_doc_id).unwrap();
-                    }
-                }
-                Ok(None) => {},  // FIXME
-                Err(e) => return Err(RocksDBReadError::new(k.to_vec(), e).into())
+            for doc_id in DocIdSet::Owned(v.to_vec()).iter() {
+                let doc_ref = DocRef::from_segment_ord(segment, doc_id);
+                let new_doc_id = doc_ref_mapping.get(&doc_ref).unwrap();
+                current_td.write_u16::<BigEndian>(*new_doc_id).unwrap();
             }
         }
 
