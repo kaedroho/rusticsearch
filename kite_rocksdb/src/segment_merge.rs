@@ -158,8 +158,8 @@ impl RocksDBIndexStore {
         /// Converts statistic key strings "s1/total_docs" into tuples of 1 i32 and a Vec<u8> (1, ['t', 'o', 't', ...])
         fn parse_statistic_key(key: &[u8]) -> (u32, Vec<u8>) {
             let mut parts_iter = key[1..].split(|b| *b == b'/');
-            let statistic_name = parts_iter.next().unwrap().to_vec();
             let segment = str::from_utf8(parts_iter.next().unwrap()).unwrap().parse::<u32>().unwrap();
+            let statistic_name = parts_iter.next().unwrap().to_vec();
 
             (segment, statistic_name)
         }
