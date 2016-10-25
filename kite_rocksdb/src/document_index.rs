@@ -156,6 +156,14 @@ impl DocumentIndexManager {
             let new_doc_ord = doc_ref_mapping.get(&doc_ref).unwrap();
             let new_doc_ref = DocRef::from_segment_ord(dest_segment, *new_doc_ord);
 
+            let kb = KeyBuilder::primary_key_index(&key);
+            let mut doc_ref_bytes = [0; 6];
+            BigEndian::write_u32(&mut doc_ref_bytes, new_doc_ref.segment());
+            BigEndian::write_u16(&mut doc_ref_bytes[4..], new_doc_ref.ord());
+            if let Err(e) = write_batch.put(&kb.key(), &doc_ref_bytes) {
+                return Err(RocksDBWriteError::new_put(kb.key().to_vec(), e).into());
+            }
+
             primary_key_index.insert(key, new_doc_ref);
         }
 
