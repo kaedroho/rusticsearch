@@ -2,7 +2,7 @@ use std::str;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
 use rocksdb::{DB, Writable, IteratorMode, Direction};
-use rocksdb::rocksdb::{Snapshot, DBKeysIterator};
+use rocksdb::rocksdb::{Snapshot, DBIterator};
 
 use errors::{RocksDBReadError, RocksDBWriteError};
 
@@ -58,7 +58,7 @@ impl SegmentManager {
     /// Iterates currently active segments
     pub fn iter_active<'a>(&self, snapshot: &'a Snapshot) -> ActiveSegmentsIterator {
         ActiveSegmentsIterator {
-            iter: snapshot.keys_iterator(IteratorMode::From(b"a", Direction::Forward)),
+            iter: snapshot.iterator(IteratorMode::From(b"a", Direction::Forward)),
             fused: false,
         }
     }
@@ -66,7 +66,7 @@ impl SegmentManager {
 
 
 pub struct ActiveSegmentsIterator {
-    iter: DBKeysIterator,
+    iter: DBIterator,
     fused: bool,
 }
 
@@ -80,7 +80,7 @@ impl Iterator for ActiveSegmentsIterator {
         }
 
         match self.iter.next() {
-            Some(k) => {
+            Some((k, _)) => {
                 if k[0] != b'a' {
                     self.fused = true;
                     return None;

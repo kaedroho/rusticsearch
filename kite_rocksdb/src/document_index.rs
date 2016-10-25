@@ -95,7 +95,7 @@ impl DocumentIndexManager {
 
     pub fn insert_or_replace_key(&self, db: &DB, key: &Vec<u8>, doc_ref: DocRef) -> Result<Option<DocRef>, RocksDBWriteError> {
         // Update primary_key_index
-        let write_batch = WriteBatch::default();
+        let write_batch = WriteBatch::new();
         let previous_doc_ref = self.primary_key_index.write().unwrap().insert(key.clone(), doc_ref);
 
         let kb = KeyBuilder::primary_key_index(key);
@@ -124,7 +124,7 @@ impl DocumentIndexManager {
         let doc_ref = self.primary_key_index.write().unwrap().remove(key);
 
         if let Some(doc_ref) = doc_ref {
-            let mut write_batch = WriteBatch::default();
+            let mut write_batch = WriteBatch::new();
 
             try!(self.delete_document_by_ref_unchecked(&mut write_batch, doc_ref));
 
