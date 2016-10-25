@@ -10,18 +10,10 @@ sudo: true
 addons:
   apt:
     sources:
-    - ubuntu-toolchain-r-test
+      - ubuntu-toolchain-r-test
     packages:
-    - gcc-5
-    - g++-5
-    - libgflags-dev
-    - libsnappy-dev
-    - zlib1g-dev
-    - libbz2-dev
-
-install:
-  - curl -L https://github.com/facebook/rocksdb/archive/4.13.fb.tar.gz | tar xvz
-  - sudo INSTALL_PATH=/usr make -C rocksdb-4.13.fb install-shared
+      - gcc-5
+      - g++-5
 
 script:
   - cargo test --manifest-path=kite/Cargo.toml
