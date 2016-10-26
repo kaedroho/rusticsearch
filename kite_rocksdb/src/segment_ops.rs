@@ -302,7 +302,9 @@ impl RocksDBIndexStore {
             let (_, _, segment) = parse_term_directory_key(&k);
 
             if segments_btree.contains(&segment) {
-                self.db.delete(&k);
+                if let Err(e) = self.db.delete(&k) {
+                    return Err(RocksDBWriteError::new_delete(k.to_vec(), e));
+                }
             }
         }
 
@@ -335,7 +337,9 @@ impl RocksDBIndexStore {
                     break;
                 }
 
-                self.db.delete(&k);
+                if let Err(e) = self.db.delete(&k) {
+                    return Err(RocksDBWriteError::new_delete(k.to_vec(), e));
+                }
             }
         }
 
@@ -365,7 +369,9 @@ impl RocksDBIndexStore {
                     break;
                 }
 
-                self.db.delete(&k);
+                if let Err(e) = self.db.delete(&k) {
+                    return Err(RocksDBWriteError::new_delete(k.to_vec(), e));
+                }
             }
         }
 
@@ -373,7 +379,9 @@ impl RocksDBIndexStore {
 
         for source_segment in segments.iter() {
             let kb = KeyBuilder::segment_del_list(*source_segment);
-            self.db.delete(&kb.key());
+            if let Err(e) = self.db.delete(&kb.key()) {
+                return Err(RocksDBWriteError::new_delete(kb.key().to_vec(), e));
+            }
         }
 
         Ok(())
