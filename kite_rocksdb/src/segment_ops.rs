@@ -202,7 +202,7 @@ impl RocksDBIndexStore {
     }
 
     fn commit_segment_merge(&self, source_segments: &Vec<u32>, dest_segment: u32, doc_ref_mapping: &HashMap<DocRef, u16>) -> Result<(), SegmentMergeError> {
-        let write_batch = WriteBatch::new();
+        let write_batch = WriteBatch::default();
 
         // Activate new segment
         let kb = KeyBuilder::segment_active(dest_segment);

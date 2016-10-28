@@ -128,7 +128,7 @@ pub struct RocksDBIndexStore {
 
 impl RocksDBIndexStore {
     pub fn create(path: &str) -> Result<RocksDBIndexStore, String> {
-        let mut opts = Options::new();
+        let mut opts = Options::default();
         opts.add_merge_operator("merge operator", merge_keys);
         opts.create_if_missing(true);
         let db = try!(DB::open(&opts, path));
@@ -158,7 +158,7 @@ impl RocksDBIndexStore {
     }
 
     pub fn open(path: &str) -> Result<RocksDBIndexStore, String> {
-        let mut opts = Options::new();
+        let mut opts = Options::default();
         opts.add_merge_operator("merge operator", merge_keys);
         let db = try!(DB::open(&opts, path));
 
@@ -227,7 +227,7 @@ impl RocksDBIndexStore {
         let doc_ref = DocRef::from_segment_ord(segment, 0);
 
         // Start write batch
-        let write_batch = WriteBatch::new();
+        let write_batch = WriteBatch::default();
 
         // Set segment active flag, this will activate the segment as soon as the
         // write batch is written
@@ -499,7 +499,7 @@ mod tests {
         assert!(store.is_err());
 
         // Create DB
-        let mut opts = Options::new();
+        let mut opts = Options::default();
         opts.create_if_missing(true);
         DB::open(&opts, "test_indices/test_open");
 

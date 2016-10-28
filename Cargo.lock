@@ -236,7 +236,7 @@ dependencies = [
  "chrono 0.2.25 (registry+https://github.com/rust-lang/crates.io-index)",
  "kite 0.0.1",
  "maplit 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)",
- "rocksdb 0.4.5 (git+https://github.com/ethcore/rust-rocksdb?rev=64c63cc)",
+ "rocksdb 0.4.1 (git+https://github.com/kaedroho/rust-rocksdb?rev=62fdd6c)",
  "rustc-serialize 0.3.19 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
@@ -402,17 +402,17 @@ dependencies = [
 
 [[package]]
 name = "rocksdb"
-version = "0.4.5"
-source = "git+https://github.com/ethcore/rust-rocksdb?rev=64c63cc#64c63ccbe1f62c2e2b39262486f9ba813793af58"
+version = "0.4.1"
+source = "git+https://github.com/kaedroho/rust-rocksdb?rev=62fdd6c#62fdd6ccbbb849410115e41d5f9475d08ca4564a"
 dependencies = [
  "libc 0.2.16 (registry+https://github.com/rust-lang/crates.io-index)",
- "rocksdb-sys 0.3.0 (git+https://github.com/ethcore/rust-rocksdb?rev=64c63cc)",
+ "rocksdb-sys 0.4.0 (git+https://github.com/kaedroho/rust-rocksdb?rev=62fdd6c)",
 ]
 
 [[package]]
 name = "rocksdb-sys"
-version = "0.3.0"
-source = "git+https://github.com/ethcore/rust-rocksdb?rev=64c63cc#64c63ccbe1f62c2e2b39262486f9ba813793af58"
+version = "0.4.0"
+source = "git+https://github.com/kaedroho/rust-rocksdb?rev=62fdd6c#62fdd6ccbbb849410115e41d5f9475d08ca4564a"
 dependencies = [
  "gcc 0.3.35 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.2.16 (registry+https://github.com/rust-lang/crates.io-index)",
