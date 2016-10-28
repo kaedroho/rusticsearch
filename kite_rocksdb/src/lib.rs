@@ -10,10 +10,10 @@ pub mod errors;
 pub mod key_builder;
 pub mod segment;
 pub mod segment_ops;
+pub mod segment_stats;
 pub mod term_dictionary;
 pub mod document_index;
 pub mod search;
-pub mod tasks;
 
 use std::str;
 use std::sync::Arc;
