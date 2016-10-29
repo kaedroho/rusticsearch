@@ -2,9 +2,9 @@ use std::collections::HashMap;
 
 use kite::schema::FieldRef;
 use byteorder::{ByteOrder, BigEndian};
+use rocksdb;
 
 use RocksDBIndexReader;
-use errors::RocksDBReadError;
 use term_dictionary::TermRef;
 use key_builder::KeyBuilder;
 
@@ -27,24 +27,23 @@ impl<'a> StatisticsReader<'a> {
         }
     }
 
-    fn get_statistic(&self, name: &[u8]) -> Result<i64, RocksDBReadError> {
+    fn get_statistic(&self, name: &[u8]) -> Result<i64, rocksdb::Error> {
         let mut val = 0;
 
         for segment in self.index_reader.store.segments.iter_active(&self.index_reader.snapshot) {
             let kb = KeyBuilder::segment_stat(segment, name);
-            match self.index_reader.snapshot.get(&kb.key()) {
-                Ok(Some(new_val)) => {
+            match try!(self.index_reader.snapshot.get(&kb.key())) {
+                Some(new_val) => {
                     val += BigEndian::read_i64(&new_val);
                 }
-                Ok(None) => {},
-                Err(e) => return Err(RocksDBReadError::new(kb.key().to_vec(), e))
+                None => {},
             }
         }
 
         Ok(val)
     }
 
-    pub fn total_docs(&mut self, field_ref: FieldRef) -> Result<i64, RocksDBReadError> {
+    pub fn total_docs(&mut self, field_ref: FieldRef) -> Result<i64, rocksdb::Error> {
         if let Some(val) = self.total_docs.get(&field_ref) {
             return Ok(*val);
         }
@@ -55,7 +54,7 @@ impl<'a> StatisticsReader<'a> {
         Ok(val)
     }
 
-    pub fn total_tokens(&mut self, field_ref: FieldRef) -> Result<i64, RocksDBReadError> {
+    pub fn total_tokens(&mut self, field_ref: FieldRef) -> Result<i64, rocksdb::Error> {
         if let Some(val) = self.total_tokens.get(&field_ref) {
             return Ok(*val);
         }
@@ -66,7 +65,7 @@ impl<'a> StatisticsReader<'a> {
         Ok(val)
     }
 
-    pub fn term_document_frequency(&mut self, field_ref: FieldRef, term_ref: TermRef) -> Result<i64, RocksDBReadError> {
+    pub fn term_document_frequency(&mut self, field_ref: FieldRef, term_ref: TermRef) -> Result<i64, rocksdb::Error> {
         if let Some(val) = self.term_document_frequencies.get(&(field_ref, term_ref)) {
             return Ok(*val);
         }

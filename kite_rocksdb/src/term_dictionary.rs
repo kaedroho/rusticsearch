@@ -3,11 +3,10 @@ use std::sync::RwLock;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::collections::BTreeMap;
 
-use rocksdb::{DB, Writable, IteratorMode, Direction};
+use rocksdb::{self, DB, Writable, IteratorMode, Direction};
 use kite::Term;
 use kite::query::term_selector::TermSelector;
 
-use errors::{RocksDBReadError, RocksDBWriteError};
 use key_builder::KeyBuilder;
 
 
@@ -37,12 +36,10 @@ pub struct TermDictionaryManager {
 
 impl TermDictionaryManager {
     /// Generates a new term dictionary
-    pub fn new(db: &DB) -> Result<TermDictionaryManager, RocksDBWriteError> {
+    pub fn new(db: &DB) -> Result<TermDictionaryManager, rocksdb::Error> {
         // TODO: Raise error if .next_term_ref already exists
         // Next term ref
-        if let Err(e) = db.put(b".next_term_ref", b"1") {
-            return Err(RocksDBWriteError::new_put(b".next_term_ref".to_vec(), e));
-        }
+        try!(db.put(b".next_term_ref", b"1"));
 
         Ok(TermDictionaryManager {
             next_term_ref: AtomicUsize::new(1),
@@ -51,13 +48,12 @@ impl TermDictionaryManager {
     }
 
     /// Loads the term dictionary from an index
-    pub fn open(db: &DB) -> Result<TermDictionaryManager, RocksDBReadError> {
-        let next_term_ref = match db.get(b".next_term_ref") {
-            Ok(Some(next_term_ref)) => {
+    pub fn open(db: &DB) -> Result<TermDictionaryManager, rocksdb::Error> {
+        let next_term_ref = match try!(db.get(b".next_term_ref")) {
+            Some(next_term_ref) => {
                 next_term_ref.to_utf8().unwrap().parse::<u32>().unwrap()
             }
-            Ok(None) => 1,  // TODO: error
-            Err(e) => return Err(RocksDBReadError::new(b".next_term_ref".to_vec(), e)),
+            None => 1,  // TODO: error
         };
 
         // Read dictionary
@@ -94,7 +90,7 @@ impl TermDictionaryManager {
 
     /// Retrieves the TermRef for the given term, adding the term to the
     /// dictionary if it doesn't exist
-    pub fn get_or_create(&self, db: &DB, term: &Term) -> Result<TermRef, RocksDBWriteError> {
+    pub fn get_or_create(&self, db: &DB, term: &Term) -> Result<TermRef, rocksdb::Error> {
         let term_bytes = term.to_bytes();
 
         if let Some(term_ref) = self.get(&term_bytes) {
@@ -105,9 +101,7 @@ impl TermDictionaryManager {
 
         // Increment next_term_ref
         let next_term_ref = self.next_term_ref.fetch_add(1, Ordering::SeqCst) as u32;
-        if let Err(e) = db.put(b".next_term_ref", (next_term_ref + 1).to_string().as_bytes()) {
-            return Err(RocksDBWriteError::new_put(b".next_term_ref".to_vec(), e));
-        }
+        try!(db.put(b".next_term_ref", (next_term_ref + 1).to_string().as_bytes()));
 
         // Create term ref
         let term_ref = TermRef(next_term_ref);
@@ -124,9 +118,7 @@ impl TermDictionaryManager {
 
         // Write it to the on-disk term dictionary
         let kb = KeyBuilder::term_dict_mapping(&term_bytes);
-        if let Err(e) = db.put(kb.key(), next_term_ref.to_string().as_bytes()) {
-            return Err(RocksDBWriteError::new_put(kb.key().to_vec(), e));
-        }
+        try!(db.put(kb.key(), next_term_ref.to_string().as_bytes()));
 
         // Write it to the term dictionary
         terms.insert(term_bytes, term_ref);

@@ -1,10 +1,9 @@
 use std::sync::RwLock;
 use std::collections::{BTreeMap, HashMap};
 
-use rocksdb::{DB, Writable, WriteBatch, IteratorMode, Direction};
+use rocksdb::{self, DB, Writable, WriteBatch, IteratorMode, Direction};
 use byteorder::{ByteOrder, BigEndian, WriteBytesExt};
 
-use errors::{RocksDBReadError, RocksDBWriteError};
 use key_builder::KeyBuilder;
 use segment_ops::SegmentMergeError;
 use search::doc_id_set::DocIdSet;
@@ -47,14 +46,14 @@ pub struct DocumentIndexManager {
 
 impl DocumentIndexManager {
     /// Generates a new document index
-    pub fn new(_db: &DB) -> Result<DocumentIndexManager, RocksDBWriteError> {
+    pub fn new(_db: &DB) -> Result<DocumentIndexManager, rocksdb::Error> {
         Ok(DocumentIndexManager {
             primary_key_index: RwLock::new(BTreeMap::new()),
         })
     }
 
     /// Loads the document index from an index
-    pub fn open(db: &DB) -> Result<DocumentIndexManager, RocksDBReadError> {
+    pub fn open(db: &DB) -> Result<DocumentIndexManager, rocksdb::Error> {
         // Read primary key index
         let mut primary_key_index = BTreeMap::new();
         for (k, v) in db.iterator(IteratorMode::From(b"k", Direction::Forward)) {
@@ -74,26 +73,22 @@ impl DocumentIndexManager {
         })
     }
 
-    fn delete_document_by_ref_unchecked(&self, write_batch: &WriteBatch, doc_ref: DocRef) -> Result<(), RocksDBWriteError> {
+    fn delete_document_by_ref_unchecked(&self, write_batch: &WriteBatch, doc_ref: DocRef) -> Result<(), rocksdb::Error> {
         let kb = KeyBuilder::segment_del_list(doc_ref.segment());
         let mut previous_doc_id_bytes = [0; 2];
         BigEndian::write_u16(&mut previous_doc_id_bytes, doc_ref.ord());
-        if let Err(e) = write_batch.merge(&kb.key(), &previous_doc_id_bytes) {
-            return Err(RocksDBWriteError::new_merge(kb.key().to_vec(), e));
-        }
+        try!(write_batch.merge(&kb.key(), &previous_doc_id_bytes));
 
         // Increment deleted docs
         let kb = KeyBuilder::segment_stat(doc_ref.segment(), b"deleted_docs");
         let mut inc_bytes = [0; 8];
         BigEndian::write_i64(&mut inc_bytes, 1);
-        if let Err(e) = write_batch.merge(&kb.key(), &inc_bytes) {
-            return Err(RocksDBWriteError::new_merge(kb.key().to_vec(), e));
-        }
+        try!(write_batch.merge(&kb.key(), &inc_bytes));
 
         Ok(())
     }
 
-    pub fn insert_or_replace_key(&self, db: &DB, key: &Vec<u8>, doc_ref: DocRef) -> Result<Option<DocRef>, RocksDBWriteError> {
+    pub fn insert_or_replace_key(&self, db: &DB, key: &Vec<u8>, doc_ref: DocRef) -> Result<Option<DocRef>, rocksdb::Error> {
         // Update primary_key_index
         let write_batch = WriteBatch::default();
         let previous_doc_ref = self.primary_key_index.write().unwrap().insert(key.clone(), doc_ref);
@@ -102,9 +97,7 @@ impl DocumentIndexManager {
         let mut doc_ref_bytes = [0; 6];
         BigEndian::write_u32(&mut doc_ref_bytes, doc_ref.segment());
         BigEndian::write_u16(&mut doc_ref_bytes[4..], doc_ref.ord());
-        if let Err(e) = write_batch.put(&kb.key(), &doc_ref_bytes) {
-            return Err(RocksDBWriteError::new_put(kb.key().to_vec(), e));
-        }
+        try!(write_batch.put(&kb.key(), &doc_ref_bytes));
 
         // If there was a document there previously, delete it
         if let Some(previous_doc_ref) = previous_doc_ref {
@@ -112,14 +105,12 @@ impl DocumentIndexManager {
         }
 
         // Write document data
-        if let Err(e) = db.write(write_batch) {
-            return Err(RocksDBWriteError::new_commit_write_batch(e));
-        }
+        try!(db.write(write_batch));
 
         Ok(previous_doc_ref)
     }
 
-    pub fn delete_document_by_key(&self, db: &DB, key: &Vec<u8>) -> Result<Option<DocRef>, RocksDBWriteError> {
+    pub fn delete_document_by_key(&self, db: &DB, key: &Vec<u8>) -> Result<Option<DocRef>, rocksdb::Error> {
         // Remove document from index
         let doc_ref = self.primary_key_index.write().unwrap().remove(key);
 
@@ -128,9 +119,7 @@ impl DocumentIndexManager {
 
             try!(self.delete_document_by_ref_unchecked(&mut write_batch, doc_ref));
 
-            if let Err(e) = db.write(write_batch) {
-                return Err(RocksDBWriteError::new_commit_write_batch(e));
-            }
+            try!(db.write(write_batch));
         }
 
         Ok(doc_ref)
@@ -160,9 +149,7 @@ impl DocumentIndexManager {
             let mut doc_ref_bytes = [0; 6];
             BigEndian::write_u32(&mut doc_ref_bytes, new_doc_ref.segment());
             BigEndian::write_u16(&mut doc_ref_bytes[4..], new_doc_ref.ord());
-            if let Err(e) = write_batch.put(&kb.key(), &doc_ref_bytes) {
-                return Err(RocksDBWriteError::new_put(kb.key().to_vec(), e).into());
-            }
+            try!(write_batch.put(&kb.key(), &doc_ref_bytes));
 
             primary_key_index.insert(key, new_doc_ref);
         }
@@ -172,28 +159,23 @@ impl DocumentIndexManager {
         let mut deletion_list = Vec::new();
         for source_segment in source_segments {
             let kb = KeyBuilder::segment_del_list(*source_segment);
-            match db.get(&kb.key()) {
-                Ok(Some(docid_set)) => {
+            match try!(db.get(&kb.key())) {
+                Some(docid_set) => {
                     for doc_id in DocIdSet::FromRDB(docid_set).iter() {
                         let doc_ref = DocRef::from_segment_ord(*source_segment, doc_id);
                         let new_doc_id = doc_ref_mapping.get(&doc_ref).unwrap();
                         deletion_list.write_u16::<BigEndian>(*new_doc_id).unwrap();
                     }
                 }
-                Ok(None) => {},
-                Err(e) => return Err(RocksDBReadError::new(kb.key().to_vec(), e).into()),
+                None => {},
             }
         }
 
         let kb = KeyBuilder::segment_del_list(dest_segment);
-        if let Err(e) = db.put(&kb.key(), &deletion_list) {
-            return Err(RocksDBWriteError::new_put(kb.key().to_vec(), e).into());
-        }
+        try!(db.put(&kb.key(), &deletion_list));
 
         // Commit!
-        if let Err(e) = db.write(write_batch) {
-            return Err(RocksDBWriteError::new_commit_write_batch(e).into());
-        }
+        try!(db.write(write_batch));
 
         Ok(())
     }

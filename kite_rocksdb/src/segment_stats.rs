@@ -1,7 +1,7 @@
 use byteorder::{ByteOrder, BigEndian};
+use rocksdb;
 
 use {RocksDBIndexStore, RocksDBIndexReader};
-use errors::RocksDBReadError;
 use key_builder::KeyBuilder;
 
 
@@ -13,27 +13,25 @@ pub struct SegmentStatistics {
 
 
 impl SegmentStatistics {
-    fn read(reader: &RocksDBIndexReader, segment: u32) -> Result<SegmentStatistics, RocksDBReadError> {
+    fn read(reader: &RocksDBIndexReader, segment: u32) -> Result<SegmentStatistics, rocksdb::Error> {
         // Total docs
         let kb = KeyBuilder::segment_stat(segment, b"total_docs");
 
-        let total_docs = match reader.snapshot.get(&kb.key()) {
-            Ok(Some(val_bytes)) => {
+        let total_docs = match try!(reader.snapshot.get(&kb.key())) {
+            Some(val_bytes) => {
                 BigEndian::read_i64(&val_bytes)
             }
-            Ok(None) => 0,
-            Err(e) => return Err(RocksDBReadError::new(kb.key().to_vec(), e)),
+            None => 0,
         };
 
         // Deleted docs
         let kb = KeyBuilder::segment_stat(segment, b"deleted_docs");
 
-        let deleted_docs = match reader.snapshot.get(&kb.key()) {
-            Ok(Some(val_bytes)) => {
+        let deleted_docs = match try!(reader.snapshot.get(&kb.key())) {
+            Some(val_bytes) => {
                 BigEndian::read_i64(&val_bytes)
             }
-            Ok(None) => 0,
-            Err(e) => return Err(RocksDBReadError::new(kb.key().to_vec(), e)),
+            None => 0,
         };
 
         Ok(SegmentStatistics {
@@ -55,7 +53,7 @@ impl SegmentStatistics {
 
 
 impl RocksDBIndexStore {
-    pub fn get_segment_statistics(&self) -> Result<Vec<(u32, SegmentStatistics)>, RocksDBReadError> {
+    pub fn get_segment_statistics(&self) -> Result<Vec<(u32, SegmentStatistics)>, rocksdb::Error> {
         let mut segment_stats = Vec::new();
         let reader = self.reader();
 

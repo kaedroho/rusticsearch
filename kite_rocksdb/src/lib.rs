@@ -6,7 +6,6 @@ extern crate maplit;
 extern crate byteorder;
 extern crate chrono;
 
-pub mod errors;
 pub mod key_builder;
 pub mod segment;
 pub mod segment_ops;
@@ -28,7 +27,6 @@ use rustc_serialize::json;
 use byteorder::{ByteOrder, BigEndian};
 use chrono::{NaiveDateTime, DateTime, UTC};
 
-use errors::{RocksDBReadError, RocksDBWriteError};
 use key_builder::KeyBuilder;
 use segment::SegmentManager;
 use term_dictionary::TermDictionaryManager;
@@ -95,24 +93,14 @@ pub enum DocumentInsertError {
     /// The specified field name doesn't exist
     FieldDoesntExist(String),
 
-    /// A RocksDB error occurred while reading from the disk
-    RocksDBReadError(RocksDBReadError),
-
-    /// A RocksDB error occurred while writing to the disk
-    RocksDBWriteError(RocksDBWriteError),
+    /// A RocksDB error occurred
+    RocksDBError(rocksdb::Error),
 }
 
 
-impl From<RocksDBReadError> for DocumentInsertError {
-    fn from(e: RocksDBReadError) -> DocumentInsertError {
-        DocumentInsertError::RocksDBReadError(e)
-    }
-}
-
-
-impl From<RocksDBWriteError> for DocumentInsertError {
-    fn from(e: RocksDBWriteError) -> DocumentInsertError {
-        DocumentInsertError::RocksDBWriteError(e)
+impl From<rocksdb::Error> for DocumentInsertError {
+    fn from(e: rocksdb::Error) -> DocumentInsertError {
+        DocumentInsertError::RocksDBError(e)
     }
 }
 
@@ -135,9 +123,7 @@ impl RocksDBIndexStore {
 
         // Schema
         let schema = Schema::new();
-        if let Err(e) = db.put(b".schema", json::encode(&schema).unwrap().as_bytes()) {
-            return Err(RocksDBWriteError::new_put(b".schema".to_vec(), e).into());
-        }
+        try!(db.put(b".schema", json::encode(&schema).unwrap().as_bytes()));
 
         // Segment manager
         let segments = try!(SegmentManager::new(&db));
@@ -162,13 +148,12 @@ impl RocksDBIndexStore {
         opts.add_merge_operator("merge operator", merge_keys);
         let db = try!(DB::open(&opts, path));
 
-        let schema = match db.get(b".schema") {
-            Ok(Some(schema)) => {
+        let schema = match try!(db.get(b".schema")) {
+            Some(schema) => {
                 let schema = schema.to_utf8().unwrap().to_string();
                 json::decode(&schema).unwrap()
             }
-            Ok(None) => Schema::new(),  // TODO: error
-            Err(e) => return Err(RocksDBReadError::new(b".schema".to_vec(), e).into()),
+            None => Schema::new(),  // TODO: error
         };
 
         // Segment manager
@@ -232,9 +217,7 @@ impl RocksDBIndexStore {
         // Set segment active flag, this will activate the segment as soon as the
         // write batch is written
         let kb = KeyBuilder::segment_active(doc_ref.segment());
-        if let Err(e) = write_batch.put(&kb.key(), b"") {
-            return Err(RocksDBWriteError::new_put(kb.key().to_vec(), e).into());
-        }
+        try!(write_batch.put(&kb.key(), b""));
 
         // Insert contents
 
@@ -261,9 +244,7 @@ impl RocksDBIndexStore {
                 let kb = KeyBuilder::segment_dir_list(doc_ref.segment(), field_ref.ord(), term_ref.ord());
                 let mut doc_id_bytes = [0; 2];
                 BigEndian::write_u16(&mut doc_id_bytes, doc_ref.ord());
-                if let Err(e) = write_batch.merge(&kb.key(), &doc_id_bytes) {
-                    return Err(RocksDBWriteError::new_merge(kb.key().to_vec(), e).into());
-                }
+                try!(write_batch.merge(&kb.key(), &doc_id_bytes));
             }
 
             // Term frequencies
@@ -277,18 +258,14 @@ impl RocksDBIndexStore {
                     let kb = KeyBuilder::stored_field_value(doc_ref.segment(), doc_ref.ord(), field_ref.ord(), &value_type);
                     let mut frequency_bytes = [0; 8];
                     BigEndian::write_i64(&mut frequency_bytes, frequency);
-                    if let Err(e) = write_batch.merge(&kb.key(), &frequency_bytes) {
-                        return Err(RocksDBWriteError::new_merge(kb.key().to_vec(), e).into());
-                    }
+                    try!(write_batch.merge(&kb.key(), &frequency_bytes));
                 }
 
                 // Increment term document frequency
                 let kb = KeyBuilder::segment_stat_term_doc_frequency(doc_ref.segment(), field_ref.ord(), term_ref.ord());
                 let mut inc_bytes = [0; 8];
                 BigEndian::write_i64(&mut inc_bytes, 1);
-                if let Err(e) = write_batch.merge(&kb.key(), &inc_bytes) {
-                    return Err(RocksDBWriteError::new_merge(kb.key().to_vec(), e).into());
-                }
+                try!(write_batch.merge(&kb.key(), &inc_bytes));
             }
 
             // Field length
@@ -297,26 +274,20 @@ impl RocksDBIndexStore {
             let length = if length > 255.0 { 255.0 } else { length } as u8;
             if length != 0 {
                 let kb = KeyBuilder::stored_field_value(doc_ref.segment(), doc_ref.ord(), field_ref.ord(), b"len");
-                if let Err(e) = write_batch.merge(&kb.key(), &[length]) {
-                    return Err(RocksDBWriteError::new_merge(kb.key().to_vec(), e).into());
-                }
+                try!(write_batch.merge(&kb.key(), &[length]));
             }
 
             // Increment total field docs
             let kb = KeyBuilder::segment_stat_total_field_docs(doc_ref.segment(), field_ref.ord());
             let mut inc_bytes = [0; 8];
             BigEndian::write_i64(&mut inc_bytes, 1);
-            if let Err(e) = write_batch.merge(&kb.key(), &inc_bytes) {
-                return Err(RocksDBWriteError::new_merge(kb.key().to_vec(), e).into());
-            }
+            try!(write_batch.merge(&kb.key(), &inc_bytes));
 
             // Increment total field tokens
             let kb = KeyBuilder::segment_stat_total_field_tokens(doc_ref.segment(), field_ref.ord());
             let mut inc_bytes = [0; 8];
             BigEndian::write_i64(&mut inc_bytes, field_token_count);
-            if let Err(e) = write_batch.merge(&kb.key(), &inc_bytes) {
-                return Err(RocksDBWriteError::new_merge(kb.key().to_vec(), e).into());
-            }
+            try!(write_batch.merge(&kb.key(), &inc_bytes));
         }
 
         // Stored fields
@@ -330,23 +301,17 @@ impl RocksDBIndexStore {
             };
 
             let kb = KeyBuilder::stored_field_value(doc_ref.segment(), doc_ref.ord(), field_ref.ord(), b"val");
-            if let Err(e) = write_batch.merge(&kb.key(), &value.to_bytes()) {
-                return Err(RocksDBWriteError::new_merge(kb.key().to_vec(), e).into());
-            }
+            try!(write_batch.merge(&kb.key(), &value.to_bytes()));
         }
 
         // Increment total docs
         let kb = KeyBuilder::segment_stat(doc_ref.segment(), b"total_docs");
         let mut inc_bytes = [0; 8];
         BigEndian::write_i64(&mut inc_bytes, 1);
-        if let Err(e) = write_batch.merge(&kb.key(), &inc_bytes) {
-            return Err(RocksDBWriteError::new_merge(kb.key().to_vec(), e).into());
-        }
+        try!(write_batch.merge(&kb.key(), &inc_bytes));
 
         // Write document data
-         if let Err(e) = self.db.write(write_batch) {
-            return Err(RocksDBWriteError::new_commit_write_batch(e).into());
-        }
+         try!(self.db.write(write_batch));
 
         // Update document index
         try!(self.document_index.insert_or_replace_key(&self.db, &doc.key.as_bytes().iter().cloned().collect(), doc_ref));
@@ -354,7 +319,7 @@ impl RocksDBIndexStore {
         Ok(())
     }
 
-    pub fn remove_document_by_key(&self, doc_key: &str) -> Result<bool, RocksDBWriteError> {
+    pub fn remove_document_by_key(&self, doc_key: &str) -> Result<bool, rocksdb::Error> {
         match try!(self.document_index.delete_document_by_key(&self.db, &doc_key.as_bytes().iter().cloned().collect())) {
             Some(_doc_ref) => Ok(true),
             None => Ok(false),
@@ -375,7 +340,7 @@ pub enum StoredFieldReadError {
     InvalidFieldRef(FieldRef),
 
     /// A RocksDB error occurred while reading from the disk
-    RocksDBReadError(RocksDBReadError),
+    RocksDBError(rocksdb::Error),
 
     /// A UTF-8 decode error occured while reading a Text field
     TextFieldUTF8DecodeError(Vec<u8>, str::Utf8Error),
@@ -388,9 +353,9 @@ pub enum StoredFieldReadError {
 }
 
 
-impl From<RocksDBReadError> for StoredFieldReadError {
-    fn from(e: RocksDBReadError) -> StoredFieldReadError {
-        StoredFieldReadError::RocksDBReadError(e)
+impl From<rocksdb::Error> for StoredFieldReadError {
+    fn from(e: rocksdb::Error) -> StoredFieldReadError {
+        StoredFieldReadError::RocksDBError(e)
     }
 }
 
@@ -419,8 +384,8 @@ impl<'a> RocksDBIndexReader<'a> {
 
         let kb = KeyBuilder::stored_field_value(doc_ref.segment(), doc_ref.ord(), field_ref.ord(), b"val");
 
-        match self.snapshot.get(&kb.key()) {
-            Ok(Some(value)) => {
+        match try!(self.snapshot.get(&kb.key())) {
+            Some(value) => {
                 match field_info.field_type {
                     FieldType::Text | FieldType::PlainString => {
                         match str::from_utf8(&value) {
@@ -462,8 +427,7 @@ impl<'a> RocksDBIndexReader<'a> {
                     }
                 }
             }
-            Ok(None) => Ok(None),
-            Err(e) => Err(RocksDBReadError::new(kb.key().to_vec(), e).into())
+            None => Ok(None),
         }
     }
 }

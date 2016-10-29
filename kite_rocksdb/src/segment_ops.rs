@@ -1,11 +1,10 @@
 use std::str;
 use std::collections::{HashMap, BTreeSet};
 
-use rocksdb::{Writable, IteratorMode, Direction, WriteBatch};
+use rocksdb::{self, Writable, IteratorMode, Direction, WriteBatch};
 use byteorder::{ByteOrder, BigEndian, WriteBytesExt};
 
 use RocksDBIndexStore;
-use errors::{RocksDBReadError, RocksDBWriteError};
 use document_index::DocRef;
 use key_builder::KeyBuilder;
 use search::doc_id_set::DocIdSet;
@@ -14,28 +13,13 @@ use search::doc_id_set::DocIdSet;
 #[derive(Debug)]
 pub enum SegmentMergeError {
     TooManyDocs,
-    RocksDBReadError(RocksDBReadError),
-    RocksDBWriteError(RocksDBWriteError),
+    RocksDBError(rocksdb::Error),
 }
 
 
-impl From<RocksDBReadError> for SegmentMergeError {
-    fn from(e: RocksDBReadError) -> SegmentMergeError {
-        SegmentMergeError::RocksDBReadError(e)
-    }
-}
-
-
-impl From<RocksDBWriteError> for SegmentMergeError {
-    fn from(e: RocksDBWriteError) -> SegmentMergeError {
-        SegmentMergeError::RocksDBWriteError(e)
-    }
-}
-
-
-impl From<SegmentMergeError> for String {
-    fn from(e: SegmentMergeError) -> String {
-        format!("{:?}", e).to_string()
+impl From<rocksdb::Error> for SegmentMergeError {
+    fn from(e: rocksdb::Error) -> SegmentMergeError {
+        SegmentMergeError::RocksDBError(e)
     }
 }
 
@@ -76,9 +60,7 @@ impl RocksDBIndexStore {
                 // Finished current term directory. Write it to the DB and start the next one
                 if let Some((field, term)) = current_td_key {
                     let kb = KeyBuilder::segment_dir_list(dest_segment, field, term);
-                    if let Err(e) = self.db.put(&kb.key(), &current_td) {
-                        return Err(RocksDBWriteError::new_put(kb.key().to_vec(), e).into());
-                    }
+                    try!(self.db.put(&kb.key(), &current_td));
                     current_td.clear();
                 }
 
@@ -96,9 +78,7 @@ impl RocksDBIndexStore {
         // All done, write the last term directory
         if let Some((field, term)) = current_td_key {
             let kb = KeyBuilder::segment_dir_list(dest_segment, field, term);
-            if let Err(e) = self.db.put(&kb.key(), &current_td) {
-                return Err(RocksDBWriteError::new_put(kb.key().to_vec(), e).into());
-            }
+            try!(self.db.put(&kb.key(), &current_td));
             current_td.clear();
         }
 
@@ -140,9 +120,7 @@ impl RocksDBIndexStore {
 
                 // Write value into new segment
                 let kb = KeyBuilder::stored_field_value(dest_segment, *new_doc_id, field, &value_type);
-                if let Err(e) = self.db.put(&kb.key(), &v) {
-                    return Err(RocksDBWriteError::new_put(kb.key().to_vec(), e).into());
-                }
+                try!(self.db.put(&kb.key(), &v));
             }
         }
 
@@ -188,9 +166,7 @@ impl RocksDBIndexStore {
             let kb = KeyBuilder::segment_stat(dest_segment, &stat_name);
             let mut val_bytes = [0; 8];
             BigEndian::write_i64(&mut val_bytes, stat_value);
-            if let Err(e) = self.db.put(&kb.key(), &val_bytes) {
-                return Err(RocksDBWriteError::new_put(kb.key().to_vec(), e).into());
-            }
+            try!(self.db.put(&kb.key(), &val_bytes));
         }
 
         // Note: Don't merge the deletion lists
@@ -206,17 +182,13 @@ impl RocksDBIndexStore {
 
         // Activate new segment
         let kb = KeyBuilder::segment_active(dest_segment);
-        if let Err(e) = write_batch.put(&kb.key(), b"") {
-            return Err(RocksDBWriteError::new_put(kb.key().to_vec(), e).into());
-        }
+        try!(write_batch.put(&kb.key(), b""));
 
         // Deactivate old segments
         for source_segment in source_segments.iter() {
             // Activate new segment
             let kb = KeyBuilder::segment_active(*source_segment);
-            if let Err(e) = write_batch.delete(&kb.key()) {
-                return Err(RocksDBWriteError::new_delete(kb.key().to_vec(), e).into());
-            }
+            try!(write_batch.delete(&kb.key()));
         }
 
         // Update document index and commit
@@ -241,12 +213,11 @@ impl RocksDBIndexStore {
 
         for source_segment in source_segments.iter() {
             let kb = KeyBuilder::segment_stat(*source_segment, b"total_docs");
-            let total_docs = match self.db.get(&kb.key()) {
-                Ok(Some(total_docs_bytes)) => {
+            let total_docs = match try!(self.db.get(&kb.key())) {
+                Some(total_docs_bytes) => {
                     BigEndian::read_i64(&total_docs_bytes)
                 }
-                Ok(None) => continue,
-                Err(e) => return Err(RocksDBReadError::new(kb.key().to_vec(), e).into())
+                None => continue,
             };
 
             for source_ord in 0..total_docs {
@@ -281,7 +252,7 @@ impl RocksDBIndexStore {
         Ok(dest_segment)
     }
 
-    pub fn purge_segments(&self, segments: &Vec<u32>) -> Result<(), RocksDBWriteError> {
+    pub fn purge_segments(&self, segments: &Vec<u32>) -> Result<(), rocksdb::Error> {
         // Put segments in a BTreeSet as this is much faster for performing contains queries against
         let segments_btree = segments.iter().collect::<BTreeSet<_>>();
 
@@ -302,9 +273,7 @@ impl RocksDBIndexStore {
             let (_, _, segment) = parse_term_directory_key(&k);
 
             if segments_btree.contains(&segment) {
-                if let Err(e) = self.db.delete(&k) {
-                    return Err(RocksDBWriteError::new_delete(k.to_vec(), e));
-                }
+                try!(self.db.delete(&k));
             }
         }
 
@@ -337,9 +306,7 @@ impl RocksDBIndexStore {
                     break;
                 }
 
-                if let Err(e) = self.db.delete(&k) {
-                    return Err(RocksDBWriteError::new_delete(k.to_vec(), e));
-                }
+                try!(self.db.delete(&k));
             }
         }
 
@@ -369,9 +336,7 @@ impl RocksDBIndexStore {
                     break;
                 }
 
-                if let Err(e) = self.db.delete(&k) {
-                    return Err(RocksDBWriteError::new_delete(k.to_vec(), e));
-                }
+                try!(self.db.delete(&k));
             }
         }
 
@@ -379,9 +344,7 @@ impl RocksDBIndexStore {
 
         for source_segment in segments.iter() {
             let kb = KeyBuilder::segment_del_list(*source_segment);
-            if let Err(e) = self.db.delete(&kb.key()) {
-                return Err(RocksDBWriteError::new_delete(kb.key().to_vec(), e));
-            }
+            try!(self.db.delete(&kb.key()));
         }
 
         Ok(())
