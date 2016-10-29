@@ -520,7 +520,7 @@ mod tests {
     }
 
     pub fn print_keys(db: &DB) {
-        fn bytes_to_string(bytes: &Box<[u8]>) -> String {
+        fn bytes_to_string(bytes: &[u8]) -> String {
             use std::char;
 
             let mut string = String::new();
