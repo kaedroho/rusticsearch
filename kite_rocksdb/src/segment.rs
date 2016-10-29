@@ -49,7 +49,7 @@ impl SegmentManager {
     }
 
     /// Iterates currently active segments
-    pub fn iter_active<'a>(&self, snapshot: &'a Snapshot) -> ActiveSegmentsIterator {
+    pub fn iter_active<'a>(&self, snapshot: &'a Snapshot) -> ActiveSegmentsIterator<'a> {
         ActiveSegmentsIterator {
             iter: snapshot.iterator(IteratorMode::From(b"a", Direction::Forward)),
             fused: false,
@@ -58,13 +58,13 @@ impl SegmentManager {
 }
 
 
-pub struct ActiveSegmentsIterator {
-    iter: DBIterator,
+pub struct ActiveSegmentsIterator<'a> {
+    iter: DBIterator<'a>,
     fused: bool,
 }
 
 
-impl Iterator for ActiveSegmentsIterator {
+impl<'a> Iterator for ActiveSegmentsIterator<'a> {
     type Item = u32;
 
     fn next(&mut self) -> Option<u32> {

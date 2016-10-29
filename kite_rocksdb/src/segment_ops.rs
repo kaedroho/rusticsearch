@@ -341,7 +341,6 @@ impl RocksDBIndexStore {
         }
 
         // Purge the deletion lists
-
         for source_segment in segments.iter() {
             let kb = KeyBuilder::segment_del_list(*source_segment);
             try!(self.db.delete(&kb.key()));
