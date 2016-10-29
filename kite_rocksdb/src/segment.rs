@@ -1,10 +1,8 @@
 use std::str;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
-use rocksdb::{DB, Writable, IteratorMode, Direction};
+use rocksdb::{self, DB, Writable, IteratorMode, Direction};
 use rocksdb::rocksdb::{Snapshot, DBIterator};
-
-use errors::{RocksDBReadError, RocksDBWriteError};
 
 
 /// Manages "segments" within the index
@@ -19,12 +17,10 @@ pub struct SegmentManager {
 
 impl SegmentManager {
     /// Generates a new segment manager
-    pub fn new(db: &DB) -> Result<SegmentManager, RocksDBWriteError> {
+    pub fn new(db: &DB) -> Result<SegmentManager, rocksdb::Error> {
         // TODO: Raise error if .next_segment already exists
         // Next segment
-        if let Err(e) = db.put(b".next_segment", b"1") {
-            return Err(RocksDBWriteError::new_put(b".next_segment".to_vec(), e));
-        }
+        try!(db.put(b".next_segment", b"1"));
 
         Ok(SegmentManager {
             next_segment: AtomicUsize::new(1),
@@ -32,13 +28,12 @@ impl SegmentManager {
     }
 
     /// Loads the segment manager from an index
-    pub fn open(db: &DB) -> Result<SegmentManager, RocksDBReadError> {
-        let next_segment = match db.get(b".next_segment") {
-            Ok(Some(next_segment)) => {
+    pub fn open(db: &DB) -> Result<SegmentManager, rocksdb::Error> {
+        let next_segment = match try!(db.get(b".next_segment")) {
+            Some(next_segment) => {
                 next_segment.to_utf8().unwrap().parse::<u32>().unwrap()
             }
-            Ok(None) => 1,  // TODO: error
-            Err(e) => return Err(RocksDBReadError::new(b".next_segment".to_vec(), e)),
+            None => 1,  // TODO: error
         };
 
         Ok(SegmentManager {
@@ -47,11 +42,9 @@ impl SegmentManager {
     }
 
     /// Allocates a new (inactive) segment
-    pub fn new_segment(&self, db: &DB) -> Result<u32, RocksDBWriteError> {
+    pub fn new_segment(&self, db: &DB) -> Result<u32, rocksdb::Error> {
         let next_segment = self.next_segment.fetch_add(1, Ordering::SeqCst) as u32;
-        if let Err(e) = db.put(b".next_segment", (next_segment + 1).to_string().as_bytes()) {
-            return Err(RocksDBWriteError::new_put(b".next_segment".to_vec(), e));
-        }
+        try!(db.put(b".next_segment", (next_segment + 1).to_string().as_bytes()));
         Ok(next_segment)
     }
 
