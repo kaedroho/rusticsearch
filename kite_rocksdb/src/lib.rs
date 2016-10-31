@@ -11,6 +11,7 @@ mod segment;
 mod segment_manager;
 mod segment_ops;
 mod segment_stats;
+mod segment_builder;
 mod term_dictionary;
 mod document_index;
 mod search;
