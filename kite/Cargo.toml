@@ -1,6 +1,6 @@
 [package]
 name = "kite"
-version = "0.0.1"
+version = "0.0.2"
 authors = ["Karl Hobley <karlhobley10@gmail.com>"]
 description = "Information retrieval library"
 license = "Apache-2.0"
