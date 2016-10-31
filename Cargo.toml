@@ -23,4 +23,4 @@ slog-term = "0.6"
 
 [dependencies.kite]
 path = "kite"
-version = "0.0.1"
+version = "0.0.2"
