@@ -1,7 +1,9 @@
 [package]
 name = "rusticsearch"
-version = "0.1.0"
+version = "0.0.1"
 authors = ["Karl Hobley <karlhobley10@gmail.com>"]
+description = "A lightweight, Elasticsearch-compatible search server (early WIP)"
+readme = "README.md"
 license = "Apache-2.0"
 
 [dependencies]
