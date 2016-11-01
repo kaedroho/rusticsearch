@@ -7,7 +7,7 @@ use byteorder::{ByteOrder, BigEndian, WriteBytesExt};
 use RocksDBIndexStore;
 use document_index::DocRef;
 use key_builder::KeyBuilder;
-use search::doc_id_set::DocIdSet;
+use doc_id_set::DocIdSet;
 
 
 #[derive(Debug)]

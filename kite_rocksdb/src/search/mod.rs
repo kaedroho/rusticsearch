@@ -1,4 +1,3 @@
-pub mod doc_id_set;
 mod statistics;
 mod planner;
 
@@ -10,7 +9,7 @@ use rocksdb;
 use key_builder::KeyBuilder;
 use document_index::DocRef;
 use super::RocksDBIndexReader;
-use search::doc_id_set::DocIdSet;
+use doc_id_set::DocIdSet;
 use search::statistics::StatisticsReader;
 use search::planner::{SearchPlan, plan_query};
 use search::planner::boolean_query::BooleanQueryOp;
