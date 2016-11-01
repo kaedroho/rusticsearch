@@ -1,6 +1,6 @@
 pub mod doc_id_set;
-pub mod statistics;
-pub mod planner;
+mod statistics;
+mod planner;
 
 use kite::query::Query;
 use kite::collectors::{Collector, DocumentMatch};

@@ -6,13 +6,13 @@ extern crate maplit;
 extern crate byteorder;
 extern crate chrono;
 
-pub mod key_builder;
-pub mod segment;
-pub mod segment_ops;
-pub mod segment_stats;
-pub mod term_dictionary;
-pub mod document_index;
-pub mod search;
+mod key_builder;
+mod segment;
+mod segment_ops;
+mod segment_stats;
+mod term_dictionary;
+mod document_index;
+mod search;
 
 use std::str;
 use std::sync::Arc;
