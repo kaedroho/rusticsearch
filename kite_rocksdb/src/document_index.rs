@@ -6,7 +6,7 @@ use byteorder::{ByteOrder, BigEndian, WriteBytesExt};
 
 use key_builder::KeyBuilder;
 use segment_ops::SegmentMergeError;
-use search::doc_id_set::DocIdSet;
+use doc_id_set::DocIdSet;
 
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Hash)]
