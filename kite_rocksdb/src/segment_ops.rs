@@ -24,6 +24,16 @@ impl From<rocksdb::Error> for SegmentMergeError {
 }
 
 
+impl From<SegmentMergeError> for String {
+    fn from(e: SegmentMergeError) -> String {
+        match e {
+            SegmentMergeError::TooManyDocs => "Too many docs".to_string(),
+            SegmentMergeError::RocksDBError(e) => e.into(),
+        }
+    }
+}
+
+
 impl RocksDBIndexStore {
     fn merge_segment_data(&self, source_segments: &Vec<u32>, dest_segment: u32, doc_ref_mapping: &HashMap<DocRef, u16>) -> Result<(), SegmentMergeError> {
         // Put source_segments in a BTreeSet as this is much faster for performing contains queries against
