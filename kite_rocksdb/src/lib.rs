@@ -16,6 +16,7 @@ mod document_index;
 mod search;
 
 use std::str;
+use std::fmt;
 use std::sync::Arc;
 use std::collections::HashMap;
 
@@ -332,6 +333,13 @@ impl RocksDBIndexStore {
             store: &self,
             snapshot: self.db.snapshot(),
         }
+    }
+}
+
+
+impl fmt::Debug for RocksDBIndexStore {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "RocksDBIndexStore {{ path: {:?} }}", self.db.path())
     }
 }
 
