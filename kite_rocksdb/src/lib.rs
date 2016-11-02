@@ -32,7 +32,8 @@ use chrono::{NaiveDateTime, DateTime, UTC};
 use key_builder::KeyBuilder;
 use segment::SegmentManager;
 use term_dictionary::TermDictionaryManager;
-use document_index::{DocumentIndexManager, DocRef};
+use document_index::DocumentIndexManager;
+pub use document_index::DocRef;
 
 
 fn merge_keys(key: &[u8], existing_val: Option<&[u8]>, operands: &mut MergeOperands) -> Vec<u8> {
