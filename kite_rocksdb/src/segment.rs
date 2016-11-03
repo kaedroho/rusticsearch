@@ -23,6 +23,10 @@ impl<'a> Segment<'a> {
         }
     }
 
+    pub fn id(&self) -> u32 {
+        self.id
+    }
+
     pub fn doc_ref(&self, ord: u16) -> DocRef {
         DocRef::from_segment_ord(self.id, ord)
     }

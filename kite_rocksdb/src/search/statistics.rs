@@ -30,13 +30,9 @@ impl<'a> StatisticsReader<'a> {
     fn get_statistic(&self, name: &[u8]) -> Result<i64, rocksdb::Error> {
         let mut val = 0;
 
-        for segment in self.index_reader.store.segments.iter_active(&self.index_reader.snapshot) {
-            let kb = KeyBuilder::segment_stat(segment, name);
-            match try!(self.index_reader.snapshot.get(&kb.key())) {
-                Some(new_val) => {
-                    val += BigEndian::read_i64(&new_val);
-                }
-                None => {},
+        for segment in self.index_reader.store.segments.iter_active(&self.index_reader) {
+            if let Some(new_val) = try!(segment.load_statistic(name)) {
+                val += new_val;
             }
         }
 
