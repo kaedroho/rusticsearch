@@ -8,7 +8,7 @@ extern crate chrono;
 
 mod key_builder;
 mod doc_id_set;
-mod segment;
+mod segment_manager;
 mod segment_ops;
 mod segment_stats;
 mod term_dictionary;
@@ -30,7 +30,7 @@ use byteorder::{ByteOrder, BigEndian};
 use chrono::{NaiveDateTime, DateTime, UTC};
 
 use key_builder::KeyBuilder;
-use segment::SegmentManager;
+use segment_manager::SegmentManager;
 use term_dictionary::TermDictionaryManager;
 use document_index::DocumentIndexManager;
 pub use document_index::DocRef;
