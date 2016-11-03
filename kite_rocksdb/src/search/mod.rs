@@ -177,8 +177,8 @@ impl<'a> RocksDBIndexReader<'a> {
         let mut stats = StatisticsReader::new(&self);
 
         // Run query on each segment
-        for segment in self.store.segments.iter_active(&self.snapshot) {
-            try!(self.search_segment(collector, &plan, &Segment::new(self, segment), &mut stats));
+        for segment in self.store.segments.iter_active(&self) {
+            try!(self.search_segment(collector, &plan, &segment, &mut stats));
         }
 
         Ok(())

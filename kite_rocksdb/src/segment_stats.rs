@@ -57,9 +57,9 @@ impl RocksDBIndexStore {
         let mut segment_stats = Vec::new();
         let reader = self.reader();
 
-        for segment in self.segments.iter_active(&reader.snapshot) {
-            let stats = try!(SegmentStatistics::read(&reader, segment));
-            segment_stats.push((segment, stats));
+        for segment in self.segments.iter_active(&reader) {
+            let stats = try!(SegmentStatistics::read(&reader, segment.id()));
+            segment_stats.push((segment.id(), stats));
         }
 
         Ok(segment_stats)
