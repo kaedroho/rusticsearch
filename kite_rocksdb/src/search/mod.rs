@@ -76,35 +76,33 @@ impl<'a> RocksDBIndexReader<'a> {
         Ok(matches)
     }
 
-    fn score_doc(&self, doc_id: u16, score_function: &Vec<ScoreFunctionOp>, segment: u32, mut stats: &mut StatisticsReader) -> Result<f64, rocksdb::Error> {
+    fn score_doc(&self, doc_id: u16, score_function: &Vec<ScoreFunctionOp>, segment: &Segment, mut stats: &mut StatisticsReader) -> Result<f64, rocksdb::Error> {
         // Execute score function
         let mut stack = Vec::new();
         for op in score_function.iter() {
             match *op {
                 ScoreFunctionOp::Literal(val) => stack.push(val),
                 ScoreFunctionOp::TermScorer(field_ref, term_ref, ref scorer) => {
-                    let kb = KeyBuilder::segment_dir_list(segment, field_ref.ord(), term_ref.ord());
-                    match try!(self.snapshot.get(&kb.key())) {
-                        Some(data) => {
-                            let docid_set = DocIdSet::FromRDB(data);
-
-                            if docid_set.contains_doc(doc_id) {
+                    // TODO: Check this isn't really slow
+                    match try!(segment.load_term_directory(field_ref, term_ref)) {
+                        Some(doc_id_set) => {
+                            if doc_id_set.contains_doc(doc_id) {
                                 // Read field length
                                 // TODO: we only need this for BM25
-                                let kb = KeyBuilder::stored_field_value(segment, doc_id, field_ref.ord(), b"len");
-                                let field_length = match try!(self.snapshot.get(&kb.key())) {
+                                let field_length_raw = try!(segment.load_stored_field_value_raw(doc_id, field_ref, b"len"));
+                                let field_length = match field_length_raw {
                                     Some(value) => {
                                         let length_sqrt = (value[0] as f64) / 3.0 + 1.0;
                                         length_sqrt * length_sqrt
                                     }
-                                    None => 1.0,
+                                    None => 1.0
                                 };
 
                                 // Read term frequency
                                 let mut value_type = vec![b't', b'f'];
                                 value_type.extend(term_ref.ord().to_string().as_bytes());
-                                let kb = KeyBuilder::stored_field_value(segment, doc_id, field_ref.ord(), &value_type);
-                                let term_frequency = match try!(self.snapshot.get(&kb.key())) {
+                                let term_frequency_raw = try!(segment.load_stored_field_value_raw(doc_id, field_ref, &value_type));
+                                let term_frequency = match term_frequency_raw {
                                     Some(value) => BigEndian::read_i64(&value),
                                     None => 1,
                                 };
@@ -156,14 +154,14 @@ impl<'a> RocksDBIndexReader<'a> {
         Ok(stack.pop().expect("document scorer: stack underflow"))
     }
 
-    fn search_segment<C: Collector>(&self, collector: &mut C, plan: &SearchPlan, segment: u32, mut stats: &mut StatisticsReader) -> Result<(), rocksdb::Error> {
-        let matches = try!(self.search_segment_boolean_phase(&plan.boolean_query, plan.boolean_query_is_negated, &Segment::new(self, segment)));
+    fn search_segment<C: Collector>(&self, collector: &mut C, plan: &SearchPlan, segment: &Segment, mut stats: &mut StatisticsReader) -> Result<(), rocksdb::Error> {
+        let matches = try!(self.search_segment_boolean_phase(&plan.boolean_query, plan.boolean_query_is_negated, segment));
 
         // Score documents and pass to collector
         for doc in matches.iter() {
             let score = try!(self.score_doc(doc, &plan.score_function, segment, &mut stats));
 
-            let doc_ref = DocRef::from_segment_ord(segment, doc);
+            let doc_ref = segment.doc_ref(doc);
             let doc_match = DocumentMatch::new_scored(doc_ref.as_u64(), score);
             collector.collect(doc_match);
         }
@@ -180,7 +178,7 @@ impl<'a> RocksDBIndexReader<'a> {
 
         // Run query on each segment
         for segment in self.store.segments.iter_active(&self.snapshot) {
-            try!(self.search_segment(collector, &plan, segment, &mut stats));
+            try!(self.search_segment(collector, &plan, &Segment::new(self, segment), &mut stats));
         }
 
         Ok(())
