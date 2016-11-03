@@ -6,6 +6,7 @@ use RocksDBIndexReader;
 use key_builder::KeyBuilder;
 use doc_id_set::DocIdSet;
 use term_dictionary::TermRef;
+use document_index::DocRef;
 
 
 pub struct Segment<'a> {
@@ -22,9 +23,19 @@ impl<'a> Segment<'a> {
         }
     }
 
+    pub fn doc_ref(&self, ord: u16) -> DocRef {
+        DocRef::from_segment_ord(self.id, ord)
+    }
+
     pub fn load_statistic(&self, stat_name: &[u8]) -> Result<Option<i64>, rocksdb::Error> {
         let kb = KeyBuilder::segment_stat(self.id, stat_name);
         let val = try!(self.reader.snapshot.get(&kb.key())).map(|val| BigEndian::read_i64(&val));
+        Ok(val)
+    }
+
+    pub fn load_stored_field_value_raw(&self, doc_ord: u16, field_ref: FieldRef, value_type: &[u8]) -> Result<Option<rocksdb::DBVector>, rocksdb::Error> {
+        let kb = KeyBuilder::stored_field_value(self.id, doc_ord, field_ref.ord(), value_type);
+        let val = try!(self.reader.snapshot.get(&kb.key()));
         Ok(val)
     }
 
