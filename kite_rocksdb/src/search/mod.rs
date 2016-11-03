@@ -10,6 +10,7 @@ use key_builder::KeyBuilder;
 use document_index::DocRef;
 use super::RocksDBIndexReader;
 use doc_id_set::DocIdSet;
+use segment::Segment;
 use search::statistics::StatisticsReader;
 use search::planner::{SearchPlan, plan_query};
 use search::planner::boolean_query::BooleanQueryOp;
@@ -18,7 +19,7 @@ use search::planner::score_function::{CombinatorScorer, ScoreFunctionOp};
 
 
 impl<'a> RocksDBIndexReader<'a> {
-    fn search_segment_boolean_phase(&self, boolean_query: &Vec<BooleanQueryOp>, is_negated: bool, segment: u32) -> Result<DocIdSet, rocksdb::Error> {
+    fn search_segment_boolean_phase(&self, boolean_query: &Vec<BooleanQueryOp>, is_negated: bool, segment: &Segment) -> Result<DocIdSet, rocksdb::Error> {
         // Execute boolean query
         let mut stack = Vec::new();
         for op in boolean_query.iter() {
@@ -30,22 +31,14 @@ impl<'a> RocksDBIndexReader<'a> {
                     stack.push(DocIdSet::new_filled(65536));
                 }
                 BooleanQueryOp::PushTermDirectory(field_ref, term_ref) => {
-                    let kb = KeyBuilder::segment_dir_list(segment, field_ref.ord(), term_ref.ord());
-                    match try!(self.snapshot.get(&kb.key())) {
-                        Some(docid_set) => {
-                            let data = DocIdSet::FromRDB(docid_set);
-                            stack.push(data);
-                        }
+                    match try!(segment.load_term_directory(field_ref, term_ref)) {
+                        Some(doc_id_set) => stack.push(doc_id_set),
                         None => stack.push(DocIdSet::new_filled(0)),
                     }
                 }
                 BooleanQueryOp::PushDeletionList => {
-                    let kb = KeyBuilder::segment_del_list(segment);
-                    match try!(self.snapshot.get(&kb.key())) {
-                        Some(deletion_list) => {
-                            let data = DocIdSet::FromRDB(deletion_list);
-                            stack.push(data);
-                        }
+                     match try!(segment.load_deletion_list()) {
+                        Some(doc_id_set) => stack.push(doc_id_set),
                         None => stack.push(DocIdSet::new_filled(0)),
                     }
                 }
@@ -75,13 +68,8 @@ impl<'a> RocksDBIndexReader<'a> {
 
         // Invert the list if the query is negated
         if is_negated {
-            let kb = KeyBuilder::segment_stat(segment, b"total_docs");
-            let total_docs = match try!(self.snapshot.get(&kb.key())) {
-                Some(total_docs) => BigEndian::read_i64(&total_docs) as u32,
-                None => 0,
-            };
-
-            let all_docs = DocIdSet::new_filled(total_docs);
+            let total_docs = try!(segment.load_statistic(b"total_docs")).unwrap_or(0);
+            let all_docs = DocIdSet::new_filled(total_docs as u32);
             matches = all_docs.exclusion(&matches);
         }
 
@@ -169,7 +157,7 @@ impl<'a> RocksDBIndexReader<'a> {
     }
 
     fn search_segment<C: Collector>(&self, collector: &mut C, plan: &SearchPlan, segment: u32, mut stats: &mut StatisticsReader) -> Result<(), rocksdb::Error> {
-        let matches = try!(self.search_segment_boolean_phase(&plan.boolean_query, plan.boolean_query_is_negated, segment));
+        let matches = try!(self.search_segment_boolean_phase(&plan.boolean_query, plan.boolean_query_is_negated, &Segment::new(self, segment)));
 
         // Score documents and pass to collector
         for doc in matches.iter() {
