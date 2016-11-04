@@ -5,6 +5,7 @@ use byteorder::{ByteOrder, BigEndian};
 use rocksdb;
 
 use RocksDBIndexReader;
+use segment::Segment;
 use term_dictionary::TermRef;
 use key_builder::KeyBuilder;
 

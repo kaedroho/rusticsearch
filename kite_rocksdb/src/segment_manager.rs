@@ -5,7 +5,7 @@ use rocksdb::{self, DB, Writable, IteratorMode, Direction};
 use rocksdb::rocksdb::{Snapshot, DBIterator};
 
 use RocksDBIndexReader;
-use segment::Segment;
+use segment::RocksDBSegment;
 
 
 /// Manages "segments" within the index
@@ -70,9 +70,9 @@ pub struct ActiveSegmentsIterator<'a> {
 
 
 impl<'a> Iterator for ActiveSegmentsIterator<'a> {
-    type Item = Segment<'a>;
+    type Item = RocksDBSegment<'a>;
 
-    fn next(&mut self) -> Option<Segment<'a>> {
+    fn next(&mut self) -> Option<RocksDBSegment<'a>> {
         if self.fused {
             return None;
         }
@@ -85,7 +85,7 @@ impl<'a> Iterator for ActiveSegmentsIterator<'a> {
                 }
 
                 let segment_id = str::from_utf8(&k[1..]).unwrap().parse::<u32>().unwrap();
-                Some(Segment::new(self.reader, segment_id))
+                Some(RocksDBSegment::new(self.reader, segment_id))
             }
             None => {
                 self.fused = true;
