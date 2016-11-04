@@ -2,6 +2,7 @@ use byteorder::{ByteOrder, BigEndian};
 use rocksdb;
 
 use {RocksDBIndexStore, RocksDBIndexReader};
+use segment::Segment;
 use key_builder::KeyBuilder;
 
 
