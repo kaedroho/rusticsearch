@@ -14,26 +14,9 @@ pub struct SegmentStatistics {
 
 
 impl SegmentStatistics {
-    fn read(reader: &RocksDBIndexReader, segment: u32) -> Result<SegmentStatistics, rocksdb::Error> {
-        // Total docs
-        let kb = KeyBuilder::segment_stat(segment, b"total_docs");
-
-        let total_docs = match try!(reader.snapshot.get(&kb.key())) {
-            Some(val_bytes) => {
-                BigEndian::read_i64(&val_bytes)
-            }
-            None => 0,
-        };
-
-        // Deleted docs
-        let kb = KeyBuilder::segment_stat(segment, b"deleted_docs");
-
-        let deleted_docs = match try!(reader.snapshot.get(&kb.key())) {
-            Some(val_bytes) => {
-                BigEndian::read_i64(&val_bytes)
-            }
-            None => 0,
-        };
+    fn read<S: Segment>(reader: &RocksDBIndexReader, segment: &S) -> Result<SegmentStatistics, rocksdb::Error> {
+        let total_docs = try!(segment.load_statistic(b"total_docs")).unwrap_or(0);
+        let deleted_docs = try!(segment.load_statistic(b"deleted_docs")).unwrap_or(0);
 
         Ok(SegmentStatistics {
             total_docs: total_docs,
@@ -59,7 +42,7 @@ impl RocksDBIndexStore {
         let reader = self.reader();
 
         for segment in self.segments.iter_active(&reader) {
-            let stats = try!(SegmentStatistics::read(&reader, segment.id()));
+            let stats = try!(SegmentStatistics::read(&reader, &segment));
             segment_stats.push((segment.id(), stats));
         }
 
