@@ -1,8 +1,7 @@
 use std::str;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
-use rocksdb::{self, DB, Writable, IteratorMode, Direction};
-use rocksdb::rocksdb::{Snapshot, DBIterator};
+use rocksdb::{self, DB, Writable, IteratorMode, Direction, Snapshot, DBIterator};
 
 use RocksDBIndexReader;
 use segment::RocksDBSegment;

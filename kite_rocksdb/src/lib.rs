@@ -21,8 +21,7 @@ use std::fmt;
 use std::sync::Arc;
 use std::collections::HashMap;
 
-use rocksdb::{DB, WriteBatch, Writable, Options, MergeOperands};
-use rocksdb::rocksdb::Snapshot;
+use rocksdb::{DB, WriteBatch, Writable, Options, MergeOperands, Snapshot};
 use kite::Document;
 use kite::document::FieldValue;
 use kite::schema::{Schema, FieldType, FieldFlags, FieldRef, AddFieldError};
