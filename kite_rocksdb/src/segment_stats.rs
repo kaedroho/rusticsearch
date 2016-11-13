@@ -1,8 +1,7 @@
 use byteorder::{ByteOrder, BigEndian};
-use rocksdb;
 
 use {RocksDBIndexStore, RocksDBIndexReader};
-use segment::Segment;
+use segment::{Segment, SegmentReadError};
 use key_builder::KeyBuilder;
 
 
@@ -14,7 +13,7 @@ pub struct SegmentStatistics {
 
 
 impl SegmentStatistics {
-    fn read<S: Segment>(reader: &RocksDBIndexReader, segment: &S) -> Result<SegmentStatistics, rocksdb::Error> {
+    fn read<S: Segment>(reader: &RocksDBIndexReader, segment: &S) -> Result<SegmentStatistics, SegmentReadError> {
         let total_docs = try!(segment.load_statistic(b"total_docs")).unwrap_or(0);
         let deleted_docs = try!(segment.load_statistic(b"deleted_docs")).unwrap_or(0);
 
@@ -37,7 +36,7 @@ impl SegmentStatistics {
 
 
 impl RocksDBIndexStore {
-    pub fn get_segment_statistics(&self) -> Result<Vec<(u32, SegmentStatistics)>, rocksdb::Error> {
+    pub fn get_segment_statistics(&self) -> Result<Vec<(u32, SegmentStatistics)>, SegmentReadError> {
         let mut segment_stats = Vec::new();
         let reader = self.reader();
 
