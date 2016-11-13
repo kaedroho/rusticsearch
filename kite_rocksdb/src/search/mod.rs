@@ -5,8 +5,6 @@ use kite::query::Query;
 use kite::collectors::{Collector, DocumentMatch};
 use byteorder::{ByteOrder, BigEndian};
 
-use key_builder::KeyBuilder;
-use document_index::DocRef;
 use super::RocksDBIndexReader;
 use doc_id_set::DocIdSet;
 use segment::{Segment, SegmentReadError};
