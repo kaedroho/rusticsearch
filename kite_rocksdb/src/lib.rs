@@ -120,7 +120,7 @@ pub struct RocksDBIndexStore {
 impl RocksDBIndexStore {
     pub fn create(path: &str) -> Result<RocksDBIndexStore, String> {
         let mut opts = Options::default();
-        opts.add_merge_operator("merge operator", merge_keys);
+        opts.set_merge_operator("merge operator", merge_keys);
         opts.create_if_missing(true);
         let db = try!(DB::open(&opts, path));
 
@@ -148,7 +148,7 @@ impl RocksDBIndexStore {
 
     pub fn open(path: &str) -> Result<RocksDBIndexStore, String> {
         let mut opts = Options::default();
-        opts.add_merge_operator("merge operator", merge_keys);
+        opts.set_merge_operator("merge operator", merge_keys);
         let db = try!(DB::open(&opts, path));
 
         let schema = match try!(db.get(b".schema")) {

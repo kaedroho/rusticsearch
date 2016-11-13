@@ -1,7 +1,6 @@
 use std::collections::HashMap;
 
 use kite::schema::FieldRef;
-use byteorder::{ByteOrder, BigEndian};
 
 use RocksDBIndexReader;
 use segment::{Segment, SegmentReadError};
