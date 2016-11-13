@@ -4,13 +4,12 @@ mod planner;
 use kite::query::Query;
 use kite::collectors::{Collector, DocumentMatch};
 use byteorder::{ByteOrder, BigEndian};
-use rocksdb;
 
 use key_builder::KeyBuilder;
 use document_index::DocRef;
 use super::RocksDBIndexReader;
 use doc_id_set::DocIdSet;
-use segment::Segment;
+use segment::{Segment, SegmentReadError};
 use search::statistics::StatisticsReader;
 use search::planner::{SearchPlan, plan_query};
 use search::planner::boolean_query::BooleanQueryOp;
@@ -19,7 +18,7 @@ use search::planner::score_function::{CombinatorScorer, ScoreFunctionOp};
 
 
 impl<'a> RocksDBIndexReader<'a> {
-    fn search_segment_boolean_phase<S: Segment>(&self, boolean_query: &Vec<BooleanQueryOp>, is_negated: bool, segment: &S) -> Result<DocIdSet, rocksdb::Error> {
+    fn search_segment_boolean_phase<S: Segment>(&self, boolean_query: &Vec<BooleanQueryOp>, is_negated: bool, segment: &S) -> Result<DocIdSet, SegmentReadError> {
         // Execute boolean query
         let mut stack = Vec::new();
         for op in boolean_query.iter() {
@@ -76,7 +75,7 @@ impl<'a> RocksDBIndexReader<'a> {
         Ok(matches)
     }
 
-    fn score_doc<S: Segment>(&self, doc_id: u16, score_function: &Vec<ScoreFunctionOp>, segment: &S, mut stats: &mut StatisticsReader) -> Result<f64, rocksdb::Error> {
+    fn score_doc<S: Segment>(&self, doc_id: u16, score_function: &Vec<ScoreFunctionOp>, segment: &S, mut stats: &mut StatisticsReader) -> Result<f64, SegmentReadError> {
         // Execute score function
         let mut stack = Vec::new();
         for op in score_function.iter() {
@@ -154,7 +153,7 @@ impl<'a> RocksDBIndexReader<'a> {
         Ok(stack.pop().expect("document scorer: stack underflow"))
     }
 
-    fn search_segment<C: Collector, S: Segment>(&self, collector: &mut C, plan: &SearchPlan, segment: &S, mut stats: &mut StatisticsReader) -> Result<(), rocksdb::Error> {
+    fn search_segment<C: Collector, S: Segment>(&self, collector: &mut C, plan: &SearchPlan, segment: &S, mut stats: &mut StatisticsReader) -> Result<(), SegmentReadError> {
         let matches = try!(self.search_segment_boolean_phase(&plan.boolean_query, plan.boolean_query_is_negated, segment));
 
         // Score documents and pass to collector
@@ -169,7 +168,7 @@ impl<'a> RocksDBIndexReader<'a> {
         Ok(())
     }
 
-    pub fn search<C: Collector>(&self, collector: &mut C, query: &Query) -> Result<(), rocksdb::Error> {
+    pub fn search<C: Collector>(&self, collector: &mut C, query: &Query) -> Result<(), SegmentReadError> {
         // Plan query
         let plan = plan_query(&self, query, collector.needs_score());
 
