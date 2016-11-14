@@ -3,7 +3,7 @@ use std::sync::RwLock;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::collections::BTreeMap;
 
-use rocksdb::{self, DB, Writable, IteratorMode, Direction};
+use rocksdb::{self, DB, IteratorMode, Direction};
 use kite::Term;
 use kite::query::term_selector::TermSelector;
 

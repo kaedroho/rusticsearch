@@ -21,7 +21,7 @@ use std::fmt;
 use std::sync::Arc;
 use std::collections::HashMap;
 
-use rocksdb::{DB, WriteBatch, Writable, Options, MergeOperands, Snapshot};
+use rocksdb::{DB, WriteBatch, Options, MergeOperands, Snapshot};
 use kite::Document;
 use kite::document::FieldValue;
 use kite::schema::{Schema, FieldType, FieldFlags, FieldRef, AddFieldError};
@@ -215,7 +215,7 @@ impl RocksDBIndexStore {
         let doc_ref = DocRef::from_segment_ord(segment, 0);
 
         // Start write batch
-        let write_batch = WriteBatch::default();
+        let mut write_batch = WriteBatch::default();
 
         // Set segment active flag, this will activate the segment as soon as the
         // write batch is written
