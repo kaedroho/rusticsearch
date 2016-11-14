@@ -1,7 +1,7 @@
 use std::str;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
-use rocksdb::{self, DB, IteratorMode, Direction, DBIterator};
+use rocksdb::{self, DB, DBIterator};
 
 use RocksDBIndexReader;
 use segment::RocksDBSegment;
@@ -52,9 +52,11 @@ impl SegmentManager {
 
     /// Iterates currently active segments
     pub fn iter_active<'a>(&self, reader: &'a RocksDBIndexReader) -> ActiveSegmentsIterator<'a> {
+        let mut iter = reader.snapshot.iterator();
+        iter.seek(b"a");
         ActiveSegmentsIterator {
             reader: reader,
-            iter: reader.snapshot.iterator(IteratorMode::From(b"a", Direction::Forward)),
+            iter: iter,
             fused: false,
         }
     }
@@ -72,24 +74,23 @@ impl<'a> Iterator for ActiveSegmentsIterator<'a> {
     type Item = RocksDBSegment<'a>;
 
     fn next(&mut self) -> Option<RocksDBSegment<'a>> {
-        if self.fused {
-            return None;
-        }
+        if !self.fused && self.iter.valid() {
+            let segment_id = {
+                let k = self.iter.key().unwrap();
 
-        match self.iter.next() {
-            Some((k, _)) => {
                 if k[0] != b'a' {
                     self.fused = true;
                     return None;
                 }
 
-                let segment_id = str::from_utf8(&k[1..]).unwrap().parse::<u32>().unwrap();
-                Some(RocksDBSegment::new(self.reader, segment_id))
-            }
-            None => {
-                self.fused = true;
-                return None;
-            }
+                str::from_utf8(&k[1..]).unwrap().parse::<u32>().unwrap()
+            };
+
+            self.iter.next();
+
+            Some(RocksDBSegment::new(self.reader, segment_id))
+        } else {
+            None
         }
     }
 }

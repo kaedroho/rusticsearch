@@ -447,7 +447,7 @@ impl<'a> RocksDBIndexReader<'a> {
 mod tests {
     use std::fs::remove_dir_all;
 
-    use rocksdb::{DB, Options, IteratorMode};
+    use rocksdb::{DB, Options};
     use kite::{Term, Token, Document};
     use kite::document::FieldValue;
     use kite::schema::{FieldType, FIELD_INDEXED, FIELD_STORED};
@@ -547,8 +547,11 @@ mod tests {
             string
         }
 
-        for (key, value) in db.iterator(IteratorMode::Start) {
-            println!("{} = {:?}", bytes_to_string(&key), value);
+        let mut iter = db.iterator();
+        while iter.valid() {
+            println!("{} = {:?}", bytes_to_string(&iter.key().unwrap()), iter.value().unwrap());
+
+            iter.next();
         }
     }
 
