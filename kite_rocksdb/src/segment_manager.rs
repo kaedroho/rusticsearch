@@ -1,7 +1,7 @@
 use std::str;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
-use rocksdb::{self, DB, Writable, IteratorMode, Direction, DBIterator};
+use rocksdb::{self, DB, IteratorMode, Direction, DBIterator};
 
 use RocksDBIndexReader;
 use segment::RocksDBSegment;
@@ -63,7 +63,7 @@ impl SegmentManager {
 
 pub struct ActiveSegmentsIterator<'a> {
     reader: &'a RocksDBIndexReader<'a>,
-    iter: DBIterator<'a>,
+    iter: DBIterator,
     fused: bool,
 }
 

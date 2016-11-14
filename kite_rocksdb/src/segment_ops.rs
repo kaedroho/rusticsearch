@@ -1,7 +1,7 @@
 use std::str;
 use std::collections::{HashMap, BTreeSet};
 
-use rocksdb::{self, Writable, IteratorMode, Direction, WriteBatch};
+use rocksdb::{self, IteratorMode, Direction, WriteBatch};
 use byteorder::{ByteOrder, BigEndian, WriteBytesExt};
 
 use RocksDBIndexStore;
@@ -188,7 +188,7 @@ impl RocksDBIndexStore {
     }
 
     fn commit_segment_merge(&self, source_segments: &Vec<u32>, dest_segment: u32, doc_ref_mapping: &HashMap<DocRef, u16>) -> Result<(), SegmentMergeError> {
-        let write_batch = WriteBatch::default();
+        let mut write_batch = WriteBatch::default();
 
         // Activate new segment
         let kb = KeyBuilder::segment_active(dest_segment);

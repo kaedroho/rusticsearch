@@ -1,7 +1,7 @@
 use std::sync::RwLock;
 use std::collections::{BTreeMap, HashMap};
 
-use rocksdb::{self, DB, Writable, WriteBatch, IteratorMode, Direction};
+use rocksdb::{self, DB, WriteBatch, IteratorMode, Direction};
 use byteorder::{ByteOrder, BigEndian, WriteBytesExt};
 
 use key_builder::KeyBuilder;
@@ -73,7 +73,7 @@ impl DocumentIndexManager {
         })
     }
 
-    fn delete_document_by_ref_unchecked(&self, write_batch: &WriteBatch, doc_ref: DocRef) -> Result<(), rocksdb::Error> {
+    fn delete_document_by_ref_unchecked(&self, write_batch: &mut WriteBatch, doc_ref: DocRef) -> Result<(), rocksdb::Error> {
         let kb = KeyBuilder::segment_del_list(doc_ref.segment());
         let mut previous_doc_id_bytes = [0; 2];
         BigEndian::write_u16(&mut previous_doc_id_bytes, doc_ref.ord());
@@ -90,7 +90,7 @@ impl DocumentIndexManager {
 
     pub fn insert_or_replace_key(&self, db: &DB, key: &Vec<u8>, doc_ref: DocRef) -> Result<Option<DocRef>, rocksdb::Error> {
         // Update primary_key_index
-        let write_batch = WriteBatch::default();
+        let mut write_batch = WriteBatch::default();
         let previous_doc_ref = self.primary_key_index.write().unwrap().insert(key.clone(), doc_ref);
 
         let kb = KeyBuilder::primary_key_index(key);
@@ -101,7 +101,7 @@ impl DocumentIndexManager {
 
         // If there was a document there previously, delete it
         if let Some(previous_doc_ref) = previous_doc_ref {
-            try!(self.delete_document_by_ref_unchecked(&write_batch, previous_doc_ref));
+            try!(self.delete_document_by_ref_unchecked(&mut write_batch, previous_doc_ref));
         }
 
         // Write document data
@@ -129,7 +129,7 @@ impl DocumentIndexManager {
         self.primary_key_index.read().unwrap().contains_key(key)
     }
 
-    pub fn commit_segment_merge(&self, db: &DB, write_batch: WriteBatch, source_segments: &Vec<u32>, dest_segment: u32, doc_ref_mapping: &HashMap<DocRef, u16>) -> Result<(), SegmentMergeError> {
+    pub fn commit_segment_merge(&self, db: &DB, mut write_batch: WriteBatch, source_segments: &Vec<u32>, dest_segment: u32, doc_ref_mapping: &HashMap<DocRef, u16>) -> Result<(), SegmentMergeError> {
         // Lock the primary key index
         let mut primary_key_index = self.primary_key_index.write().unwrap();
 
