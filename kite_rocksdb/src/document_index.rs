@@ -1,7 +1,7 @@
 use std::sync::RwLock;
 use std::collections::{BTreeMap, HashMap};
 
-use rocksdb::{self, DB, WriteBatch, WriteOptions, IteratorMode, Direction};
+use rocksdb::{self, DB, WriteBatch};
 use byteorder::{ByteOrder, BigEndian, WriteBytesExt};
 
 use key_builder::KeyBuilder;
@@ -56,16 +56,25 @@ impl DocumentIndexManager {
     pub fn open(db: &DB) -> Result<DocumentIndexManager, rocksdb::Error> {
         // Read primary key index
         let mut primary_key_index = BTreeMap::new();
-        for (k, v) in db.iterator(IteratorMode::From(b"k", Direction::Forward)) {
-            if k[0] != b'k' {
-                break;
+        let mut iter = db.iterator();
+        iter.seek(b"k");
+        while iter.valid() {
+            {
+                let k = iter.key().unwrap();
+
+                if k[0] != b'k' {
+                    break;
+                }
+
+                let v = iter.value().unwrap();
+                let segment = BigEndian::read_u32(&v[0..4]);
+                let ord = BigEndian::read_u16(&v[4..6]);
+                let doc_ref = DocRef::from_segment_ord(segment, ord);
+
+                primary_key_index.insert(k[1..].to_vec(), doc_ref);
             }
 
-            let segment = BigEndian::read_u32(&v[0..4]);
-            let ord = BigEndian::read_u16(&v[4..6]);
-            let doc_ref = DocRef::from_segment_ord(segment, ord);
-
-            primary_key_index.insert(k[1..].to_vec(), doc_ref);
+            iter.next();
         }
 
         Ok(DocumentIndexManager {
