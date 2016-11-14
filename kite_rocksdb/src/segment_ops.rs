@@ -1,7 +1,7 @@
 use std::str;
 use std::collections::{HashMap, BTreeSet};
 
-use rocksdb::{self, IteratorMode, Direction, WriteBatch};
+use rocksdb::{self, IteratorMode, Direction, WriteBatch, WriteOptions};
 use byteorder::{ByteOrder, BigEndian, WriteBytesExt};
 
 use RocksDBIndexStore;
@@ -39,6 +39,11 @@ impl RocksDBIndexStore {
         // Put source_segments in a BTreeSet as this is much faster for performing contains queries against
         let source_segments_btree = source_segments.iter().collect::<BTreeSet<_>>();
 
+        // Since we're merging existing data, there's no need to recover if it crashes half way through
+        let mut write_options = WriteOptions::default();
+        write_options.set_sync(false);
+        write_options.disable_wal(true);
+
         // Merge the term directories
         // The term directory keys are ordered to be most convenient for retrieving all the segments
         // of for a term/field combination in one go (field/term/segment). So we don't end up pulling
@@ -70,7 +75,7 @@ impl RocksDBIndexStore {
                 // Finished current term directory. Write it to the DB and start the next one
                 if let Some((field, term)) = current_td_key {
                     let kb = KeyBuilder::segment_dir_list(dest_segment, field, term);
-                    try!(self.db.put(&kb.key(), &current_td));
+                    try!(self.db.put_opt(&kb.key(), &current_td, &write_options));
                     current_td.clear();
                 }
 
@@ -88,7 +93,7 @@ impl RocksDBIndexStore {
         // All done, write the last term directory
         if let Some((field, term)) = current_td_key {
             let kb = KeyBuilder::segment_dir_list(dest_segment, field, term);
-            try!(self.db.put(&kb.key(), &current_td));
+            try!(self.db.put_opt(&kb.key(), &current_td, &write_options));
             current_td.clear();
         }
 
@@ -130,7 +135,7 @@ impl RocksDBIndexStore {
 
                 // Write value into new segment
                 let kb = KeyBuilder::stored_field_value(dest_segment, *new_doc_id, field, &value_type);
-                try!(self.db.put(&kb.key(), &v));
+                try!(self.db.put_opt(&kb.key(), &v, &write_options));
             }
         }
 
@@ -176,7 +181,7 @@ impl RocksDBIndexStore {
             let kb = KeyBuilder::segment_stat(dest_segment, &stat_name);
             let mut val_bytes = [0; 8];
             BigEndian::write_i64(&mut val_bytes, stat_value);
-            try!(self.db.put(&kb.key(), &val_bytes));
+            try!(self.db.put_opt(&kb.key(), &val_bytes, &write_options));
         }
 
         // Note: Don't merge the deletion lists
@@ -266,6 +271,10 @@ impl RocksDBIndexStore {
         // Put segments in a BTreeSet as this is much faster for performing contains queries against
         let segments_btree = segments.iter().collect::<BTreeSet<_>>();
 
+        let mut write_options = WriteOptions::default();
+        write_options.set_sync(false);
+        write_options.disable_wal(true);
+
         // Purge term directories
 
         /// Converts term directory key strings "d1/2/3" into tuples of 3 i32s (1, 2, 3)
@@ -316,7 +325,7 @@ impl RocksDBIndexStore {
                     break;
                 }
 
-                try!(self.db.delete(&k));
+                try!(self.db.delete_opt(&k, &write_options));
             }
         }
 
@@ -346,14 +355,14 @@ impl RocksDBIndexStore {
                     break;
                 }
 
-                try!(self.db.delete(&k));
+                try!(self.db.delete_opt(&k, &write_options));
             }
         }
 
         // Purge the deletion lists
         for source_segment in segments.iter() {
             let kb = KeyBuilder::segment_del_list(*source_segment);
-            try!(self.db.delete(&kb.key()));
+            try!(self.db.delete_opt(&kb.key(), &write_options));
         }
 
         Ok(())

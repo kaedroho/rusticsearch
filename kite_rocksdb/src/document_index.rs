@@ -1,7 +1,7 @@
 use std::sync::RwLock;
 use std::collections::{BTreeMap, HashMap};
 
-use rocksdb::{self, DB, WriteBatch, IteratorMode, Direction};
+use rocksdb::{self, DB, WriteBatch, WriteOptions, IteratorMode, Direction};
 use byteorder::{ByteOrder, BigEndian, WriteBytesExt};
 
 use key_builder::KeyBuilder;
@@ -175,7 +175,7 @@ impl DocumentIndexManager {
         try!(db.put(&kb.key(), &deletion_list));
 
         // Commit!
-        try!(db.write(write_batch));
+        try!(db.write_without_wal(write_batch));
 
         Ok(())
     }
