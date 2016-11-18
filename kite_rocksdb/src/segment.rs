@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use rocksdb;
 use kite::schema::FieldRef;
 use byteorder::{ByteOrder, BigEndian};
@@ -87,5 +89,50 @@ impl<'a> Segment for RocksDBSegment<'a> {
 impl From<rocksdb::Error> for SegmentReadError {
     fn from(e: rocksdb::Error) -> SegmentReadError {
         SegmentReadError::RocksDB(e)
+    }
+}
+
+
+pub struct MemorySegment {
+    id: u32,
+    statistics: HashMap<Vec<u8>, i64>,
+    stored_field_values: HashMap<(u16, FieldRef, Vec<u8>), Vec<u8>>,
+    term_directories: HashMap<(FieldRef, TermRef), DocIdSet>,
+    deletion_list: DocIdSet,
+}
+
+
+impl MemorySegment {
+    pub fn new(id: u32) -> MemorySegment {
+        MemorySegment {
+            id: id,
+            statistics: HashMap::new(),
+            stored_field_values: HashMap::new(),
+            term_directories: HashMap::new(),
+            deletion_list: DocIdSet::new_filled(0),
+        }
+    }
+}
+
+
+impl<'a> Segment for MemorySegment {
+    fn id(&self) -> u32 {
+        self.id
+    }
+
+    fn load_statistic(&self, stat_name: &[u8]) -> Result<Option<i64>, SegmentReadError> {
+        Ok(self.statistics.get(stat_name).cloned())
+    }
+
+    fn load_stored_field_value_raw(&self, doc_ord: u16, field_ref: FieldRef, value_type: &[u8]) -> Result<Option<Vec<u8>>, SegmentReadError> {
+        Ok(self.stored_field_values.get(&(doc_ord, field_ref, value_type.to_vec())).cloned())
+    }
+
+    fn load_term_directory(&self, field_ref: FieldRef, term_ref: TermRef) -> Result<Option<DocIdSet>, SegmentReadError> {
+        Ok(self.term_directories.get(&(field_ref, term_ref)).cloned())
+    }
+
+    fn load_deletion_list(&self) -> Result<Option<DocIdSet>, SegmentReadError> {
+        Ok(Some(self.deletion_list.clone()))
     }
 }
