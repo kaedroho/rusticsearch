@@ -15,6 +15,15 @@ pub enum SegmentReadError {
 }
 
 
+impl From<SegmentReadError> for String {
+    fn from(e: SegmentReadError) -> String {
+        match e {
+            SegmentReadError::RocksDB(e) => e.into(),
+        }
+    }
+}
+
+
 pub trait Segment {
     fn load_statistic(&self, stat_name: &[u8]) -> Result<Option<i64>, SegmentReadError>;
     fn load_stored_field_value_raw(&self, doc_ord: u16, field_ref: FieldRef, value_type: &[u8]) -> Result<Option<Vec<u8>>, SegmentReadError>;
