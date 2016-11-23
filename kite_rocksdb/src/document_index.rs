@@ -58,23 +58,19 @@ impl DocumentIndexManager {
         let mut primary_key_index = BTreeMap::new();
         let mut iter = db.iterator();
         iter.seek(b"k");
-        while iter.valid() {
-            {
-                let k = iter.key().unwrap();
+        while iter.next() {
+            let k = iter.key().unwrap();
 
-                if k[0] != b'k' {
-                    break;
-                }
-
-                let v = iter.value().unwrap();
-                let segment = BigEndian::read_u32(&v[0..4]);
-                let ord = BigEndian::read_u16(&v[4..6]);
-                let doc_ref = DocRef::from_segment_ord(segment, ord);
-
-                primary_key_index.insert(k[1..].to_vec(), doc_ref);
+            if k[0] != b'k' {
+                break;
             }
 
-            iter.next();
+            let v = iter.value().unwrap();
+            let segment = BigEndian::read_u32(&v[0..4]);
+            let ord = BigEndian::read_u16(&v[4..6]);
+            let doc_ref = DocRef::from_segment_ord(segment, ord);
+
+            primary_key_index.insert(k[1..].to_vec(), doc_ref);
         }
 
         Ok(DocumentIndexManager {
