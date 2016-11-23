@@ -74,7 +74,7 @@ impl<'a> Iterator for ActiveSegmentsIterator<'a> {
     type Item = RocksDBSegment<'a>;
 
     fn next(&mut self) -> Option<RocksDBSegment<'a>> {
-        if !self.fused && self.iter.valid() {
+        if !self.fused && self.iter.next() {
             let segment_id = {
                 let k = self.iter.key().unwrap();
 
@@ -85,8 +85,6 @@ impl<'a> Iterator for ActiveSegmentsIterator<'a> {
 
                 str::from_utf8(&k[1..]).unwrap().parse::<u32>().unwrap()
             };
-
-            self.iter.next();
 
             Some(RocksDBSegment::new(self.reader, segment_id))
         } else {

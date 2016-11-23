@@ -60,19 +60,15 @@ impl TermDictionaryManager {
         let mut terms = BTreeMap::new();
         let mut iter = db.iterator();
         iter.seek(b"t");
-        while iter.valid() {
-            {
-                let k = iter.key().unwrap();
+        while iter.next() {
+            let k = iter.key().unwrap();
 
-                if k[0] != b't' {
-                    break;
-                }
-
-                let term_ref = TermRef(str::from_utf8(&iter.value().unwrap()).unwrap().parse::<u32>().unwrap());
-                terms.insert(k[1..].to_vec(), term_ref);
+            if k[0] != b't' {
+                break;
             }
 
-            iter.next();
+            let term_ref = TermRef(str::from_utf8(&iter.value().unwrap()).unwrap().parse::<u32>().unwrap());
+            terms.insert(k[1..].to_vec(), term_ref);
         }
 
         Ok(TermDictionaryManager {

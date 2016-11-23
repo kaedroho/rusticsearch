@@ -548,10 +548,8 @@ mod tests {
         }
 
         let mut iter = db.iterator();
-        while iter.valid() {
+        while iter.next() {
             println!("{} = {:?}", bytes_to_string(&iter.key().unwrap()), iter.value().unwrap());
-
-            iter.next();
         }
     }
 
