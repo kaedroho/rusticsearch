@@ -1,4 +1,6 @@
-use kite::store::memory::MemoryIndexStore;
+use std::fs;
+
+use kite_rocksdb::RocksDBIndexStore;
 
 use analysis::AnalyzerSpec;
 use analysis::tokenizers::TokenizerSpec;
@@ -42,7 +44,7 @@ pub fn view_put_index(req: &mut Request) -> IronResult<Response> {
     let mut indices_dir = system.get_indices_dir();
     indices_dir.push(index_name);
     indices_dir.set_extension("rsi");
-    let mut index = Index::new(index_name.clone().to_owned(), MemoryIndexStore::new());
+    let mut index = Index::new(index_name.clone().to_owned(), RocksDBIndexStore::create(&indices_dir.to_str().unwrap()).unwrap());
 
     // Insert standard and edgengram analyzers
     // TODO: Load these from index settings
@@ -101,7 +103,7 @@ pub fn view_delete_index(req: &mut Request) -> IronResult<Response> {
     let mut indices_dir = system.get_indices_dir();
     indices_dir.push(index_name);
     indices_dir.set_extension("rsi");
-    // fs::remove_file(&index_path).unwrap();
+    fs::remove_dir_all(&indices_dir);
 
     system.log.info("[api] deleted index", b!("index" => *index_name));
 

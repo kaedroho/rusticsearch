@@ -1,4 +1,5 @@
 extern crate kite;
+extern crate kite_rocksdb;
 extern crate chrono;
 #[macro_use]
 extern crate router;

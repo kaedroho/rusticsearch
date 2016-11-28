@@ -3,7 +3,7 @@ use std::path::{Path, PathBuf};
 use std::fs;
 
 use slog::Logger;
-use kite::store::memory::MemoryIndexStore;
+use kite_rocksdb::RocksDBIndexStore;
 
 use index::Index;
 use index::registry::IndexRegistry;
@@ -31,8 +31,8 @@ impl System {
         dir
     }
 
-    fn load_index(&self, name: String, _path: &Path) -> Index {
-        Index::new(name, MemoryIndexStore::new())
+    fn load_index(&self, name: String, path: &Path) -> Index {
+        Index::new(name, RocksDBIndexStore::open(path.to_str().unwrap()).unwrap())
     }
 
     pub fn load_indices(&self) {

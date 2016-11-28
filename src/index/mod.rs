@@ -2,7 +2,7 @@ pub mod registry;
 
 use std::collections::HashSet;
 
-use kite::store::memory::MemoryIndexStore;
+use kite_rocksdb::RocksDBIndexStore;
 
 use analysis::registry::AnalyzerRegistry;
 use mapping::{Mapping, FieldMapping, MappingRegistry};
@@ -14,12 +14,12 @@ pub struct Index {
     pub analyzers: AnalyzerRegistry,
     pub mappings: MappingRegistry,
     pub aliases: HashSet<String>,
-    pub store: MemoryIndexStore,
+    pub store: RocksDBIndexStore,
 }
 
 
 impl Index {
-    pub fn new(name: String, store: MemoryIndexStore) -> Index {
+    pub fn new(name: String, store: RocksDBIndexStore) -> Index {
         Index {
             name: name,
             analyzers: AnalyzerRegistry::new(),
