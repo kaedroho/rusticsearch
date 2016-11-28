@@ -32,7 +32,7 @@ impl System {
     }
 
     fn load_index(&self, name: String, path: &Path) -> Index {
-        Index::new(name, RocksDBIndexStore::open(path.to_str().unwrap()).unwrap())
+        Index::new(name, RocksDBIndexStore::open(path).unwrap())
     }
 
     pub fn load_indices(&self) {

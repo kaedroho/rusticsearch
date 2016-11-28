@@ -18,6 +18,7 @@ mod search;
 
 use std::str;
 use std::fmt;
+use std::path::Path;
 use std::sync::Arc;
 use std::collections::HashMap;
 
@@ -118,7 +119,7 @@ pub struct RocksDBIndexStore {
 
 
 impl RocksDBIndexStore {
-    pub fn create(path: &str) -> Result<RocksDBIndexStore, String> {
+    pub fn create<P: AsRef<Path>>(path: P) -> Result<RocksDBIndexStore, String> {
         let mut opts = Options::default();
         opts.set_merge_operator("merge operator", merge_keys);
         opts.create_if_missing(true);
@@ -146,7 +147,7 @@ impl RocksDBIndexStore {
         })
     }
 
-    pub fn open(path: &str) -> Result<RocksDBIndexStore, String> {
+    pub fn open<P: AsRef<Path>>(path: P) -> Result<RocksDBIndexStore, String> {
         let mut opts = Options::default();
         opts.set_merge_operator("merge operator", merge_keys);
         let db = try!(DB::open(&opts, path));
