@@ -3,9 +3,7 @@ use std::collections::BTreeMap;
 
 use rustc_serialize::json::{self, Json};
 use url::form_urlencoded;
-use kite::store::{IndexStore, IndexReader};
 use kite::query::Query;
-use kite::request::SearchRequest;
 use kite::collectors::top_score::TopScoreCollector;
 use kite::collectors::total_count::TotalCountCollector;
 use kite_rocksdb::DocRef;
@@ -39,7 +37,7 @@ pub fn view_count(req: &mut Request) -> IronResult<Response> {
             match query {
                 Ok(query) => {
                     let mut collector = TotalCountCollector::new();
-                    index_reader.search(&mut collector, &query);
+                    index_reader.search(&mut collector, &query).unwrap();
                     collector.get_total_count()
                 }
                 Err(_) => {
@@ -53,7 +51,7 @@ pub fn view_count(req: &mut Request) -> IronResult<Response> {
         }
         None => {
             let mut collector = TotalCountCollector::new();
-            index_reader.search(&mut collector, &Query::new_match_all());
+            index_reader.search(&mut collector, &Query::new_match_all()).unwrap();
             collector.get_total_count()
         }
     };
@@ -83,7 +81,6 @@ pub fn view_search(req: &mut Request) -> IronResult<Response> {
                 Ok(query) => {
                     let mut from = 0;
                     let mut size = 10;
-                    let mut terminate_after: Option<u32> = None;
                     let mut fields = Vec::new();
 
                     // TODO: Rewrite this
@@ -95,11 +92,6 @@ pub fn view_search(req: &mut Request) -> IronResult<Response> {
                                 }
                                 "size" => {
                                     size = value.as_ref().parse().expect("need a number");
-                                }
-                                "terminate_after" => {
-                                    terminate_after = Some(value.as_ref()
-                                                                         .parse()
-                                                                         .expect("need a number"));
                                 }
                                 "fields" => {
                                     for field_name in value.split(",") {
@@ -114,6 +106,7 @@ pub fn view_search(req: &mut Request) -> IronResult<Response> {
                                         fields.push((field_name.to_owned(), field_ref));
                                     }
                                 }
+                                // terminate_after
                                 // explain
                                 // version
                                 // timeout
@@ -128,7 +121,7 @@ pub fn view_search(req: &mut Request) -> IronResult<Response> {
 
                     // Do the search
                     let mut collector = TopScoreCollector::new(from + size);
-                    index_reader.search(&mut collector, &query);
+                    index_reader.search(&mut collector, &query).unwrap();
 
                     // TODO: {"took":5,"timed_out":false,"_shards":{"total":5,"successful":5,"failed":0},"hits":{"total":4,"max_score":1.0,"hits":[{"_index":"wagtail","_type":"searchtests_searchtest_searchtests_searchtestchild","_id":"searchtests_searchtest:5380","_score":1.0,"fields":{"pk":["5380"]}},{"_index":"wagtail","_type":"searchtests_searchtest","_id":"searchtests_searchtest:5379","_score":1.0,"fields":{"pk":["5379"]}}]}}
                     Ok(json_response(status::Ok,
@@ -145,7 +138,7 @@ pub fn view_search(req: &mut Request) -> IronResult<Response> {
                                                                 value.as_json()
                                                             }
                                                             Ok(None) => Json::Array(vec![]),
-                                                            Err(e) => Json::Array(vec![]),
+                                                            Err(_) => Json::Array(vec![]),
                                                         };
 
                                                         field_values.insert(field_name.clone(), Json::Array(vec![value]));

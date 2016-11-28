@@ -26,6 +26,7 @@ mod logger;
 use std::path::Path;
 use std::sync::Arc;
 use std::thread;
+use std::time::Duration;
 
 use slog::Logger;
 
@@ -55,11 +56,11 @@ fn main() {
                 {
                     let indices = system.indices.read().unwrap();
                     for index in indices.values() {
-                        index.run_maintenance_task();
+                        index.run_maintenance_task().unwrap();
                     }
                 }
 
-                thread::sleep_ms(1000);
+                thread::sleep(Duration::new(1, 0));
             }
         });
     }

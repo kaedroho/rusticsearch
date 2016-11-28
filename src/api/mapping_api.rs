@@ -2,7 +2,6 @@ use std::io::Read;
 use std::collections::HashMap;
 
 use kite::schema::{FieldType, FieldFlags, FIELD_INDEXED, FIELD_STORED};
-use kite::store::{IndexStore, IndexReader};
 use rustc_serialize::json::Json;
 
 use mapping;

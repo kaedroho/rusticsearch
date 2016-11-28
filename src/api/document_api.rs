@@ -2,7 +2,6 @@ use std::io::Read;
 use std::collections::BTreeMap;
 
 use rustc_serialize::json::{self, Json};
-use kite::store::{IndexStore, IndexReader};
 
 use document::DocumentSource;
 
@@ -87,7 +86,7 @@ pub fn view_put_doc(req: &mut Request) -> IronResult<Response> {
         }
     };
 
-    index.store.insert_or_update_document(doc);
+    index.store.insert_or_update_document(doc).unwrap();
 
     // TODO: {"_index":"wagtail","_type":"searchtests_searchtest","_id":"searchtests_searchtest:5378","_version":1,"created":true}
     return Ok(json_response(status::Ok, "{}"));
@@ -117,7 +116,7 @@ pub fn view_delete_doc(req: &mut Request) -> IronResult<Response> {
     }
 
     // Delete document
-    index.store.remove_document_by_key(doc_key);
+    index.store.remove_document_by_key(doc_key).unwrap();
 
     return Ok(json_response(status::Ok, "{}"));
 }

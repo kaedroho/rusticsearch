@@ -2,7 +2,6 @@ use std::io::Read;
 use std::collections::HashMap;
 
 use rustc_serialize::json::{self, Json};
-use kite::store::IndexStore;
 
 use document::DocumentSource;
 
@@ -77,7 +76,7 @@ pub fn view_post_bulk(req: &mut Request) -> IronResult<Response> {
                     document_source.prepare(mapping)
                 };
 
-                index.store.insert_or_update_document(doc);
+                index.store.insert_or_update_document(doc).unwrap();
 
                 // Insert into "items" array
                 let mut item = HashMap::new();
