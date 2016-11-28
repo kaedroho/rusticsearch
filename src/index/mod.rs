@@ -1,3 +1,4 @@
+pub mod maintenance;
 pub mod registry;
 
 use std::collections::HashSet;

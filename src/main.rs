@@ -25,6 +25,7 @@ mod logger;
 
 use std::path::Path;
 use std::sync::Arc;
+use std::thread;
 
 use slog::Logger;
 
@@ -46,6 +47,22 @@ fn main() {
 
     system.log.info("[sys] loading indices", b!());
     system.load_indices();
+
+    {
+        let system = system.clone();
+        thread::spawn(move || {
+            loop {
+                {
+                    let indices = system.indices.read().unwrap();
+                    for index in indices.values() {
+                        index.run_maintenance_task();
+                    }
+                }
+
+                thread::sleep_ms(1000);
+            }
+        });
+    }
 
     system.log.info("[sys] starting api server", b!());
     api::api_main(system);
