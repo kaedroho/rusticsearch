@@ -16,7 +16,7 @@ pub fn view_post_bulk(req: &mut Request) -> IronResult<Response> {
     let ref system = get_system!(req);
 
     // Lock index array
-    let mut indices = system.indices.write().unwrap();
+    let indices = system.indices.read().unwrap();
 
     // Load data from body
     let mut payload = String::new();
@@ -58,7 +58,7 @@ pub fn view_post_bulk(req: &mut Request) -> IronResult<Response> {
                 let doc_json = parse_json!(&doc_line.unwrap());;
 
                 // Find index
-                let mut index = get_index_or_404_mut!(indices, doc_index);
+                let index = get_index_or_404!(indices, doc_index);
 
                 let doc = {
                     // Find mapping
