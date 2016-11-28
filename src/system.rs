@@ -31,8 +31,10 @@ impl System {
         dir
     }
 
-    fn load_index(&self, name: String, path: &Path) -> Index {
-        Index::new(name, RocksDBIndexStore::open(path).unwrap())
+    fn load_index(&self, name: String, path: &Path) -> Result<Index, String> {
+        let store = try!(RocksDBIndexStore::open(path));
+
+        Ok(Index::new(name, store))
     }
 
     pub fn load_indices(&self) {
@@ -47,15 +49,25 @@ impl System {
                         if ext.to_str() == Some("rsi") {
                             self.log.info("[sys] loaded index", b!("index" => index_name));
 
-                            let mut indices_w = self.indices.write().unwrap();
-                            let index_ref = indices_w.insert(self.load_index(index_name.clone().to_owned(), path.as_path()));
-                            indices_w.aliases.insert(index_name, index_ref);
+                            match self.load_index(index_name.clone().to_owned(), path.as_path()) {
+                                Ok(index) => {
+                                    let mut indices_w = self.indices.write().unwrap();
+                                    let index_ref = indices_w.insert(index);
+                                    indices_w.aliases.insert(index_name, index_ref);
+                                }
+                                Err(e) => {
+                                    self.log.error("[sys] failed to open index", b!(
+                                        "index" => index_name,
+                                        "error" => e
+                                    ));
+                                }
+                            }
                         }
                     }
                 }
             }
             Err(error) => {
-                self.log.warn("[sys] cannot open indices directory", b!(
+                self.log.error("[sys] cannot open indices directory", b!(
                     "dir" => indices_dir.to_str().unwrap(),
                     "error" => format!("{}", error)
                 ));
