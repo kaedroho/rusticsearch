@@ -8,7 +8,7 @@ use term_dictionary::TermRef;
 use key_builder::KeyBuilder;
 
 
-pub struct StatisticsReader<'a> {
+pub struct RocksDBStatisticsReader<'a> {
     index_reader: &'a RocksDBIndexReader<'a>,
     total_docs: HashMap<FieldRef, i64>,
     total_tokens: HashMap<FieldRef, i64>,
@@ -16,9 +16,9 @@ pub struct StatisticsReader<'a> {
 }
 
 
-impl<'a> StatisticsReader<'a> {
-    pub fn new(index_reader: &'a RocksDBIndexReader) -> StatisticsReader<'a> {
-        StatisticsReader {
+impl<'a> RocksDBStatisticsReader<'a> {
+    pub fn new(index_reader: &'a RocksDBIndexReader) -> RocksDBStatisticsReader<'a> {
+        RocksDBStatisticsReader {
             index_reader: index_reader,
             total_docs: HashMap::new(),
             total_tokens: HashMap::new(),

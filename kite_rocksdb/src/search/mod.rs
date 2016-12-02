@@ -8,7 +8,7 @@ use byteorder::{ByteOrder, BigEndian};
 use super::RocksDBIndexReader;
 use doc_id_set::DocIdSet;
 use segment::{Segment, SegmentReadError};
-use search::statistics::StatisticsReader;
+use search::statistics::RocksDBStatisticsReader;
 use search::planner::{SearchPlan, plan_query};
 use search::planner::boolean_query::BooleanQueryOp;
 use search::planner::score_function::{CombinatorScorer, ScoreFunctionOp};
@@ -73,7 +73,7 @@ impl<'a> RocksDBIndexReader<'a> {
         Ok(matches)
     }
 
-    fn score_doc<S: Segment>(&self, doc_id: u16, score_function: &Vec<ScoreFunctionOp>, segment: &S, mut stats: &mut StatisticsReader) -> Result<f64, SegmentReadError> {
+    fn score_doc<S: Segment>(&self, doc_id: u16, score_function: &Vec<ScoreFunctionOp>, segment: &S, mut stats: &mut RocksDBStatisticsReader) -> Result<f64, SegmentReadError> {
         // Execute score function
         let mut stack = Vec::new();
         for op in score_function.iter() {
@@ -151,7 +151,7 @@ impl<'a> RocksDBIndexReader<'a> {
         Ok(stack.pop().expect("document scorer: stack underflow"))
     }
 
-    fn search_segment<C: Collector, S: Segment>(&self, collector: &mut C, plan: &SearchPlan, segment: &S, mut stats: &mut StatisticsReader) -> Result<(), SegmentReadError> {
+    fn search_segment<C: Collector, S: Segment>(&self, collector: &mut C, plan: &SearchPlan, segment: &S, mut stats: &mut RocksDBStatisticsReader) -> Result<(), SegmentReadError> {
         let matches = try!(self.search_segment_boolean_phase(&plan.boolean_query, plan.boolean_query_is_negated, segment));
 
         // Score documents and pass to collector
@@ -171,7 +171,7 @@ impl<'a> RocksDBIndexReader<'a> {
         let plan = plan_query(&self, query, collector.needs_score());
 
         // Initialise statistics reader
-        let mut stats = StatisticsReader::new(&self);
+        let mut stats = RocksDBStatisticsReader::new(&self);
 
         // Run query on each segment
         for segment in self.store.segments.iter_active(&self) {
