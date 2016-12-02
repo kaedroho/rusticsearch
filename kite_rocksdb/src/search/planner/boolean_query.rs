@@ -1,10 +1,10 @@
 use std::rc::Rc;
 
 use kite::schema::FieldRef;
+use kite::term::TermRef;
 use kite::Query;
 
 use RocksDBIndexReader;
-use term_dictionary::TermRef;
 
 
 #[derive(Debug, Clone)]

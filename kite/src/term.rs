@@ -3,6 +3,21 @@ use chrono::{DateTime, UTC, Timelike};
 use byteorder::{WriteBytesExt, BigEndian};
 
 
+#[derive(Debug, Clone, Copy, Eq, PartialEq, Hash)]
+pub struct TermRef(u32);
+
+
+impl TermRef {
+    pub fn new(ord: u32) -> TermRef {
+        TermRef(ord)
+    }
+
+    pub fn ord(&self) -> u32 {
+        self.0
+    }
+}
+
+
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Hash)]
 pub enum Term {
     String(String),
@@ -12,6 +27,7 @@ pub enum Term {
     DateTime(DateTime<UTC>),
     //F64(f64),
 }
+
 
 impl Term {
     pub fn from_json(json: &Json) -> Option<Term> {

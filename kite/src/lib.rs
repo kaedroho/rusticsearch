@@ -21,7 +21,7 @@ pub mod collectors;
 pub mod request;
 pub mod response;
 
-pub use term::Term;
+pub use term::{Term, TermRef};
 pub use token::Token;
 pub use document::Document;
 pub use query::term_selector::TermSelector;

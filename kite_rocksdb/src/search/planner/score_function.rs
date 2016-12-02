@@ -1,9 +1,9 @@
 use kite::schema::FieldRef;
+use kite::term::TermRef;
 use kite::Query;
 use kite::query::term_scorer::TermScorer;
 
 use RocksDBIndexReader;
-use term_dictionary::TermRef;
 
 
 #[derive(Debug, Clone)]

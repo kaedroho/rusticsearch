@@ -4,21 +4,10 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 use std::collections::BTreeMap;
 
 use rocksdb::{self, DB};
-use kite::Term;
+use kite::{Term, TermRef};
 use kite::query::term_selector::TermSelector;
 
 use key_builder::KeyBuilder;
-
-
-#[derive(Debug, Clone, Copy, Eq, PartialEq, Hash)]
-pub struct TermRef(u32);
-
-
-impl TermRef {
-    pub fn ord(&self) -> u32 {
-        self.0
-    }
-}
 
 
 /// Manages the index's "term dictionary"
@@ -67,7 +56,7 @@ impl TermDictionaryManager {
                 break;
             }
 
-            let term_ref = TermRef(str::from_utf8(&iter.value().unwrap()).unwrap().parse::<u32>().unwrap());
+            let term_ref = TermRef::new(str::from_utf8(&iter.value().unwrap()).unwrap().parse::<u32>().unwrap());
             terms.insert(k[1..].to_vec(), term_ref);
         }
 
@@ -108,7 +97,7 @@ impl TermDictionaryManager {
         try!(db.put(b".next_term_ref", (next_term_ref + 1).to_string().as_bytes()));
 
         // Create term ref
-        let term_ref = TermRef(next_term_ref);
+        let term_ref = TermRef::new(next_term_ref);
 
         // Get exclusive lock to term dictionary
         let mut terms = self.terms.write().unwrap();

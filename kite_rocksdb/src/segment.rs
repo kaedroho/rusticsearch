@@ -1,11 +1,11 @@
 use rocksdb;
 use kite::schema::FieldRef;
+use kite::term::TermRef;
 use byteorder::{ByteOrder, BigEndian};
 
 use RocksDBIndexReader;
 use key_builder::KeyBuilder;
 use doc_id_set::DocIdSet;
-use term_dictionary::TermRef;
 use document_index::DocRef;
 
 
