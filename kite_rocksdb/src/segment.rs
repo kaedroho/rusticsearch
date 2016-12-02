@@ -9,17 +9,16 @@ use term_dictionary::TermRef;
 use document_index::DocRef;
 
 
+// TODO: Use generics instead of casting to string
 #[derive(Debug)]
-pub enum SegmentReadError {
-    RocksDB(rocksdb::Error),
+pub struct SegmentReadError {
+    message: String,
 }
 
 
 impl From<SegmentReadError> for String {
     fn from(e: SegmentReadError) -> String {
-        match e {
-            SegmentReadError::RocksDB(e) => e.into(),
-        }
+        e.message
     }
 }
 
@@ -86,6 +85,8 @@ impl<'a> Segment for RocksDBSegment<'a> {
 
 impl From<rocksdb::Error> for SegmentReadError {
     fn from(e: rocksdb::Error) -> SegmentReadError {
-        SegmentReadError::RocksDB(e)
+        SegmentReadError {
+            message: e.into()
+        }
     }
 }
