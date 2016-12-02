@@ -73,7 +73,7 @@ impl<'a> RocksDBIndexReader<'a> {
         Ok(matches)
     }
 
-    fn score_doc<S: Segment>(&self, doc_id: u16, score_function: &Vec<ScoreFunctionOp>, segment: &S, mut stats: &mut RocksDBStatisticsReader) -> Result<f64, SegmentReadError> {
+    fn score_doc<S: Segment, R: StatisticsReader>(&self, doc_id: u16, score_function: &Vec<ScoreFunctionOp>, segment: &S, mut stats: &mut R) -> Result<f64, SegmentReadError> {
         // Execute score function
         let mut stack = Vec::new();
         for op in score_function.iter() {
@@ -151,12 +151,12 @@ impl<'a> RocksDBIndexReader<'a> {
         Ok(stack.pop().expect("document scorer: stack underflow"))
     }
 
-    fn search_segment<C: Collector, S: Segment>(&self, collector: &mut C, plan: &SearchPlan, segment: &S, mut stats: &mut RocksDBStatisticsReader) -> Result<(), SegmentReadError> {
+    fn search_segment<C: Collector, S: Segment, R: StatisticsReader>(&self, collector: &mut C, plan: &SearchPlan, segment: &S, mut stats: &mut R) -> Result<(), SegmentReadError> {
         let matches = try!(self.search_segment_boolean_phase(&plan.boolean_query, plan.boolean_query_is_negated, segment));
 
         // Score documents and pass to collector
         for doc in matches.iter() {
-            let score = try!(self.score_doc(doc, &plan.score_function, segment, &mut stats));
+            let score = try!(self.score_doc(doc, &plan.score_function, segment, stats));
 
             let doc_ref = segment.doc_ref(doc);
             let doc_match = DocumentMatch::new_scored(doc_ref.as_u64(), score);
