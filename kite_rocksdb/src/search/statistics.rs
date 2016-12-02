@@ -8,6 +8,13 @@ use term_dictionary::TermRef;
 use key_builder::KeyBuilder;
 
 
+pub trait StatisticsReader {
+    fn total_docs(&mut self, field_ref: FieldRef) -> Result<i64, SegmentReadError>;
+    fn total_tokens(&mut self, field_ref: FieldRef) -> Result<i64, SegmentReadError>;
+    fn term_document_frequency(&mut self, field_ref: FieldRef, term_ref: TermRef) -> Result<i64, SegmentReadError>;
+}
+
+
 pub struct RocksDBStatisticsReader<'a> {
     index_reader: &'a RocksDBIndexReader<'a>,
     total_docs: HashMap<FieldRef, i64>,
@@ -37,8 +44,11 @@ impl<'a> RocksDBStatisticsReader<'a> {
 
         Ok(val)
     }
+}
 
-    pub fn total_docs(&mut self, field_ref: FieldRef) -> Result<i64, SegmentReadError> {
+
+impl<'a> StatisticsReader for RocksDBStatisticsReader<'a> {
+    fn total_docs(&mut self, field_ref: FieldRef) -> Result<i64, SegmentReadError> {
         if let Some(val) = self.total_docs.get(&field_ref) {
             return Ok(*val);
         }
@@ -49,7 +59,7 @@ impl<'a> RocksDBStatisticsReader<'a> {
         Ok(val)
     }
 
-    pub fn total_tokens(&mut self, field_ref: FieldRef) -> Result<i64, SegmentReadError> {
+    fn total_tokens(&mut self, field_ref: FieldRef) -> Result<i64, SegmentReadError> {
         if let Some(val) = self.total_tokens.get(&field_ref) {
             return Ok(*val);
         }
@@ -60,7 +70,7 @@ impl<'a> RocksDBStatisticsReader<'a> {
         Ok(val)
     }
 
-    pub fn term_document_frequency(&mut self, field_ref: FieldRef, term_ref: TermRef) -> Result<i64, SegmentReadError> {
+    fn term_document_frequency(&mut self, field_ref: FieldRef, term_ref: TermRef) -> Result<i64, SegmentReadError> {
         if let Some(val) = self.term_document_frequencies.get(&(field_ref, term_ref)) {
             return Ok(*val);
         }

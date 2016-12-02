@@ -8,7 +8,7 @@ use byteorder::{ByteOrder, BigEndian};
 use super::RocksDBIndexReader;
 use doc_id_set::DocIdSet;
 use segment::{Segment, SegmentReadError};
-use search::statistics::RocksDBStatisticsReader;
+use search::statistics::{StatisticsReader, RocksDBStatisticsReader};
 use search::planner::{SearchPlan, plan_query};
 use search::planner::boolean_query::BooleanQueryOp;
 use search::planner::score_function::{CombinatorScorer, ScoreFunctionOp};
