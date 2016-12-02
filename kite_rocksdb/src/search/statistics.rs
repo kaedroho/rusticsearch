@@ -1,10 +1,10 @@
 use std::collections::HashMap;
 
 use kite::schema::FieldRef;
+use kite::term::TermRef;
 
 use RocksDBIndexReader;
 use segment::{Segment, SegmentReadError};
-use term_dictionary::TermRef;
 use key_builder::KeyBuilder;
 
 
