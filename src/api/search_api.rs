@@ -3,10 +3,10 @@ use std::collections::BTreeMap;
 
 use rustc_serialize::json::{self, Json};
 use url::form_urlencoded;
+use kite::document::DocRef;
 use kite::query::Query;
 use kite::collectors::top_score::TopScoreCollector;
 use kite::collectors::total_count::TotalCountCollector;
-use kite_rocksdb::DocRef;
 
 use query_parser::{QueryParseContext, parse as parse_query};
 

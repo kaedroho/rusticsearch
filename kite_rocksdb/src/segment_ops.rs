@@ -2,10 +2,10 @@ use std::str;
 use std::collections::{HashMap, BTreeSet};
 
 use rocksdb::{self, WriteBatch, WriteOptions};
+use kite::document::DocRef;
 use byteorder::{ByteOrder, BigEndian, WriteBytesExt};
 
 use RocksDBIndexStore;
-use document_index::DocRef;
 use key_builder::KeyBuilder;
 use doc_id_set::DocIdSet;
 
