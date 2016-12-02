@@ -1,12 +1,12 @@
 use rocksdb;
 use kite::schema::FieldRef;
 use kite::term::TermRef;
+use kite::document::DocRef;
 use byteorder::{ByteOrder, BigEndian};
 
 use RocksDBIndexReader;
 use key_builder::KeyBuilder;
 use doc_id_set::DocIdSet;
-use document_index::DocRef;
 
 
 // TODO: Use generics instead of casting to string

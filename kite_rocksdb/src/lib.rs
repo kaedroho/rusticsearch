@@ -23,7 +23,7 @@ use std::sync::Arc;
 use std::collections::HashMap;
 
 use rocksdb::{DB, WriteBatch, Options, MergeOperands, Snapshot};
-use kite::Document;
+use kite::{Document, DocRef};
 use kite::document::FieldValue;
 use kite::schema::{Schema, FieldType, FieldFlags, FieldRef, AddFieldError};
 use rustc_serialize::json;
@@ -34,7 +34,6 @@ use key_builder::KeyBuilder;
 use segment_manager::SegmentManager;
 use term_dictionary::TermDictionaryManager;
 use document_index::DocumentIndexManager;
-pub use document_index::DocRef;
 
 
 fn merge_keys(key: &[u8], existing_val: Option<&[u8]>, operands: &mut MergeOperands) -> Vec<u8> {

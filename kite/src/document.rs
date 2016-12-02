@@ -7,6 +7,35 @@ use byteorder::{WriteBytesExt, BigEndian};
 use token::Token;
 
 
+#[derive(Debug, Clone, Copy, Eq, PartialEq, Hash)]
+pub struct DocRef(u32, u16);
+
+
+impl DocRef {
+    pub fn segment(&self) -> u32 {
+        self.0
+    }
+
+    pub fn ord(&self) -> u16 {
+        self.1
+    }
+
+    pub fn as_u64(&self) -> u64 {
+        (self.0 as u64) << 16 | (self.1 as u64)
+    }
+
+    pub fn from_segment_ord(segment: u32, ord: u16) -> DocRef {
+        DocRef(segment, ord)
+    }
+
+    pub fn from_u64(val: u64) -> DocRef {
+        let segment = (val >> 16) & 0xFFFFFFFF;
+        let ord = val & 0xFFFF;
+        DocRef(segment as u32, ord as u16)
+    }
+}
+
+
 #[derive(Debug)]
 pub enum FieldValue {
     String(String),
