@@ -11,6 +11,7 @@ extern crate bitflags;
 
 pub mod term;
 pub mod token;
+pub mod doc_id_set;
 pub mod schema;
 pub mod document;
 pub mod store;

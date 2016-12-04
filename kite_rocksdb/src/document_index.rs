@@ -2,12 +2,12 @@ use std::sync::RwLock;
 use std::collections::{BTreeMap, HashMap};
 
 use rocksdb::{self, DB, WriteBatch};
+use kite::doc_id_set::DocIdSet;
 use kite::document::DocRef;
 use byteorder::{ByteOrder, BigEndian, WriteBytesExt};
 
 use key_builder::KeyBuilder;
 use segment_ops::SegmentMergeError;
-use doc_id_set::DocIdSet;
 
 
 /// Manages the index's "document index"
