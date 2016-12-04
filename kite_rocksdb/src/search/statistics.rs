@@ -2,9 +2,9 @@ use std::collections::HashMap;
 
 use kite::schema::FieldRef;
 use kite::term::TermRef;
+use kite::segment::Segment;
 
 use RocksDBIndexReader;
-use segment::Segment;
 use key_builder::KeyBuilder;
 
 
