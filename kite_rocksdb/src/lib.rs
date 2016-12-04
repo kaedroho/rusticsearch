@@ -7,7 +7,6 @@ extern crate byteorder;
 extern crate chrono;
 
 mod key_builder;
-mod doc_id_set;
 mod segment;
 mod segment_manager;
 mod segment_ops;

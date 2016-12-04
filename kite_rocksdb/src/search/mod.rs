@@ -1,12 +1,12 @@
 mod statistics;
 mod planner;
 
+use kite::doc_id_set::DocIdSet;
 use kite::query::Query;
 use kite::collectors::{Collector, DocumentMatch};
 use byteorder::{ByteOrder, BigEndian};
 
 use super::RocksDBIndexReader;
-use doc_id_set::DocIdSet;
 use segment::{Segment, SegmentReadError};
 use search::statistics::{StatisticsReader, RocksDBStatisticsReader};
 use search::planner::{SearchPlan, plan_query};
