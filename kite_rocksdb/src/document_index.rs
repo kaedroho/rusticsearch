@@ -138,7 +138,7 @@ impl DocumentIndexManager {
             let kb = KeyBuilder::segment_del_list(*source_segment);
             match try!(db.get(&kb.key())) {
                 Some(docid_set) => {
-                    for doc_id in DocIdSet::FromRDB(docid_set).iter() {
+                    for doc_id in DocIdSet::from_bytes(docid_set.to_vec()).iter() {
                         let doc_ref = DocRef::from_segment_ord(*source_segment, doc_id);
                         let new_doc_id = doc_ref_mapping.get(&doc_ref).unwrap();
                         deletion_list.write_u16::<BigEndian>(*new_doc_id).unwrap();

@@ -84,7 +84,7 @@ impl RocksDBIndexStore {
                 }
 
                 // Merge term directory into the new one (and remap the doc ids)
-                for doc_id in DocIdSet::Owned(iter.value().unwrap().to_vec()).iter() {
+                for doc_id in DocIdSet::from_bytes(iter.value().unwrap().to_vec()).iter() {
                     let doc_ref = DocRef::from_segment_ord(segment, doc_id);
                     let new_doc_id = doc_ref_mapping.get(&doc_ref).unwrap();
                     current_td.write_u16::<BigEndian>(*new_doc_id).unwrap();
