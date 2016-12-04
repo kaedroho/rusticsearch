@@ -1,5 +1,6 @@
+use kite::segment::Segment;
+
 use RocksDBIndexStore;
-use segment::Segment;
 
 
 #[derive(Debug)]
