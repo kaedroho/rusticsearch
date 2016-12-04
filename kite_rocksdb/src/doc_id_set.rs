@@ -1,13 +1,12 @@
 use std::fmt;
-use std::io::{Cursor, Read, Write};
+use std::io::{Cursor, Read};
 
-use rocksdb::DBVector;
 use byteorder::{ByteOrder, BigEndian};
 
 
-pub enum DocIdSet {
-    Owned(Vec<u8>),
-    FromRDB(DBVector),
+#[derive(Clone)]
+pub struct DocIdSet {
+    data: Vec<u8>,
 }
 
 
@@ -30,21 +29,20 @@ impl DocIdSet {
             data.push(doc_id_bytes[1]);
         }
 
-        DocIdSet::Owned(data)
+        DocIdSet {
+            data: data
+        }
+    }
+
+    pub fn from_bytes(data: Vec<u8>) -> DocIdSet {
+        DocIdSet {
+            data: data
+        }
     }
 
     pub fn iter<'a>(&'a self) -> DocIdSetIterator<'a> {
-        let data = match *self {
-            DocIdSet::Owned(ref data) => {
-                &data[..]
-            }
-            DocIdSet::FromRDB(ref data) => {
-                &data[..]
-            }
-        };
-
         DocIdSetIterator {
-            cursor: Cursor::new(data),
+            cursor: Cursor::new(&self.data),
         }
     }
 
@@ -122,7 +120,9 @@ impl DocIdSet {
             }
         }
 
-        DocIdSet::Owned(data)
+        DocIdSet {
+            data: data
+        }
     }
 
     pub fn intersection(&self, other: &DocIdSet) -> DocIdSet {
@@ -158,7 +158,9 @@ impl DocIdSet {
             }
         }
 
-        DocIdSet::Owned(data)
+        DocIdSet {
+            data: data
+        }
     }
 
     pub fn exclusion(&self, other: &DocIdSet) -> DocIdSet {
@@ -204,22 +206,8 @@ impl DocIdSet {
             }
         }
 
-        DocIdSet::Owned(data)
-    }
-}
-
-
-impl Clone for DocIdSet {
-    fn clone(&self) -> DocIdSet {
-        match *self {
-            DocIdSet::Owned(ref data) => {
-                DocIdSet::Owned(data.clone())
-            }
-            DocIdSet::FromRDB(ref data) => {
-                let mut new_data = Vec::with_capacity(data.len());
-                new_data.write_all(data).unwrap();
-                DocIdSet::Owned(new_data)
-            }
+        DocIdSet {
+            data: data
         }
     }
 }

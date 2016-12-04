@@ -71,13 +71,13 @@ impl<'a> Segment for RocksDBSegment<'a> {
 
     fn load_term_directory(&self, field_ref: FieldRef, term_ref: TermRef) -> Result<Option<DocIdSet>, SegmentReadError> {
         let kb = KeyBuilder::segment_dir_list(self.id, field_ref.ord(), term_ref.ord());
-        let doc_id_set = try!(self.reader.snapshot.get(&kb.key())).map(|doc_id_set| DocIdSet::FromRDB(doc_id_set));
+        let doc_id_set = try!(self.reader.snapshot.get(&kb.key())).map(|doc_id_set| DocIdSet::from_bytes(doc_id_set.to_vec()));
         Ok(doc_id_set)
     }
 
     fn load_deletion_list(&self) -> Result<Option<DocIdSet>, SegmentReadError> {
         let kb = KeyBuilder::segment_del_list(self.id);
-        let doc_id_set = try!(self.reader.snapshot.get(&kb.key())).map(|doc_id_set| DocIdSet::FromRDB(doc_id_set));
+        let doc_id_set = try!(self.reader.snapshot.get(&kb.key())).map(|doc_id_set| DocIdSet::from_bytes(doc_id_set.to_vec()));
         Ok(doc_id_set)
     }
 }
