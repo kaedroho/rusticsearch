@@ -1,5 +1,5 @@
 use RocksDBIndexStore;
-use segment::{Segment, SegmentReadError};
+use segment::Segment;
 
 
 #[derive(Debug)]
@@ -10,7 +10,7 @@ pub struct SegmentStatistics {
 
 
 impl SegmentStatistics {
-    fn read<S: Segment>(segment: &S) -> Result<SegmentStatistics, SegmentReadError> {
+    fn read<S: Segment>(segment: &S) -> Result<SegmentStatistics, String> {
         let total_docs = try!(segment.load_statistic(b"total_docs")).unwrap_or(0);
         let deleted_docs = try!(segment.load_statistic(b"deleted_docs")).unwrap_or(0);
 
@@ -33,7 +33,7 @@ impl SegmentStatistics {
 
 
 impl RocksDBIndexStore {
-    pub fn get_segment_statistics(&self) -> Result<Vec<(u32, SegmentStatistics)>, SegmentReadError> {
+    pub fn get_segment_statistics(&self) -> Result<Vec<(u32, SegmentStatistics)>, String> {
         let mut segment_stats = Vec::new();
         let reader = self.reader();
 
