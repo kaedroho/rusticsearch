@@ -4,14 +4,14 @@ use kite::schema::FieldRef;
 use kite::term::TermRef;
 
 use RocksDBIndexReader;
-use segment::{Segment, SegmentReadError};
+use segment::Segment;
 use key_builder::KeyBuilder;
 
 
 pub trait StatisticsReader {
-    fn total_docs(&mut self, field_ref: FieldRef) -> Result<i64, SegmentReadError>;
-    fn total_tokens(&mut self, field_ref: FieldRef) -> Result<i64, SegmentReadError>;
-    fn term_document_frequency(&mut self, field_ref: FieldRef, term_ref: TermRef) -> Result<i64, SegmentReadError>;
+    fn total_docs(&mut self, field_ref: FieldRef) -> Result<i64, String>;
+    fn total_tokens(&mut self, field_ref: FieldRef) -> Result<i64, String>;
+    fn term_document_frequency(&mut self, field_ref: FieldRef, term_ref: TermRef) -> Result<i64, String>;
 }
 
 
@@ -33,7 +33,7 @@ impl<'a> RocksDBStatisticsReader<'a> {
         }
     }
 
-    fn get_statistic(&self, name: &[u8]) -> Result<i64, SegmentReadError> {
+    fn get_statistic(&self, name: &[u8]) -> Result<i64, String> {
         let mut val = 0;
 
         for segment in self.index_reader.store.segments.iter_active(&self.index_reader) {
@@ -48,7 +48,7 @@ impl<'a> RocksDBStatisticsReader<'a> {
 
 
 impl<'a> StatisticsReader for RocksDBStatisticsReader<'a> {
-    fn total_docs(&mut self, field_ref: FieldRef) -> Result<i64, SegmentReadError> {
+    fn total_docs(&mut self, field_ref: FieldRef) -> Result<i64, String> {
         if let Some(val) = self.total_docs.get(&field_ref) {
             return Ok(*val);
         }
@@ -59,7 +59,7 @@ impl<'a> StatisticsReader for RocksDBStatisticsReader<'a> {
         Ok(val)
     }
 
-    fn total_tokens(&mut self, field_ref: FieldRef) -> Result<i64, SegmentReadError> {
+    fn total_tokens(&mut self, field_ref: FieldRef) -> Result<i64, String> {
         if let Some(val) = self.total_tokens.get(&field_ref) {
             return Ok(*val);
         }
@@ -70,7 +70,7 @@ impl<'a> StatisticsReader for RocksDBStatisticsReader<'a> {
         Ok(val)
     }
 
-    fn term_document_frequency(&mut self, field_ref: FieldRef, term_ref: TermRef) -> Result<i64, SegmentReadError> {
+    fn term_document_frequency(&mut self, field_ref: FieldRef, term_ref: TermRef) -> Result<i64, String> {
         if let Some(val) = self.term_document_frequencies.get(&(field_ref, term_ref)) {
             return Ok(*val);
         }
