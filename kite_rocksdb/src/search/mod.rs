@@ -14,7 +14,7 @@ use search::planner::boolean_query::BooleanQueryOp;
 use search::planner::score_function::{CombinatorScorer, ScoreFunctionOp};
 
 
-fn search_segment_boolean_phase<S: Segment>(boolean_query: &Vec<BooleanQueryOp>, is_negated: bool, segment: &S) -> Result<DocIdSet, String> {
+fn run_boolean_query<S: Segment>(boolean_query: &Vec<BooleanQueryOp>, is_negated: bool, segment: &S) -> Result<DocIdSet, String> {
     // Execute boolean query
     let mut stack = Vec::new();
     for op in boolean_query.iter() {
@@ -152,7 +152,7 @@ fn score_doc<S: Segment, R: StatisticsReader>(doc_id: u16, score_function: &Vec<
 
 
 fn search_segment<C: Collector, S: Segment, R: StatisticsReader>(collector: &mut C, plan: &SearchPlan, segment: &S, mut stats: &mut R) -> Result<(), String> {
-    let matches = try!(search_segment_boolean_phase(&plan.boolean_query, plan.boolean_query_is_negated, segment));
+    let matches = try!(run_boolean_query(&plan.boolean_query, plan.boolean_query_is_negated, segment));
 
     // Score documents and pass to collector
     for doc in matches.iter() {
