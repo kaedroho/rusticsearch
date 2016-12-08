@@ -5,6 +5,7 @@ use std::collections::HashMap;
 
 use term::Term;
 use document::Document;
+use schema::FieldRef;
 use store::IndexReader;
 use query::term_selector::TermSelector;
 use query::term_scorer::TermScorer;
@@ -17,12 +18,12 @@ pub enum Query {
     },
     MatchNone,
     MatchTerm {
-        field: String,
+        field: FieldRef,
         term: Term,
         scorer: TermScorer,
     },
     MatchMultiTerm {
-        field: String,
+        field: FieldRef,
         term_selector: TermSelector,
         scorer: TermScorer,
     },
@@ -218,43 +219,39 @@ impl Query {
             Query::MatchAll{score} => Some(score),
             Query::MatchNone => None,
             Query::MatchTerm{ref field, ref term, ref scorer} => {
-                if let Some(field_ref) = index_reader.schema().get_field_by_name(field) {
-                    if let Some(field_value) = doc.indexed_fields.get(field) {
-                        let mut term_freq: u32 = 0;
-                        for field_token in field_value.iter() {
-                            if &field_token.term == term {
-                                term_freq += 1;
-                            }
+                if let Some(field_value) = doc.indexed_fields.get(field) {
+                    let mut term_freq: u32 = 0;
+                    for field_token in field_value.iter() {
+                        if &field_token.term == term {
+                            term_freq += 1;
                         }
+                    }
 
-                        if term_freq > 0 {
-                            return Some(scorer.score(index_reader, &field_ref, term, term_freq, field_value.len() as f64));
-                        }
+                    if term_freq > 0 {
+                        return Some(scorer.score(index_reader, field, term, term_freq, field_value.len() as f64));
                     }
                 }
 
                 None
             }
             Query::MatchMultiTerm{ref field, ref term_selector, ref scorer} => {
-                if let Some(field_ref) = index_reader.schema().get_field_by_name(field) {
-                    if let Some(field_value) = doc.indexed_fields.get(field) {
-                        let mut term_frequencies = HashMap::new();
-                        for field_token in field_value.iter() {
-                            if term_selector.matches(&field_token.term) {
-                                let freq = term_frequencies.entry(field_token.term.clone()).or_insert(0);
-                                *freq += 1;
-                            }
+                if let Some(field_value) = doc.indexed_fields.get(field) {
+                    let mut term_frequencies = HashMap::new();
+                    for field_token in field_value.iter() {
+                        if term_selector.matches(&field_token.term) {
+                            let freq = term_frequencies.entry(field_token.term.clone()).or_insert(0);
+                            *freq += 1;
+                        }
+                    }
+
+                    if !term_frequencies.is_empty() {
+                        let mut score = 0.0f64;
+
+                        for (term, term_freq) in term_frequencies.iter() {
+                            score += scorer.score(index_reader, field, term, *term_freq, field_value.len() as f64);
                         }
 
-                        if !term_frequencies.is_empty() {
-                            let mut score = 0.0f64;
-
-                            for (term, term_freq) in term_frequencies.iter() {
-                                score += scorer.score(index_reader, &field_ref, term, *term_freq, field_value.len() as f64);
-                            }
-
-                            return Some(score);
-                        }
+                        return Some(score);
                     }
                 }
 

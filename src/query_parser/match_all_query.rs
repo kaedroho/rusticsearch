@@ -2,6 +2,7 @@
 
 use rustc_serialize::json::Json;
 use kite::Query;
+use kite::schema::Schema;
 
 use query_parser::{QueryParseContext, QueryParseError, QueryBuilder};
 use query_parser::utils::parse_float;
@@ -14,7 +15,7 @@ struct MatchAllQueryBuilder {
 
 
 impl QueryBuilder for MatchAllQueryBuilder {
-    fn build(&self) -> Query {
+    fn build(&self, _schema: &Schema) -> Query {
         let mut query = Query::new_match_all();
 
         // Add boost
@@ -51,6 +52,7 @@ mod tests {
     use rustc_serialize::json::Json;
 
     use kite::{Term, Query, TermScorer};
+    use kite::schema::Schema;
 
     use query_parser::{QueryParseContext, QueryParseError};
 
@@ -58,32 +60,38 @@ mod tests {
 
     #[test]
     fn test_match_all_query() {
+        let schema = Schema::new();
+
         let query = parse(&QueryParseContext::new(), &Json::from_str("
         {
         }
-        ").unwrap()).and_then(|builder| Ok(builder.build()));
+        ").unwrap()).and_then(|builder| Ok(builder.build(&schema)));
 
         assert_eq!(query, Ok(Query::MatchAll {score: 1.0f64}))
     }
 
     #[test]
     fn test_with_boost() {
+        let schema = Schema::new();
+
         let query = parse(&QueryParseContext::new(), &Json::from_str("
         {
             \"boost\": 2.0
         }
-        ").unwrap()).and_then(|builder| Ok(builder.build()));
+        ").unwrap()).and_then(|builder| Ok(builder.build(&schema)));
 
         assert_eq!(query, Ok(Query::MatchAll {score: 2.0f64}))
     }
 
     #[test]
     fn test_with_boost_integer() {
+        let schema = Schema::new();
+
         let query = parse(&QueryParseContext::new(), &Json::from_str("
         {
             \"boost\": 2
         }
-        ").unwrap()).and_then(|builder| Ok(builder.build()));
+        ").unwrap()).and_then(|builder| Ok(builder.build(&schema)));
 
         assert_eq!(query, Ok(Query::MatchAll {score: 2.0f64}))
     }

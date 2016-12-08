@@ -2,6 +2,7 @@
 
 use rustc_serialize::json::Json;
 use kite::{Term, Token, Query, TermScorer};
+use kite::schema::Schema;
 
 use analysis::AnalyzerSpec;
 use mapping::{FieldSearchOptions};
@@ -21,7 +22,7 @@ struct MatchQueryBuilder {
 
 
 impl QueryBuilder for MatchQueryBuilder {
-    fn build(&self) -> Query {
+    fn build(&self, schema: &Schema) -> Query {
         // Tokenise query string
         let tokens = match self.analyzer {
             Some(ref analyzer) => {
@@ -37,7 +38,7 @@ impl QueryBuilder for MatchQueryBuilder {
         let mut sub_queries = Vec::new();
         for token in tokens {
             sub_queries.push(Query::MatchTerm {
-                field: self.field.clone(),
+                field: schema.get_field_by_name(&self.field).unwrap(),
                 term: token.term,
                 scorer: TermScorer::default(),
             });
@@ -129,6 +130,7 @@ mod tests {
     use rustc_serialize::json::Json;
 
     use kite::{Term, Query, TermScorer};
+    use kite::schema::{Schema, FieldType, FIELD_INDEXED};
 
     use query_parser::{QueryParseContext, QueryParseError};
 
@@ -136,16 +138,19 @@ mod tests {
 
     #[test]
     fn test_match_query() {
+        let mut schema = Schema::new();
+        let foo_field = schema.add_field("foo".to_string(), FieldType::Text, FIELD_INDEXED).unwrap();
+
         let query = parse(&QueryParseContext::new(), &Json::from_str("
         {
             \"foo\": {
                 \"query\": \"bar\"
             }
         }
-        ").unwrap()).and_then(|builder| Ok(builder.build()));
+        ").unwrap()).and_then(|builder| Ok(builder.build(&schema)));
 
         assert_eq!(query, Ok(Query::MatchTerm {
-            field: "foo".to_string(),
+            field: foo_field,
             term: Term::String("bar".to_string()),
             scorer: TermScorer::default(),
         }))
@@ -153,23 +158,26 @@ mod tests {
 
     #[test]
     fn test_multi_term_match_query() {
+        let mut schema = Schema::new();
+        let foo_field = schema.add_field("foo".to_string(), FieldType::Text, FIELD_INDEXED).unwrap();
+
         let query = parse(&QueryParseContext::new(), &Json::from_str("
         {
             \"foo\": {
                 \"query\": \"bar baz\"
             }
         }
-        ").unwrap()).and_then(|builder| Ok(builder.build()));
+        ").unwrap()).and_then(|builder| Ok(builder.build(&schema)));
 
         assert_eq!(query, Ok(Query::Disjunction {
             queries: vec![
                 Query::MatchTerm {
-                    field: "foo".to_string(),
+                    field: foo_field,
                     term: Term::String("bar".to_string()),
                     scorer: TermScorer::default(),
                 },
                 Query::MatchTerm {
-                    field: "foo".to_string(),
+                    field: foo_field,
                     term: Term::String("baz".to_string()),
                     scorer: TermScorer::default(),
                 }
@@ -179,21 +187,24 @@ mod tests {
 
     #[test]
     fn test_simple_multi_term_match_query() {
+        let mut schema = Schema::new();
+        let foo_field = schema.add_field("foo".to_string(), FieldType::Text, FIELD_INDEXED).unwrap();
+
         let query = parse(&QueryParseContext::new(), &Json::from_str("
         {
             \"foo\": \"bar baz\"
         }
-        ").unwrap()).and_then(|builder| Ok(builder.build()));
+        ").unwrap()).and_then(|builder| Ok(builder.build(&schema)));
 
         assert_eq!(query, Ok(Query::Disjunction {
             queries: vec![
                 Query::MatchTerm {
-                    field: "foo".to_string(),
+                    field: foo_field,
                     term: Term::String("bar".to_string()),
                     scorer: TermScorer::default(),
                 },
                 Query::MatchTerm {
-                    field: "foo".to_string(),
+                    field: foo_field,
                     term: Term::String("baz".to_string()),
                     scorer: TermScorer::default(),
                 }
@@ -203,6 +214,9 @@ mod tests {
 
     #[test]
     fn test_with_boost() {
+        let mut schema = Schema::new();
+        let foo_field = schema.add_field("foo".to_string(), FieldType::Text, FIELD_INDEXED).unwrap();
+
         let query = parse(&QueryParseContext::new(), &Json::from_str("
         {
             \"foo\": {
@@ -210,10 +224,10 @@ mod tests {
                 \"boost\": 2.0
             }
         }
-        ").unwrap()).and_then(|builder| Ok(builder.build()));
+        ").unwrap()).and_then(|builder| Ok(builder.build(&schema)));
 
         assert_eq!(query, Ok(Query::MatchTerm {
-            field: "foo".to_string(),
+            field: foo_field,
             term: Term::String("bar".to_string()),
             scorer: TermScorer::default_with_boost(2.0f64),
         }))
@@ -221,6 +235,9 @@ mod tests {
 
     #[test]
     fn test_with_boost_integer() {
+        let mut schema = Schema::new();
+        let foo_field = schema.add_field("foo".to_string(), FieldType::Text, FIELD_INDEXED).unwrap();
+
         let query = parse(&QueryParseContext::new(), &Json::from_str("
         {
             \"foo\": {
@@ -228,10 +245,10 @@ mod tests {
                 \"boost\": 2
             }
         }
-        ").unwrap()).and_then(|builder| Ok(builder.build()));
+        ").unwrap()).and_then(|builder| Ok(builder.build(&schema)));
 
         assert_eq!(query, Ok(Query::MatchTerm {
-            field: "foo".to_string(),
+            field: foo_field,
             term: Term::String("bar".to_string()),
             scorer: TermScorer::default_with_boost(2.0f64),
         }))
@@ -239,6 +256,9 @@ mod tests {
 
     #[test]
     fn test_with_and_operator() {
+        let mut schema = Schema::new();
+        let foo_field = schema.add_field("foo".to_string(), FieldType::Text, FIELD_INDEXED).unwrap();
+
         let query = parse(&QueryParseContext::new(), &Json::from_str("
         {
             \"foo\": {
@@ -246,17 +266,17 @@ mod tests {
                 \"operator\": \"and\"
             }
         }
-        ").unwrap()).and_then(|builder| Ok(builder.build()));
+        ").unwrap()).and_then(|builder| Ok(builder.build(&schema)));
 
         assert_eq!(query, Ok(Query::Conjunction {
             queries: vec![
                 Query::MatchTerm {
-                    field: "foo".to_string(),
+                    field: foo_field,
                     term: Term::String("bar".to_string()),
                     scorer: TermScorer::default(),
                 },
                 Query::MatchTerm {
-                    field: "foo".to_string(),
+                    field: foo_field,
                     term: Term::String("baz".to_string()),
                     scorer: TermScorer::default(),
                 }

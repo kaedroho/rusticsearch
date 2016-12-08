@@ -370,17 +370,7 @@ pub fn plan_boolean_query(index_reader: &RocksDBIndexReader, mut builder: &mut B
         Query::MatchNone => {
             builder.push_empty();
         }
-        Query::MatchTerm{ref field, ref term, ..} => {
-            // Get field
-            let field_ref = match index_reader.schema().get_field_by_name(field) {
-                Some(field_ref) => field_ref,
-                None => {
-                    // Field doesn't exist, so will never match
-                    builder.push_empty();
-                    return
-                }
-            };
-
+        Query::MatchTerm{field, ref term, ..} => {
             // Get term
             let term_bytes = term.to_bytes();
             let term_ref = match index_reader.store.term_dictionary.get(&term_bytes) {
@@ -392,23 +382,13 @@ pub fn plan_boolean_query(index_reader: &RocksDBIndexReader, mut builder: &mut B
                 }
             };
 
-            builder.push_term_directory(field_ref, term_ref);
+            builder.push_term_directory(field, term_ref);
         }
-        Query::MatchMultiTerm{ref field, ref term_selector, ..} => {
-            // Get field
-            let field_ref = match index_reader.schema().get_field_by_name(field) {
-                Some(field_ref) => field_ref,
-                None => {
-                    // Field doesn't exist, so will never match
-                    builder.push_empty();
-                    return
-                }
-            };
-
+        Query::MatchMultiTerm{field, ref term_selector, ..} => {
             // Get terms
             builder.push_empty();
             for term_ref in index_reader.store.term_dictionary.select(term_selector) {
-                builder.push_term_directory(field_ref, term_ref);
+                builder.push_term_directory(field, term_ref);
                 builder.or_combinator();
             }
         }

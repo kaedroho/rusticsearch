@@ -17,6 +17,7 @@ use std::fmt::Debug;
 
 use rustc_serialize::json::Json;
 use kite::Query;
+use kite::schema::Schema;
 
 use mapping::MappingRegistry;
 
@@ -68,7 +69,7 @@ pub enum QueryParseError {
 
 
 pub trait QueryBuilder: Debug {
-    fn build(&self) -> Query;
+    fn build(&self, schema: &Schema) -> Query;
 }
 
 

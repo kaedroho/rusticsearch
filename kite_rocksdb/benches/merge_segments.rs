@@ -22,9 +22,9 @@ fn bench_merge_segments(b: &mut Bencher) {
     remove_dir_all("test_indices/bench_merge_segments");
 
     let mut store = RocksDBIndexStore::create("test_indices/bench_merge_segments").unwrap();
-    store.add_field("title".to_string(), FieldType::Text, FIELD_INDEXED).unwrap();
-    store.add_field("body".to_string(), FieldType::Text, FIELD_INDEXED).unwrap();
-    store.add_field("id".to_string(), FieldType::I64, FIELD_STORED).unwrap();
+    let title_field = store.add_field("title".to_string(), FieldType::Text, FIELD_INDEXED).unwrap();
+    let body_field = store.add_field("body".to_string(), FieldType::Text, FIELD_INDEXED).unwrap();
+    let id_field = store.add_field("id".to_string(), FieldType::I64, FIELD_STORED).unwrap();
 
     let mut tokens = Vec::new();
     for t in 0..500 {
@@ -39,11 +39,11 @@ fn bench_merge_segments(b: &mut Bencher) {
         store.insert_or_update_document(Document {
             key: i.to_string(),
             indexed_fields: hashmap! {
-                "body".to_string() => tokens.clone(),
-                "title".to_string() => vec![Token { term: Term::String(i.to_string()), position: 1}],
+                body_field => tokens.clone(),
+                title_field => vec![Token { term: Term::String(i.to_string()), position: 1}],
             },
             stored_fields: hashmap! {
-                "id".to_string() => FieldValue::Integer(i),
+                id_field => FieldValue::Integer(i),
             },
         });
     }

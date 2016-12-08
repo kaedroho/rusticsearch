@@ -2,6 +2,7 @@
 
 use rustc_serialize::json::Json;
 use kite::{Term, Query, TermScorer};
+use kite::schema::Schema;
 
 use query_parser::{QueryParseContext, QueryParseError, QueryBuilder};
 
@@ -14,12 +15,12 @@ struct TermsQueryBuilder {
 
 
 impl QueryBuilder for TermsQueryBuilder {
-    fn build(&self) -> Query {
+    fn build(&self, schema: &Schema) -> Query {
         // Create a term query for each token
         let mut queries = Vec::new();
         for term in self.terms.iter() {
             queries.push(Query::MatchTerm {
-                field: self.field.clone(),
+                field: schema.get_field_by_name(&self.field).unwrap(),
                 term: term.clone(),
                 scorer: TermScorer::default(),
             });
@@ -60,26 +61,30 @@ mod tests {
     use kite::{Term, Query, TermScorer};
 
     use query_parser::{QueryParseContext, QueryParseError};
+    use kite::schema::{Schema, FieldType, FIELD_INDEXED};
 
     use super::parse;
 
     #[test]
     fn test_terms_query() {
+        let mut schema = Schema::new();
+        let foo_field = schema.add_field("foo".to_string(), FieldType::Text, FIELD_INDEXED).unwrap();
+
         let query = parse(&QueryParseContext::new(), &Json::from_str("
         {
             \"foo\": [\"bar\", \"baz\"]
         }
-        ").unwrap()).and_then(|builder| Ok(builder.build()));
+        ").unwrap()).and_then(|builder| Ok(builder.build(&schema)));
 
         assert_eq!(query, Ok(Query::Disjunction {
             queries: vec![
                 Query::MatchTerm {
-                    field: "foo".to_string(),
+                    field: foo_field,
                     term: Term::String("bar".to_string()),
                     scorer: TermScorer::default(),
                 },
                 Query::MatchTerm {
-                    field: "foo".to_string(),
+                    field: foo_field,
                     term: Term::String("baz".to_string()),
                     scorer: TermScorer::default(),
                 }

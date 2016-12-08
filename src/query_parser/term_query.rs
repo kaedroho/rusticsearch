@@ -2,6 +2,7 @@
 
 use rustc_serialize::json::Json;
 use kite::{Term, Query, TermScorer};
+use kite::schema::Schema;
 
 use query_parser::{QueryParseContext, QueryParseError, QueryBuilder};
 use query_parser::utils::parse_float;
@@ -16,9 +17,9 @@ struct TermQueryBuilder {
 
 
 impl QueryBuilder for TermQueryBuilder {
-    fn build(&self) -> Query {
+    fn build(&self, schema: &Schema) -> Query {
         let mut query = Query::MatchTerm {
-            field: self.field.clone(),
+            field: schema.get_field_by_name(&self.field).unwrap(),
             term: self.term.clone(),
             scorer: TermScorer::default(),
         };
@@ -85,6 +86,7 @@ mod tests {
     use rustc_serialize::json::Json;
 
     use kite::{Term, Query, TermScorer};
+    use kite::schema::{Schema, FieldType, FIELD_INDEXED};
 
     use query_parser::{QueryParseContext, QueryParseError};
 
@@ -92,16 +94,19 @@ mod tests {
 
     #[test]
     fn test_term_query() {
+        let mut schema = Schema::new();
+        let foo_field = schema.add_field("foo".to_string(), FieldType::Text, FIELD_INDEXED).unwrap();
+
         let query = parse(&QueryParseContext::new(), &Json::from_str("
         {
             \"foo\": {
                 \"value\": \"bar\"
             }
         }
-        ").unwrap()).and_then(|builder| Ok(builder.build()));
+        ").unwrap()).and_then(|builder| Ok(builder.build(&schema)));
 
         assert_eq!(query, Ok(Query::MatchTerm {
-            field: "foo".to_string(),
+            field: foo_field,
             term: Term::String("bar".to_string()),
             scorer: TermScorer::default(),
         }));
@@ -109,16 +114,19 @@ mod tests {
 
     #[test]
     fn test_with_number() {
+        let mut schema = Schema::new();
+        let foo_field = schema.add_field("foo".to_string(), FieldType::Text, FIELD_INDEXED).unwrap();
+
         let query = parse(&QueryParseContext::new(), &Json::from_str("
         {
             \"foo\": {
                 \"value\": 123
             }
         }
-        ").unwrap()).and_then(|builder| Ok(builder.build()));
+        ").unwrap()).and_then(|builder| Ok(builder.build(&schema)));
 
         assert_eq!(query, Ok(Query::MatchTerm {
-            field: "foo".to_string(),
+            field: foo_field,
             term: Term::U64(123),
             scorer: TermScorer::default(),
         }));
@@ -126,14 +134,17 @@ mod tests {
 
     #[test]
     fn test_simple_term_query() {
+        let mut schema = Schema::new();
+        let foo_field = schema.add_field("foo".to_string(), FieldType::Text, FIELD_INDEXED).unwrap();
+
         let query = parse(&QueryParseContext::new(), &Json::from_str("
         {
             \"foo\": \"bar\"
         }
-        ").unwrap()).and_then(|builder| Ok(builder.build()));
+        ").unwrap()).and_then(|builder| Ok(builder.build(&schema)));
 
         assert_eq!(query, Ok(Query::MatchTerm {
-            field: "foo".to_string(),
+            field: foo_field,
             term: Term::String("bar".to_string()),
             scorer: TermScorer::default(),
         }));
@@ -141,6 +152,9 @@ mod tests {
 
     #[test]
     fn test_with_boost() {
+        let mut schema = Schema::new();
+        let foo_field = schema.add_field("foo".to_string(), FieldType::Text, FIELD_INDEXED).unwrap();
+
         let query = parse(&QueryParseContext::new(), &Json::from_str("
         {
             \"foo\": {
@@ -148,10 +162,10 @@ mod tests {
                 \"boost\": 2.0
             }
         }
-        ").unwrap()).and_then(|builder| Ok(builder.build()));
+        ").unwrap()).and_then(|builder| Ok(builder.build(&schema)));
 
         assert_eq!(query, Ok(Query::MatchTerm {
-            field: "foo".to_string(),
+            field: foo_field,
             term: Term::String("bar".to_string()),
             scorer: TermScorer::default_with_boost(2.0f64),
         }));
@@ -159,6 +173,9 @@ mod tests {
 
     #[test]
     fn test_with_boost_integer() {
+        let mut schema = Schema::new();
+        let foo_field = schema.add_field("foo".to_string(), FieldType::Text, FIELD_INDEXED).unwrap();
+
         let query = parse(&QueryParseContext::new(), &Json::from_str("
         {
             \"foo\": {
@@ -166,10 +183,10 @@ mod tests {
                 \"boost\": 2
             }
         }
-        ").unwrap()).and_then(|builder| Ok(builder.build()));
+        ").unwrap()).and_then(|builder| Ok(builder.build(&schema)));
 
         assert_eq!(query, Ok(Query::MatchTerm {
-            field: "foo".to_string(),
+            field: foo_field,
             term: Term::String("bar".to_string()),
             scorer: TermScorer::default_with_boost(2.0f64),
         }));

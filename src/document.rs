@@ -40,7 +40,7 @@ impl DocumentSource {
                                 }
 
                                 // Insert the field
-                                indexed_fields.insert(field_name.clone(), value);
+                                indexed_fields.insert(field_mapping.index_ref.unwrap(), value);
                             }
                             None => {
                                 // TODO: Should probably be an error
@@ -55,7 +55,7 @@ impl DocumentSource {
                         match value {
                             Some(value) => {
                                 // Insert the field
-                                stored_fields.insert(field_name.clone(), value);
+                                stored_fields.insert(field_mapping.index_ref.unwrap(), value);
                             }
                             None => {
                                 // TODO: Should probably be an error
@@ -79,7 +79,7 @@ impl DocumentSource {
 
                 match value {
                     Some(value) => {
-                        indexed_fields.insert("_all".to_string(), value);
+                        indexed_fields.insert(field_mapping.index_ref.unwrap(), value);
                     }
                     None => {
                         // TODO: Should probably be an error

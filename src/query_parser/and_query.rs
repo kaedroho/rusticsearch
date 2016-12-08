@@ -2,6 +2,7 @@
 
 use rustc_serialize::json::Json;
 use kite::Query;
+use kite::schema::Schema;
 
 use query_parser::{QueryParseContext, QueryParseError, QueryBuilder, parse as parse_query};
 
@@ -13,11 +14,11 @@ struct AndQueryBuilder {
 
 
 impl QueryBuilder for AndQueryBuilder {
-    fn build(&self) -> Query {
+    fn build(&self, schema: &Schema) -> Query {
         let mut queries = Vec::new();
 
         for query in self.queries.iter() {
-            queries.push(query.build());
+            queries.push(query.build(schema));
         }
 
         Query::new_conjunction(queries)
@@ -44,6 +45,7 @@ mod tests {
     use rustc_serialize::json::Json;
 
     use kite::{Term, Query, TermScorer};
+    use kite::schema::{Schema, FieldType, FIELD_INDEXED};
 
     use query_parser::{QueryParseContext, QueryParseError};
 
@@ -51,6 +53,9 @@ mod tests {
 
     #[test]
     fn test_and_query() {
+        let mut schema = Schema::new();
+        let test_field = schema.add_field("test".to_string(), FieldType::Text, FIELD_INDEXED).unwrap();
+
         let query = parse(&QueryParseContext::new(), &Json::from_str("
         [
             {
@@ -64,17 +69,17 @@ mod tests {
                 }
             }
         ]
-        ").unwrap()).and_then(|builder| Ok(builder.build()));
+        ").unwrap()).and_then(|builder| Ok(builder.build(&schema)));
 
         assert_eq!(query, Ok(Query::Conjunction {
             queries: vec![
                 Query::MatchTerm {
-                    field: "test".to_string(),
+                    field: test_field,
                     term: Term::String("foo".to_string()),
                     scorer: TermScorer::default(),
                 },
                 Query::MatchTerm {
-                    field: "test".to_string(),
+                    field: test_field,
                     term: Term::String("bar".to_string()),
                     scorer: TermScorer::default(),
                 },

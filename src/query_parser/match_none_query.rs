@@ -2,6 +2,7 @@
 
 use rustc_serialize::json::Json;
 use kite::Query;
+use kite::schema::Schema;
 
 use query_parser::{QueryParseContext, QueryParseError, QueryBuilder};
 
@@ -11,7 +12,7 @@ struct MatchNoneQueryBuilder;
 
 
 impl QueryBuilder for MatchNoneQueryBuilder {
-    fn build(&self) -> Query {
+    fn build(&self, _schema: &Schema) -> Query {
         Query::MatchNone
     }
 }
@@ -36,6 +37,7 @@ mod tests {
     use rustc_serialize::json::Json;
 
     use kite::{Term, Query};
+    use kite::schema::Schema;
 
     use query_parser::{QueryParseContext, QueryParseError};
 
@@ -43,10 +45,12 @@ mod tests {
 
     #[test]
     fn test_match_none_query() {
+        let schema = Schema::new();
+
         let query = parse(&QueryParseContext::new(), &Json::from_str("
         {
         }
-        ").unwrap()).and_then(|builder| Ok(builder.build()));
+        ").unwrap()).and_then(|builder| Ok(builder.build(&schema)));
 
         assert_eq!(query, Ok(Query::MatchNone))
     }

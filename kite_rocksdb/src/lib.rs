@@ -225,12 +225,7 @@ impl RocksDBIndexStore {
 
         // Indexed fields
         let mut term_frequencies = HashMap::new();
-        for (field_name, tokens) in doc.indexed_fields.iter() {
-            let field_ref = match self.schema.get_field_by_name(field_name) {
-                Some(field_ref) => field_ref,
-                None => return Err(DocumentInsertError::FieldDoesntExist(field_name.clone())),
-            };
-
+        for (field, tokens) in doc.indexed_fields.iter() {
             let mut field_token_count = 0;
 
             for token in tokens.iter() {
@@ -243,7 +238,7 @@ impl RocksDBIndexStore {
                 *term_frequency += 1;
 
                 // Write directory list
-                let kb = KeyBuilder::segment_dir_list(doc_ref.segment(), field_ref.ord(), term_ref.ord());
+                let kb = KeyBuilder::segment_dir_list(doc_ref.segment(), field.ord(), term_ref.ord());
                 let mut doc_id_bytes = [0; 2];
                 BigEndian::write_u16(&mut doc_id_bytes, doc_ref.ord());
                 try!(write_batch.merge(&kb.key(), &doc_id_bytes));
@@ -257,14 +252,14 @@ impl RocksDBIndexStore {
                 if frequency != 1 {
                     let mut value_type = vec![b't', b'f'];
                     value_type.extend(term_ref.ord().to_string().as_bytes());
-                    let kb = KeyBuilder::stored_field_value(doc_ref.segment(), doc_ref.ord(), field_ref.ord(), &value_type);
+                    let kb = KeyBuilder::stored_field_value(doc_ref.segment(), doc_ref.ord(), field.ord(), &value_type);
                     let mut frequency_bytes = [0; 8];
                     BigEndian::write_i64(&mut frequency_bytes, frequency);
                     try!(write_batch.merge(&kb.key(), &frequency_bytes));
                 }
 
                 // Increment term document frequency
-                let kb = KeyBuilder::segment_stat_term_doc_frequency(doc_ref.segment(), field_ref.ord(), term_ref.ord());
+                let kb = KeyBuilder::segment_stat_term_doc_frequency(doc_ref.segment(), field.ord(), term_ref.ord());
                 let mut inc_bytes = [0; 8];
                 BigEndian::write_i64(&mut inc_bytes, 1);
                 try!(write_batch.merge(&kb.key(), &inc_bytes));
@@ -275,34 +270,26 @@ impl RocksDBIndexStore {
             let length = ((field_token_count as f64).sqrt() - 1.0) * 3.0;
             let length = if length > 255.0 { 255.0 } else { length } as u8;
             if length != 0 {
-                let kb = KeyBuilder::stored_field_value(doc_ref.segment(), doc_ref.ord(), field_ref.ord(), b"len");
+                let kb = KeyBuilder::stored_field_value(doc_ref.segment(), doc_ref.ord(), field.ord(), b"len");
                 try!(write_batch.merge(&kb.key(), &[length]));
             }
 
             // Increment total field docs
-            let kb = KeyBuilder::segment_stat_total_field_docs(doc_ref.segment(), field_ref.ord());
+            let kb = KeyBuilder::segment_stat_total_field_docs(doc_ref.segment(), field.ord());
             let mut inc_bytes = [0; 8];
             BigEndian::write_i64(&mut inc_bytes, 1);
             try!(write_batch.merge(&kb.key(), &inc_bytes));
 
             // Increment total field tokens
-            let kb = KeyBuilder::segment_stat_total_field_tokens(doc_ref.segment(), field_ref.ord());
+            let kb = KeyBuilder::segment_stat_total_field_tokens(doc_ref.segment(), field.ord());
             let mut inc_bytes = [0; 8];
             BigEndian::write_i64(&mut inc_bytes, field_token_count);
             try!(write_batch.merge(&kb.key(), &inc_bytes));
         }
 
         // Stored fields
-        for (field_name, value) in doc.stored_fields.iter() {
-            let field_ref = match self.schema.get_field_by_name(field_name) {
-                Some(field_ref) => field_ref,
-                None => {
-                    // TODO: error?
-                    continue;
-                }
-            };
-
-            let kb = KeyBuilder::stored_field_value(doc_ref.segment(), doc_ref.ord(), field_ref.ord(), b"val");
+        for (field, value) in doc.stored_fields.iter() {
+            let kb = KeyBuilder::stored_field_value(doc_ref.segment(), doc_ref.ord(), field.ord(), b"val");
             try!(write_batch.merge(&kb.key(), &value.to_bytes()));
         }
 
@@ -482,43 +469,43 @@ mod tests {
 
     fn make_test_store(path: &str) -> RocksDBIndexStore {
         let mut store = RocksDBIndexStore::create(path).unwrap();
-        store.add_field("title".to_string(), FieldType::Text, FIELD_INDEXED).unwrap();
-        store.add_field("body".to_string(), FieldType::Text, FIELD_INDEXED).unwrap();
-        store.add_field("pk".to_string(), FieldType::I64, FIELD_STORED).unwrap();
+        let title_field = store.add_field("title".to_string(), FieldType::Text, FIELD_INDEXED).unwrap();
+        let body_field = store.add_field("body".to_string(), FieldType::Text, FIELD_INDEXED).unwrap();
+        let pk_field = store.add_field("pk".to_string(), FieldType::I64, FIELD_STORED).unwrap();
 
         store.insert_or_update_document(Document {
             key: "test_doc".to_string(),
             indexed_fields: hashmap! {
-                "title".to_string() => vec![
+                title_field => vec![
                     Token { term: Term::String("hello".to_string()), position: 1 },
                     Token { term: Term::String("world".to_string()), position: 2 },
                 ],
-                "body".to_string() => vec![
+                body_field => vec![
                     Token { term: Term::String("lorem".to_string()), position: 1 },
                     Token { term: Term::String("ipsum".to_string()), position: 2 },
                     Token { term: Term::String("dolar".to_string()), position: 3 },
                 ],
             },
             stored_fields: hashmap! {
-                "pk".to_string() => FieldValue::Integer(1),
+                pk_field => FieldValue::Integer(1),
             }
         }).unwrap();
 
         store.insert_or_update_document(Document {
             key: "another_test_doc".to_string(),
             indexed_fields: hashmap! {
-                "title".to_string() => vec![
+                title_field => vec![
                     Token { term: Term::String("howdy".to_string()), position: 1 },
                     Token { term: Term::String("partner".to_string()), position: 2 },
                 ],
-                "body".to_string() => vec![
+                body_field => vec![
                     Token { term: Term::String("lorem".to_string()), position: 1 },
                     Token { term: Term::String("ipsum".to_string()), position: 2 },
                     Token { term: Term::String("dolar".to_string()), position: 3 },
                 ],
             },
             stored_fields: hashmap! {
-                "pk".to_string() => FieldValue::Integer(2),
+                pk_field => FieldValue::Integer(2),
             }
         }).unwrap();
 
@@ -559,6 +546,7 @@ mod tests {
         make_test_store("test_indices/test");
 
         let store = RocksDBIndexStore::open("test_indices/test").unwrap();
+        let title_field = store.schema.get_field_by_name("title").unwrap();
 
         let index_reader = store.reader();
 
@@ -568,17 +556,17 @@ mod tests {
         let query = Query::Disjunction {
             queries: vec![
                 Query::MatchTerm {
-                    field: "title".to_string(),
+                    field: title_field,
                     term: Term::String("howdy".to_string()),
                     scorer: TermScorer::default_with_boost(2.0f64),
                 },
                 Query::MatchTerm {
-                    field: "title".to_string(),
+                    field: title_field,
                     term: Term::String("partner".to_string()),
                     scorer: TermScorer::default_with_boost(2.0f64),
                 },
                 Query::MatchTerm {
-                    field: "title".to_string(),
+                    field: title_field,
                     term: Term::String("hello".to_string()),
                     scorer: TermScorer::default_with_boost(2.0f64),
                 }

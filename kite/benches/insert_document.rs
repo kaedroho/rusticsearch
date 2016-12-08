@@ -13,7 +13,6 @@ use kite::schema::{FieldType, FIELD_INDEXED};
 use kite::document::Document;
 use kite::store::{IndexStore, IndexReader};
 use kite::store::memory::{MemoryIndexStore, MemoryIndexStoreReader};
-use kite::query_set::QuerySetIterator;
 
 
 #[bench]
@@ -36,7 +35,7 @@ fn bench_insert_document(b: &mut Bencher) {
         store.insert_or_update_document(Document {
             key: i.to_string(),
             indexed_fields: hashmap! {
-                "body".to_string() => tokens.clone()
+                body_field => tokens.clone()
             },
             stored_fields: hashmap! {},
         });

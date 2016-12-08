@@ -2,6 +2,7 @@
 
 use rustc_serialize::json::Json;
 use kite::Query;
+use kite::schema::Schema;
 
 use query_parser::{QueryParseContext, QueryParseError, QueryBuilder, parse as parse_query};
 
@@ -14,15 +15,15 @@ struct FilteredQueryBuilder {
 
 
 impl QueryBuilder for FilteredQueryBuilder {
-    fn build(&self) -> Query {
+    fn build(&self, schema: &Schema) -> Query {
         let query = match self.query {
-            Some(ref query) => query.build(),
+            Some(ref query) => query.build(schema),
             None => Query::new_match_all(),
         };
 
         Query::Filter {
             query: Box::new(query),
-            filter: Box::new(self.filter.build()),
+            filter: Box::new(self.filter.build(schema)),
         }
     }
 }
@@ -65,6 +66,7 @@ mod tests {
     use rustc_serialize::json::Json;
 
     use kite::{Term, Query, TermScorer};
+    use kite::schema::{Schema, FieldType, FIELD_INDEXED};
 
     use query_parser::{QueryParseContext, QueryParseError};
 
@@ -72,6 +74,9 @@ mod tests {
 
     #[test]
     fn test_filtered_query() {
+        let mut schema = Schema::new();
+        let the_field = schema.add_field("the".to_string(), FieldType::Text, FIELD_INDEXED).unwrap();
+
         let query = parse(&QueryParseContext::new(), &Json::from_str("
         {
             \"query\": {
@@ -85,16 +90,16 @@ mod tests {
                 }
             }
         }
-        ").unwrap()).and_then(|builder| Ok(builder.build()));
+        ").unwrap()).and_then(|builder| Ok(builder.build(&schema)));
 
         assert_eq!(query, Ok(Query::Filter {
             query: Box::new(Query::MatchTerm {
-                field: "the".to_string(),
+                field: the_field,
                 term: Term::String("query".to_string()),
                 scorer: TermScorer::default(),
             }),
             filter: Box::new(Query::MatchTerm {
-                field: "the".to_string(),
+                field: the_field,
                 term: Term::String("filter".to_string()),
                 scorer: TermScorer::default(),
             }),
@@ -103,6 +108,9 @@ mod tests {
 
     #[test]
     fn test_without_sub_query() {
+        let mut schema = Schema::new();
+        let the_field = schema.add_field("the".to_string(), FieldType::Text, FIELD_INDEXED).unwrap();
+
         let query = parse(&QueryParseContext::new(), &Json::from_str("
         {
             \"filter\": {
@@ -111,12 +119,12 @@ mod tests {
                 }
             }
         }
-        ").unwrap()).and_then(|builder| Ok(builder.build()));
+        ").unwrap()).and_then(|builder| Ok(builder.build(&schema)));
 
         assert_eq!(query, Ok(Query::Filter {
             query: Box::new(Query::new_match_all()),
             filter: Box::new(Query::MatchTerm {
-                field: "the".to_string(),
+                field: the_field,
                 term: Term::String("filter".to_string()),
                 scorer: TermScorer::default(),
             }),

@@ -49,17 +49,7 @@ pub fn plan_score_function(index_reader: &RocksDBIndexReader, mut score_function
         Query::MatchNone => {
             score_function.push(ScoreFunctionOp::Literal(0.0f64));
         }
-        Query::MatchTerm{ref field, ref term, ref scorer} => {
-            // Get field
-            let field_ref = match index_reader.schema().get_field_by_name(field) {
-                Some(field_ref) => field_ref,
-                None => {
-                    // Field doesn't exist, so will never match
-                    score_function.push(ScoreFunctionOp::Literal(0.0f64));
-                    return
-                }
-            };
-
+        Query::MatchTerm{field, ref term, ref scorer} => {
             // Get term
             let term_bytes = term.to_bytes();
             let term_ref = match index_reader.store.term_dictionary.get(&term_bytes) {
@@ -71,23 +61,13 @@ pub fn plan_score_function(index_reader: &RocksDBIndexReader, mut score_function
                 }
             };
 
-            score_function.push(ScoreFunctionOp::TermScorer(field_ref, term_ref, scorer.clone()));
+            score_function.push(ScoreFunctionOp::TermScorer(field, term_ref, scorer.clone()));
         }
-        Query::MatchMultiTerm{ref field, ref term_selector, ref scorer} => {
-            // Get field
-            let field_ref = match index_reader.schema().get_field_by_name(field) {
-                Some(field_ref) => field_ref,
-                None => {
-                    // Field doesn't exist, so will never match
-                    score_function.push(ScoreFunctionOp::Literal(0.0f64));
-                    return
-                }
-            };
-
+        Query::MatchMultiTerm{field, ref term_selector, ref scorer} => {
             // Get terms
             let mut total_terms = 0;
             for term_ref in index_reader.store.term_dictionary.select(term_selector) {
-                score_function.push(ScoreFunctionOp::TermScorer(field_ref, term_ref, scorer.clone()));
+                score_function.push(ScoreFunctionOp::TermScorer(field, term_ref, scorer.clone()));
                 total_terms += 1;
             }
 

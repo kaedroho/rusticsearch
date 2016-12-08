@@ -2,6 +2,7 @@
 
 use rustc_serialize::json::Json;
 use kite::Query;
+use kite::schema::Schema;
 
 use query_parser::{QueryParseContext, QueryParseError, QueryBuilder, parse as parse_query};
 
@@ -13,10 +14,10 @@ struct NotQueryBuilder {
 
 
 impl QueryBuilder for NotQueryBuilder {
-    fn build(&self) -> Query {
+    fn build(&self, schema: &Schema) -> Query {
         Query::Exclude {
             query: Box::new(Query::new_match_all()),
-            exclude: Box::new(self.query.build()),
+            exclude: Box::new(self.query.build(schema)),
         }
     }
 }
@@ -34,6 +35,7 @@ mod tests {
     use rustc_serialize::json::Json;
 
     use kite::{Term, Query, TermScorer};
+    use kite::schema::{Schema, FieldType, FIELD_INDEXED};
 
     use query_parser::{QueryParseContext, QueryParseError};
 
@@ -41,18 +43,21 @@ mod tests {
 
     #[test]
     fn test_not_query() {
+        let mut schema = Schema::new();
+        let test_field = schema.add_field("test".to_string(), FieldType::Text, FIELD_INDEXED).unwrap();
+
         let query = parse(&QueryParseContext::new(), &Json::from_str("
         {
             \"term\": {
                 \"test\":  \"foo\"
             }
         }
-        ").unwrap()).and_then(|builder| Ok(builder.build()));
+        ").unwrap()).and_then(|builder| Ok(builder.build(&schema)));
 
         assert_eq!(query, Ok(Query::Exclude {
             query: Box::new(Query::new_match_all()),
             exclude: Box::new(Query::MatchTerm {
-                field: "test".to_string(),
+                field: test_field,
                 term: Term::String("foo".to_string()),
                 scorer: TermScorer::default(),
             }),
