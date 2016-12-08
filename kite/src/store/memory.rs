@@ -95,20 +95,18 @@ impl<'a> IndexStore<'a> for MemoryIndexStore {
         self.next_doc_id += 1;
 
         // Put field contents in inverted index
-        for (field_name, tokens) in doc.indexed_fields.iter() {
+        for (field_ref, tokens) in doc.indexed_fields.iter() {
             // Silently ignore unrecognised fields
             // TODO: Review this
-            if let Some(ref field_ref) = self.reader().schema().get_field_by_name(field_name) {
-                if let Some(field) = self.fields.get_mut(field_ref) {
-                    field.docs.insert(doc_id);
+            if let Some(field) = self.fields.get_mut(field_ref) {
+                field.docs.insert(doc_id);
 
-                    for token in tokens.iter() {
-                        field.num_tokens += 1;
+                for token in tokens.iter() {
+                    field.num_tokens += 1;
 
-                        let term_bytes = token.term.to_bytes();
-                        let mut term = field.terms.entry(term_bytes).or_insert_with(|| MemoryIndexStoreFieldTerm::new());
-                        term.docs.insert(doc_id);
-                    }
+                    let term_bytes = token.term.to_bytes();
+                    let mut term = field.terms.entry(term_bytes).or_insert_with(|| MemoryIndexStoreFieldTerm::new());
+                    term.docs.insert(doc_id);
                 }
             }
         }
@@ -264,17 +262,17 @@ mod tests {
 
     fn make_test_store() -> MemoryIndexStore {
         let mut store = MemoryIndexStore::new();
-        store.add_field("title".to_string(), FieldType::Text, FIELD_INDEXED).unwrap();
-        store.add_field("body".to_string(), FieldType::Text, FIELD_INDEXED).unwrap();
+        let title_field = store.add_field("title".to_string(), FieldType::Text, FIELD_INDEXED).unwrap();
+        let body_field = store.add_field("body".to_string(), FieldType::Text, FIELD_INDEXED).unwrap();
 
         store.insert_or_update_document(Document {
             key: "test_doc".to_string(),
             indexed_fields: hashmap! {
-                "title".to_string() => vec![
+                title_field => vec![
                     Token { term: Term::String("hello".to_string()), position: 1 },
                     Token { term: Term::String("world".to_string()), position: 2 },
                 ],
-                "body".to_string() => vec![
+                body_field => vec![
                     Token { term: Term::String("lorem".to_string()), position: 1 },
                     Token { term: Term::String("ipsum".to_string()), position: 2 },
                     Token { term: Term::String("dolar".to_string()), position: 3 },
@@ -286,11 +284,11 @@ mod tests {
         store.insert_or_update_document(Document {
             key: "test_doc".to_string(),
             indexed_fields: hashmap! {
-                "title".to_string() => vec![
+                title_field => vec![
                     Token { term: Term::String("howdy".to_string()), position: 1 },
                     Token { term: Term::String("partner".to_string()), position: 2 },
                 ],
-                "body".to_string() => vec![
+                body_field => vec![
                     Token { term: Term::String("lorem".to_string()), position: 1 },
                     Token { term: Term::String("ipsum".to_string()), position: 2 },
                     Token { term: Term::String("dolar".to_string()), position: 3 },

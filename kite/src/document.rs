@@ -5,6 +5,7 @@ use chrono::{DateTime, UTC, Timelike};
 use byteorder::{WriteBytesExt, BigEndian};
 
 use token::Token;
+use schema::FieldRef;
 
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Hash)]
@@ -94,6 +95,6 @@ impl FieldValue {
 #[derive(Debug)]
 pub struct Document {
     pub key: String,
-    pub indexed_fields: HashMap<String, Vec<Token>>,
-    pub stored_fields: HashMap<String, FieldValue>,
+    pub indexed_fields: HashMap<FieldRef, Vec<Token>>,
+    pub stored_fields: HashMap<FieldRef, FieldValue>,
 }
