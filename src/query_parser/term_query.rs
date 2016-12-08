@@ -3,11 +3,35 @@
 use rustc_serialize::json::Json;
 use kite::{Term, Query, TermScorer};
 
-use query_parser::{QueryParseContext, QueryParseError};
+use query_parser::{QueryParseContext, QueryParseError, QueryBuilder};
 use query_parser::utils::parse_float;
 
 
-pub fn parse(_context: &QueryParseContext, json: &Json) -> Result<Query, QueryParseError> {
+#[derive(Debug)]
+struct TermQueryBuilder {
+    field: String,
+    term: Term,
+    boost: f64,
+}
+
+
+impl QueryBuilder for TermQueryBuilder {
+    fn build(&self) -> Query {
+        let mut query = Query::MatchTerm {
+            field: self.field.clone(),
+            term: self.term.clone(),
+            scorer: TermScorer::default(),
+        };
+
+        // Add boost
+        query.boost(self.boost);
+
+        query
+    }
+}
+
+
+pub fn parse(_context: &QueryParseContext, json: &Json) -> Result<Box<QueryBuilder>, QueryParseError> {
     let object = try!(json.as_object().ok_or(QueryParseError::ExpectedObject));
 
     let field_name = if object.len() == 1 {
@@ -45,16 +69,11 @@ pub fn parse(_context: &QueryParseContext, json: &Json) -> Result<Query, QueryPa
 
     match term {
         Some(term) => {
-            let mut query = Query::MatchTerm {
+            Ok(Box::new(TermQueryBuilder {
                 field: field_name.clone(),
                 term: term,
-                scorer: TermScorer::default(),
-            };
-
-            // Add boost
-            query.boost(boost);
-
-            Ok(query)
+                boost: boost,
+            }))
         }
         None => Err(QueryParseError::ExpectedKey("value"))
     }
@@ -79,7 +98,7 @@ mod tests {
                 \"value\": \"bar\"
             }
         }
-        ").unwrap());
+        ").unwrap()).and_then(|builder| Ok(builder.build()));
 
         assert_eq!(query, Ok(Query::MatchTerm {
             field: "foo".to_string(),
@@ -96,7 +115,7 @@ mod tests {
                 \"value\": 123
             }
         }
-        ").unwrap());
+        ").unwrap()).and_then(|builder| Ok(builder.build()));
 
         assert_eq!(query, Ok(Query::MatchTerm {
             field: "foo".to_string(),
@@ -111,7 +130,7 @@ mod tests {
         {
             \"foo\": \"bar\"
         }
-        ").unwrap());
+        ").unwrap()).and_then(|builder| Ok(builder.build()));
 
         assert_eq!(query, Ok(Query::MatchTerm {
             field: "foo".to_string(),
@@ -129,7 +148,7 @@ mod tests {
                 \"boost\": 2.0
             }
         }
-        ").unwrap());
+        ").unwrap()).and_then(|builder| Ok(builder.build()));
 
         assert_eq!(query, Ok(Query::MatchTerm {
             field: "foo".to_string(),
@@ -147,7 +166,7 @@ mod tests {
                 \"boost\": 2
             }
         }
-        ").unwrap());
+        ").unwrap()).and_then(|builder| Ok(builder.build()));
 
         assert_eq!(query, Ok(Query::MatchTerm {
             field: "foo".to_string(),
@@ -165,21 +184,21 @@ mod tests {
         ]
         ").unwrap());
 
-        assert_eq!(query, Err(QueryParseError::ExpectedObject));
+        assert_eq!(query.err(), Some(QueryParseError::ExpectedObject));
 
         // Integer
         let query = parse(&QueryParseContext::new(), &Json::from_str("
         123
         ").unwrap());
 
-        assert_eq!(query, Err(QueryParseError::ExpectedObject));
+        assert_eq!(query.err(), Some(QueryParseError::ExpectedObject));
 
         // Float
         let query = parse(&QueryParseContext::new(), &Json::from_str("
         123.1234
         ").unwrap());
 
-        assert_eq!(query, Err(QueryParseError::ExpectedObject));
+        assert_eq!(query.err(), Some(QueryParseError::ExpectedObject));
     }
 
     #[test]
@@ -194,7 +213,7 @@ mod tests {
         }
         ").unwrap());
 
-        assert_eq!(query, Err(QueryParseError::ExpectedFloat));
+        assert_eq!(query.err(), Some(QueryParseError::ExpectedFloat));
 
         // Array
         let query = parse(&QueryParseContext::new(), &Json::from_str("
@@ -206,7 +225,7 @@ mod tests {
         }
         ").unwrap());
 
-        assert_eq!(query, Err(QueryParseError::ExpectedFloat));
+        assert_eq!(query.err(), Some(QueryParseError::ExpectedFloat));
 
         // Object
         let query = parse(&QueryParseContext::new(), &Json::from_str("
@@ -220,7 +239,7 @@ mod tests {
         }
         ").unwrap());
 
-        assert_eq!(query, Err(QueryParseError::ExpectedFloat));
+        assert_eq!(query.err(), Some(QueryParseError::ExpectedFloat));
     }
 
     #[test]
@@ -232,7 +251,7 @@ mod tests {
         }
         ").unwrap());
 
-        assert_eq!(query, Err(QueryParseError::ExpectedKey("value")));
+        assert_eq!(query.err(), Some(QueryParseError::ExpectedKey("value")));
     }
 
     #[test]
@@ -246,7 +265,7 @@ mod tests {
         }
         ").unwrap());
 
-        assert_eq!(query, Err(QueryParseError::ExpectedSingleKey));
+        assert_eq!(query.err(), Some(QueryParseError::ExpectedSingleKey));
     }
 
     #[test]
@@ -260,6 +279,6 @@ mod tests {
         }
         ").unwrap());
 
-        assert_eq!(query, Err(QueryParseError::UnrecognisedKey("hello".to_string())));
+        assert_eq!(query.err(), Some(QueryParseError::UnrecognisedKey("hello".to_string())));
     }
 }

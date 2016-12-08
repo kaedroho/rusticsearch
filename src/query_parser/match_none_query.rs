@@ -3,10 +3,21 @@
 use rustc_serialize::json::Json;
 use kite::Query;
 
-use query_parser::{QueryParseContext, QueryParseError};
+use query_parser::{QueryParseContext, QueryParseError, QueryBuilder};
 
 
-pub fn parse(_context: &QueryParseContext, json: &Json) -> Result<Query, QueryParseError> {
+#[derive(Debug)]
+struct MatchNoneQueryBuilder;
+
+
+impl QueryBuilder for MatchNoneQueryBuilder {
+    fn build(&self) -> Query {
+        Query::MatchNone
+    }
+}
+
+
+pub fn parse(_context: &QueryParseContext, json: &Json) -> Result<Box<QueryBuilder>, QueryParseError> {
     let object = try!(json.as_object().ok_or(QueryParseError::ExpectedObject));
 
     // Get configuration
@@ -16,7 +27,7 @@ pub fn parse(_context: &QueryParseContext, json: &Json) -> Result<Query, QueryPa
         }
     }
 
-    Ok(Query::MatchNone)
+    Ok(Box::new(MatchNoneQueryBuilder))
 }
 
 
@@ -35,7 +46,7 @@ mod tests {
         let query = parse(&QueryParseContext::new(), &Json::from_str("
         {
         }
-        ").unwrap());
+        ").unwrap()).and_then(|builder| Ok(builder.build()));
 
         assert_eq!(query, Ok(Query::MatchNone))
     }
@@ -49,21 +60,21 @@ mod tests {
         ]
         ").unwrap());
 
-        assert_eq!(query, Err(QueryParseError::ExpectedObject));
+        assert_eq!(query.err(), Some(QueryParseError::ExpectedObject));
 
         // Integer
         let query = parse(&QueryParseContext::new(), &Json::from_str("
         123
         ").unwrap());
 
-        assert_eq!(query, Err(QueryParseError::ExpectedObject));
+        assert_eq!(query.err(), Some(QueryParseError::ExpectedObject));
 
         // Float
         let query = parse(&QueryParseContext::new(), &Json::from_str("
         123.1234
         ").unwrap());
 
-        assert_eq!(query, Err(QueryParseError::ExpectedObject));
+        assert_eq!(query.err(), Some(QueryParseError::ExpectedObject));
     }
 
     #[test]
@@ -74,6 +85,6 @@ mod tests {
         }
         ").unwrap());
 
-        assert_eq!(query, Err(QueryParseError::UnrecognisedKey("hello".to_string())));
+        assert_eq!(query.err(), Some(QueryParseError::UnrecognisedKey("hello".to_string())));
     }
 }

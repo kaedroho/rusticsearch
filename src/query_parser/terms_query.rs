@@ -3,10 +3,34 @@
 use rustc_serialize::json::Json;
 use kite::{Term, Query, TermScorer};
 
-use query_parser::{QueryParseContext, QueryParseError};
+use query_parser::{QueryParseContext, QueryParseError, QueryBuilder};
 
 
-pub fn parse(_context: &QueryParseContext, json: &Json) -> Result<Query, QueryParseError> {
+#[derive(Debug)]
+struct TermsQueryBuilder {
+    field: String,
+    terms: Vec<Term>,
+}
+
+
+impl QueryBuilder for TermsQueryBuilder {
+    fn build(&self) -> Query {
+        // Create a term query for each token
+        let mut queries = Vec::new();
+        for term in self.terms.iter() {
+            queries.push(Query::MatchTerm {
+                field: self.field.clone(),
+                term: term.clone(),
+                scorer: TermScorer::default(),
+            });
+        }
+
+        Query::new_disjunction(queries)
+    }
+}
+
+
+pub fn parse(_context: &QueryParseContext, json: &Json) -> Result<Box<QueryBuilder>, QueryParseError> {
     let object = try!(json.as_object().ok_or(QueryParseError::ExpectedObject));
 
     let field_name = if object.len() == 1 {
@@ -16,28 +40,16 @@ pub fn parse(_context: &QueryParseContext, json: &Json) -> Result<Query, QueryPa
     };
 
     // Get configuration
-    let terms = if let Json::Array(ref arr) = object[field_name] {
-        arr.clone()
+    let terms: Vec<Term> = if let Json::Array(ref arr) = object[field_name] {
+        arr.iter().filter_map(|term| Term::from_json(&term)).collect()
     } else {
         return Err(QueryParseError::ExpectedArray);
     };
 
-    // Create a term query for each token
-    let mut sub_queries = Vec::new();
-    for term in terms {
-        match Term::from_json(&term) {
-            Some(term) => {
-                sub_queries.push(Query::MatchTerm {
-                    field: field_name.clone(),
-                    term: term,
-                    scorer: TermScorer::default(),
-                });
-            }
-            None => return Err(QueryParseError::InvalidValue)
-        }
-    }
-
-    Ok(Query::new_disjunction(sub_queries))
+    Ok(Box::new(TermsQueryBuilder {
+        field: field_name.clone(),
+        terms: terms,
+    }))
 }
 
 
@@ -57,7 +69,7 @@ mod tests {
         {
             \"foo\": [\"bar\", \"baz\"]
         }
-        ").unwrap());
+        ").unwrap()).and_then(|builder| Ok(builder.build()));
 
         assert_eq!(query, Ok(Query::Disjunction {
             queries: vec![
@@ -84,21 +96,21 @@ mod tests {
         ]
         ").unwrap());
 
-        assert_eq!(query, Err(QueryParseError::ExpectedObject));
+        assert_eq!(query.err(), Some(QueryParseError::ExpectedObject));
 
         // Integer
         let query = parse(&QueryParseContext::new(), &Json::from_str("
         123
         ").unwrap());
 
-        assert_eq!(query, Err(QueryParseError::ExpectedObject));
+        assert_eq!(query.err(), Some(QueryParseError::ExpectedObject));
 
         // Float
         let query = parse(&QueryParseContext::new(), &Json::from_str("
         123.1234
         ").unwrap());
 
-        assert_eq!(query, Err(QueryParseError::ExpectedObject));
+        assert_eq!(query.err(), Some(QueryParseError::ExpectedObject));
     }
 
     #[test]
@@ -112,7 +124,7 @@ mod tests {
         }
         ").unwrap());
 
-        assert_eq!(query, Err(QueryParseError::ExpectedArray));
+        assert_eq!(query.err(), Some(QueryParseError::ExpectedArray));
 
         // String
         let query = parse(&QueryParseContext::new(), &Json::from_str("
@@ -121,7 +133,7 @@ mod tests {
         }
         ").unwrap());
 
-        assert_eq!(query, Err(QueryParseError::ExpectedArray));
+        assert_eq!(query.err(), Some(QueryParseError::ExpectedArray));
     }
 
     #[test]
@@ -131,7 +143,7 @@ mod tests {
         }
         ").unwrap());
 
-        assert_eq!(query, Err(QueryParseError::ExpectedSingleKey));
+        assert_eq!(query.err(), Some(QueryParseError::ExpectedSingleKey));
     }
 
     #[test]
@@ -143,6 +155,6 @@ mod tests {
         }
         ").unwrap());
 
-        assert_eq!(query, Err(QueryParseError::ExpectedSingleKey));
+        assert_eq!(query.err(), Some(QueryParseError::ExpectedSingleKey));
     }
 }
