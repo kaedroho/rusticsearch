@@ -10,6 +10,9 @@ maplit = "0.1.3"
 byteorder = "0.5"
 chrono = "0.2"
 
+[dev-dependencies]
+rayon = "0.4.3"
+
 [dependencies.kite]
 path = "../kite"
 version = "0.0.2"
