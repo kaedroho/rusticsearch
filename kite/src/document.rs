@@ -37,7 +37,7 @@ impl DocRef {
 }
 
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum FieldValue {
     String(String),
     Integer(i64),
@@ -92,7 +92,7 @@ impl FieldValue {
 }
 
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Document {
     pub key: String,
     pub indexed_fields: HashMap<FieldRef, Vec<Token>>,
