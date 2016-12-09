@@ -135,13 +135,13 @@ pub fn view_search(req: &mut Request) -> IronResult<Response> {
                                                     for &(ref field_name, field_ref) in fields.iter() {
                                                         let value = match index_reader.read_stored_field(field_ref, DocRef::from_u64(doc_match.doc_id())) {
                                                             Ok(Some(value)) => {
-                                                                value.as_json()
+                                                                Json::Array(vec![value.as_json()])
                                                             }
                                                             Ok(None) => Json::Array(vec![]),
                                                             Err(_) => Json::Array(vec![]),
                                                         };
 
-                                                        field_values.insert(field_name.clone(), Json::Array(vec![value]));
+                                                        field_values.insert(field_name.clone(), value);
                                                     }
 
                                                     let mut hit = BTreeMap::new();
