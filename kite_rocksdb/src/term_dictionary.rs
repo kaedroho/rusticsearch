@@ -4,7 +4,7 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 use std::collections::BTreeMap;
 
 use rocksdb::{self, DB};
-use kite::{Term, TermRef};
+use kite::TermRef;
 use kite::query::term_selector::TermSelector;
 
 use key_builder::KeyBuilder;
@@ -86,10 +86,8 @@ impl TermDictionaryManager {
 
     /// Retrieves the TermRef for the given term, adding the term to the
     /// dictionary if it doesn't exist
-    pub fn get_or_create(&self, db: &DB, term: &Term) -> Result<TermRef, rocksdb::Error> {
-        let term_bytes = term.to_bytes();
-
-        if let Some(term_ref) = self.get(&term_bytes) {
+    pub fn get_or_create(&self, db: &DB, term: Vec<u8>) -> Result<TermRef, rocksdb::Error> {
+        if let Some(term_ref) = self.get(&term) {
             return Ok(term_ref);
         }
 
@@ -111,16 +109,16 @@ impl TermDictionaryManager {
         // It's possible that another thread has written the term to the dictionary
         // since we checked earlier. If this is the case, We should forget about
         // writing our TermRef and use the one that has been inserted already.
-        if let Some(term_ref) = self.terms.read().unwrap().get(&term_bytes) {
+        if let Some(term_ref) = self.terms.read().unwrap().get(&term) {
             return Ok(*term_ref);
         }
 
         // Write it to the on-disk term dictionary
-        let kb = KeyBuilder::term_dict_mapping(&term_bytes);
+        let kb = KeyBuilder::term_dict_mapping(&term);
         try!(db.put(kb.key(), next_term_ref.to_string().as_bytes()));
 
         // Write it to the term dictionary
-        self.terms.write().unwrap().insert(term_bytes, term_ref);;
+        self.terms.write().unwrap().insert(term, term_ref);;
 
         Ok(term_ref)
     }
