@@ -1,5 +1,5 @@
 use std::str;
-use std::sync::RwLock;
+use std::sync::{Mutex, RwLock};
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::collections::BTreeMap;
 
@@ -20,6 +20,7 @@ use key_builder::KeyBuilder;
 pub struct TermDictionaryManager {
     next_term_ref: AtomicUsize,
     terms: RwLock<BTreeMap<Vec<u8>, TermRef>>,
+    write_lock: Mutex<i32>,
 }
 
 
@@ -33,6 +34,7 @@ impl TermDictionaryManager {
         Ok(TermDictionaryManager {
             next_term_ref: AtomicUsize::new(1),
             terms: RwLock::new(BTreeMap::new()),
+            write_lock: Mutex::new(0),
         })
     }
 
@@ -63,6 +65,7 @@ impl TermDictionaryManager {
         Ok(TermDictionaryManager {
             next_term_ref: AtomicUsize::new(next_term_ref as usize),
             terms: RwLock::new(terms),
+            write_lock: Mutex::new(0),
         })
     }
 
@@ -99,13 +102,16 @@ impl TermDictionaryManager {
         // Create term ref
         let term_ref = TermRef::new(next_term_ref);
 
-        // Get exclusive lock to term dictionary
-        let mut terms = self.terms.write().unwrap();
+        // Get write lock
+        // Note: We have a separate lock so we don't need to keep an exclusive
+        // lock on the in-memory term dictionary while writing to disk, as this
+        // blocks readers.
+        let _guard = self.write_lock.lock().unwrap();
 
         // It's possible that another thread has written the term to the dictionary
         // since we checked earlier. If this is the case, We should forget about
         // writing our TermRef and use the one that has been inserted already.
-        if let Some(term_ref) = terms.get(&term_bytes) {
+        if let Some(term_ref) = self.terms.read().unwrap().get(&term_bytes) {
             return Ok(*term_ref);
         }
 
@@ -114,7 +120,7 @@ impl TermDictionaryManager {
         try!(db.put(kb.key(), next_term_ref.to_string().as_bytes()));
 
         // Write it to the term dictionary
-        terms.insert(term_bytes, term_ref);
+        self.terms.write().unwrap().insert(term_bytes, term_ref);;
 
         Ok(term_ref)
     }
