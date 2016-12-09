@@ -104,11 +104,6 @@ impl KeyBuilder {
         stat_name
     }
 
-    pub fn segment_stat_term_doc_frequency(segment: u32, field_ord: u32, term_ord: u32) -> KeyBuilder {
-        let stat_name = KeyBuilder::segment_stat_term_doc_frequency_stat_name(field_ord, term_ord);
-        KeyBuilder::segment_stat(segment, &stat_name)
-    }
-
     pub fn segment_stat_total_field_tokens_stat_name(field_ord: u32) -> Vec<u8> {
         let mut stat_name = Vec::new();
         for c in b"fttok" {
@@ -124,11 +119,6 @@ impl KeyBuilder {
         stat_name
     }
 
-    pub fn segment_stat_total_field_tokens(segment: u32, field_ord: u32) -> KeyBuilder {
-        let stat_name = KeyBuilder::segment_stat_total_field_tokens_stat_name(field_ord);
-        KeyBuilder::segment_stat(segment, &stat_name)
-    }
-
     pub fn segment_stat_total_field_docs_stat_name(field_ord: u32) -> Vec<u8> {
         let mut stat_name = Vec::new();
         for c in b"ftdoc" {
@@ -142,11 +132,6 @@ impl KeyBuilder {
         }
 
         stat_name
-    }
-
-    pub fn segment_stat_total_field_docs(segment: u32, field_ord: u32) -> KeyBuilder {
-        let stat_name = KeyBuilder::segment_stat_total_field_docs_stat_name(field_ord);
-        KeyBuilder::segment_stat(segment, &stat_name)
     }
 
     pub fn segment_del_list(segment: u32) -> KeyBuilder {

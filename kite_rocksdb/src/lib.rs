@@ -23,7 +23,7 @@ use std::sync::Arc;
 use std::collections::HashMap;
 
 use rocksdb::{DB, WriteBatch, Options, MergeOperands, Snapshot};
-use kite::{Document, DocRef};
+use kite::{Document, DocRef, TermRef};
 use kite::document::FieldValue;
 use kite::schema::{Schema, FieldType, FieldFlags, FieldRef, AddFieldError};
 use rustc_serialize::json;
@@ -93,17 +93,26 @@ fn merge_keys(key: &[u8], existing_val: Option<&[u8]>, operands: &mut MergeOpera
 
 #[derive(Debug)]
 pub enum DocumentInsertError {
-    /// The specified field name doesn't exist
-    FieldDoesntExist(String),
-
     /// A RocksDB error occurred
     RocksDBError(rocksdb::Error),
+
+    /// The segment is full
+    SegmentFull,
 }
 
 
 impl From<rocksdb::Error> for DocumentInsertError {
     fn from(e: rocksdb::Error) -> DocumentInsertError {
         DocumentInsertError::RocksDBError(e)
+    }
+}
+
+
+impl From<segment_builder::DocumentInsertError> for DocumentInsertError {
+    fn from(e: segment_builder::DocumentInsertError) -> DocumentInsertError {
+        match e {
+            segment_builder::DocumentInsertError::SegmentFull => DocumentInsertError::SegmentFull,
+        }
     }
 }
 
@@ -222,89 +231,56 @@ impl RocksDBIndexStore {
         let kb = KeyBuilder::segment_active(doc_ref.segment());
         try!(write_batch.put(&kb.key(), b""));
 
-        // Insert contents
+        // Build segment in memory
+        let mut builder = segment_builder::SegmentBuilder::new();
+        let doc_key = doc.key.clone();
+        try!(builder.add_document(doc));
 
-        // Indexed fields
-        let mut term_frequencies = HashMap::new();
-        for (field, tokens) in doc.indexed_fields.iter() {
-            let mut field_token_count = 0;
+        // Merge the term dictionary
+        // Writes new terms to disk and generates mapping between the builder's term dictionary and the real one
+        let mut term_dictionary_map: HashMap<TermRef, TermRef> = HashMap::new();
+        for (term, current_term_ref) in builder.term_dictionary.iter() {
+            let new_term_ref = try!(self.term_dictionary.get_or_create(&self.db, term.clone()));
+            term_dictionary_map.insert(*current_term_ref, new_term_ref);
+        }
 
-            for token in tokens.iter() {
-                field_token_count += 1;
+        // Write term directories
+        for (&(field_ref, term_ref), doc_ids) in builder.term_directories.iter() {
+            let new_term_ref = term_dictionary_map.get(&term_ref).expect("TermRef not in term_dictionary_map");
 
-                let term_ref = try!(self.term_dictionary.get_or_create(&self.db, &token.term));
-
-                // Term frequency
-                let mut term_frequency = term_frequencies.entry(term_ref).or_insert(0);
-                *term_frequency += 1;
-
-                // Write directory list
-                let kb = KeyBuilder::segment_dir_list(doc_ref.segment(), field.ord(), term_ref.ord());
+            // Convert doc_id list to bytes
+            let mut doc_ids_bytes = Vec::with_capacity(doc_ids.len() * 2);
+            for doc_id in doc_ids.iter() {
                 let mut doc_id_bytes = [0; 2];
-                BigEndian::write_u16(&mut doc_id_bytes, doc_ref.ord());
-                try!(write_batch.merge(&kb.key(), &doc_id_bytes));
+                BigEndian::write_u16(&mut doc_id_bytes, *doc_id);
+                doc_ids_bytes.push(doc_id_bytes[0]);
+                doc_ids_bytes.push(doc_id_bytes[1]);
             }
 
-            // Term frequencies
-            for (term_ref, frequency) in term_frequencies.drain() {
-                // Write term frequency
-                // 1 is by far the most common frequency. At search time, we interpret a missing
-                // key as meaning there is a term frequency of 1
-                if frequency != 1 {
-                    let mut value_type = vec![b't', b'f'];
-                    value_type.extend(term_ref.ord().to_string().as_bytes());
-                    let kb = KeyBuilder::stored_field_value(doc_ref.segment(), doc_ref.ord(), field.ord(), &value_type);
-                    let mut frequency_bytes = [0; 8];
-                    BigEndian::write_i64(&mut frequency_bytes, frequency);
-                    try!(write_batch.merge(&kb.key(), &frequency_bytes));
-                }
-
-                // Increment term document frequency
-                let kb = KeyBuilder::segment_stat_term_doc_frequency(doc_ref.segment(), field.ord(), term_ref.ord());
-                let mut inc_bytes = [0; 8];
-                BigEndian::write_i64(&mut inc_bytes, 1);
-                try!(write_batch.merge(&kb.key(), &inc_bytes));
-            }
-
-            // Field length
-            // Used by the BM25 similarity model
-            let length = ((field_token_count as f64).sqrt() - 1.0) * 3.0;
-            let length = if length > 255.0 { 255.0 } else { length } as u8;
-            if length != 0 {
-                let kb = KeyBuilder::stored_field_value(doc_ref.segment(), doc_ref.ord(), field.ord(), b"len");
-                try!(write_batch.merge(&kb.key(), &[length]));
-            }
-
-            // Increment total field docs
-            let kb = KeyBuilder::segment_stat_total_field_docs(doc_ref.segment(), field.ord());
-            let mut inc_bytes = [0; 8];
-            BigEndian::write_i64(&mut inc_bytes, 1);
-            try!(write_batch.merge(&kb.key(), &inc_bytes));
-
-            // Increment total field tokens
-            let kb = KeyBuilder::segment_stat_total_field_tokens(doc_ref.segment(), field.ord());
-            let mut inc_bytes = [0; 8];
-            BigEndian::write_i64(&mut inc_bytes, field_token_count);
-            try!(write_batch.merge(&kb.key(), &inc_bytes));
+            let kb = KeyBuilder::segment_dir_list(segment, field_ref.ord(), new_term_ref.ord());
+            try!(write_batch.put(&kb.key(), &doc_ids_bytes));
         }
 
-        // Stored fields
-        for (field, value) in doc.stored_fields.iter() {
-            let kb = KeyBuilder::stored_field_value(doc_ref.segment(), doc_ref.ord(), field.ord(), b"val");
-            try!(write_batch.merge(&kb.key(), &value.to_bytes()));
+        // Write stored fields
+        for (&(field_ref, doc_id, ref value_type), value) in builder.stored_field_values.iter() {
+            let kb = KeyBuilder::stored_field_value(segment, doc_id, field_ref.ord(), value_type);
+            try!(write_batch.put(&kb.key(), value));
         }
 
-        // Increment total docs
-        let kb = KeyBuilder::segment_stat(doc_ref.segment(), b"total_docs");
-        let mut inc_bytes = [0; 8];
-        BigEndian::write_i64(&mut inc_bytes, 1);
-        try!(write_batch.merge(&kb.key(), &inc_bytes));
+        // Write statistics
+        for (name, value) in builder.statistics.iter() {
+            let kb = KeyBuilder::segment_stat(segment, name);
+
+            let mut value_bytes = [0; 8];
+            BigEndian::write_i64(&mut value_bytes, *value);
+            try!(write_batch.put(&kb.key(), &value_bytes));
+        }
 
         // Write document data
          try!(self.db.write(write_batch));
 
         // Update document index
-        try!(self.document_index.insert_or_replace_key(&self.db, &doc.key.as_bytes().iter().cloned().collect(), doc_ref));
+        try!(self.document_index.insert_or_replace_key(&self.db, &doc_key.as_bytes().iter().cloned().collect(), doc_ref));
 
         Ok(())
     }
