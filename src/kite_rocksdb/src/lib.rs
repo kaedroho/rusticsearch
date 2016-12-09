@@ -1,6 +1,7 @@
 extern crate kite;
 extern crate rocksdb;
 extern crate rustc_serialize;
+extern crate capnp;
 #[macro_use]
 extern crate maplit;
 extern crate byteorder;
@@ -8,6 +9,7 @@ extern crate chrono;
 
 mod key_builder;
 mod segment;
+mod compact_segment;
 mod segment_manager;
 mod segment_ops;
 mod segment_stats;
@@ -15,6 +17,10 @@ mod segment_builder;
 mod term_dictionary;
 mod document_index;
 mod search;
+
+mod compact_segment_capnp {
+    include!(concat!(env!("OUT_DIR"), "/compact_segment_capnp.rs"));
+}
 
 use std::str;
 use std::fmt;
@@ -212,6 +218,10 @@ impl RocksDBIndexStore {
     }
 
     pub fn insert_or_update_document(&self, doc: Document) -> Result<(), DocumentInsertError> {
+
+        println!("{:?}", compact_segment::document_into_compact_segment(doc.clone()));
+
+
         // Allocate a new segment for the document
         // Segment merges are very slow so we should avoid doing them at runtime
         // which is why each new document is created in a fresh segment.
