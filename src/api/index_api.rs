@@ -103,7 +103,12 @@ pub fn view_delete_index(req: &mut Request) -> IronResult<Response> {
     let mut indices_dir = system.get_indices_dir();
     indices_dir.push(index_name);
     indices_dir.set_extension("rsi");
-    fs::remove_dir_all(&indices_dir).unwrap();
+    match fs::remove_dir_all(&indices_dir) {
+        Ok(()) => {},
+        Err(e) => {
+            system.log.warn("[api] failed to delete index data", b!("index" => *index_name, "error" => format!("{}", e)));
+        }
+    }
 
     system.log.info("[api] deleted index", b!("index" => *index_name));
 
