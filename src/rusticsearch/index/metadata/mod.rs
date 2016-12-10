@@ -107,8 +107,9 @@ impl IndexMetaData {
     pub fn get_field_mapping(&self, name: &str) -> Option<&FieldMapping> {
         for mapping in self.mappings.values() {
             if let Some(property) = mapping.properties.get(name) {
-                let MappingProperty::Field(ref field_mapping) = *property;
-                return Some(field_mapping);
+                if let MappingProperty::Field(ref field_mapping) = *property {
+                    return Some(field_mapping);
+                }
             }
         }
 

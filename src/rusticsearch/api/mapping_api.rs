@@ -57,41 +57,41 @@ pub fn view_put_mapping(req: &mut Request) -> IronResult<Response> {
         let schema = index_reader.schema();
         let mut new_fields: HashMap<String, (FieldType, FieldFlags)>  = HashMap::new();
         for (name, property) in mapping.properties.iter() {
-            let MappingProperty::Field(ref field_mapping) = *property;
+            if let MappingProperty::Field(ref field_mapping) = *property {
+                let field_type = match field_mapping.data_type {
+                    mapping::FieldType::String => FieldType::Text,
+                    mapping::FieldType::Integer => FieldType::I64,
+                    mapping::FieldType::Boolean => FieldType::Boolean,
+                    mapping::FieldType::Date => FieldType::DateTime,
+                };
 
-            let field_type = match field_mapping.data_type {
-                mapping::FieldType::String => FieldType::Text,
-                mapping::FieldType::Integer => FieldType::I64,
-                mapping::FieldType::Boolean => FieldType::Boolean,
-                mapping::FieldType::Date => FieldType::DateTime,
-            };
+                // Flags
+                let mut field_flags = FieldFlags::empty();
 
-            // Flags
-            let mut field_flags = FieldFlags::empty();
-
-            if field_mapping.is_indexed {
-                field_flags |= FIELD_INDEXED;
-            }
-
-            if field_mapping.is_stored {
-                field_flags |= FIELD_STORED;
-            }
-
-            // Check if this field already exists
-            if let Some(field_ref) = schema.get_field_by_name(&name) {
-                let field_info = schema.get(&field_ref).expect("get_field_by_name returned an invalid FieldRef");
-
-                // Field already exists. Check for conflicting type or flags, otherwise ignore.
-                if field_info.field_type == field_type && field_info.field_flags == field_flags {
-                    continue;
-                } else {
-                    // Conflict!
-                    // TODO: Better error
-                    return Ok(json_response(status::BadRequest, json!({"acknowledged": false})));
+                if field_mapping.is_indexed {
+                    field_flags |= FIELD_INDEXED;
                 }
-            }
 
-            new_fields.insert(name.clone(), (field_type, field_flags));
+                if field_mapping.is_stored {
+                    field_flags |= FIELD_STORED;
+                }
+
+                // Check if this field already exists
+                if let Some(field_ref) = schema.get_field_by_name(&name) {
+                    let field_info = schema.get(&field_ref).expect("get_field_by_name returned an invalid FieldRef");
+
+                    // Field already exists. Check for conflicting type or flags, otherwise ignore.
+                    if field_info.field_type == field_type && field_info.field_flags == field_flags {
+                        continue;
+                    } else {
+                        // Conflict!
+                        // TODO: Better error
+                        return Ok(json_response(status::BadRequest, json!({"acknowledged": false})));
+                    }
+                }
+
+                new_fields.insert(name.clone(), (field_type, field_flags));
+            }
         }
 
         new_fields
@@ -112,8 +112,9 @@ pub fn view_put_mapping(req: &mut Request) -> IronResult<Response> {
         let schema = index_reader.schema();
 
         for (name, property) in mapping.properties.iter_mut() {
-            let MappingProperty::Field(ref mut field_mapping) = *property;
-            field_mapping.index_ref = schema.get_field_by_name(&name)
+            if let MappingProperty::Field(ref mut field_mapping) = *property {
+                field_mapping.index_ref = schema.get_field_by_name(&name)
+            }
         }
     }
 

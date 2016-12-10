@@ -64,6 +64,9 @@ impl DocumentSource {
                         }
                     }
                 }
+                Some(&MappingProperty::NestedMapping(ref _nested_mapping)) => {
+                    // TODO
+                }
                 None => {
                     // No mapping found
                     // TODO: This should probably be an error
@@ -74,19 +77,17 @@ impl DocumentSource {
         // Insert _all field
         match mapping.properties.get("_all") {
             Some(property) => {
-                match *property {
-                    MappingProperty::Field(ref field_mapping) => {
-                        let strings_json = serde_json::Value::String(all_field_strings.join(" "));
-                        let value = field_mapping.process_value_for_index(strings_json.clone());
+                if let MappingProperty::Field(ref field_mapping) = *property {
+                    let strings_json = serde_json::Value::String(all_field_strings.join(" "));
+                    let value = field_mapping.process_value_for_index(strings_json.clone());
 
-                        match value {
-                            Some(value) => {
-                                indexed_fields.insert(field_mapping.index_ref.unwrap(), value);
-                            }
-                            None => {
-                                // TODO: Should probably be an error
-                                warn!("Unprocessable value: {}", strings_json);
-                            }
+                    match value {
+                        Some(value) => {
+                            indexed_fields.insert(field_mapping.index_ref.unwrap(), value);
+                        }
+                        None => {
+                            // TODO: Should probably be an error
+                            warn!("Unprocessable value: {}", strings_json);
                         }
                     }
                 }

@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use mapping::{Mapping, MappingProperty, FieldMapping, FieldType, get_standard_analyzer};
+use mapping::{Mapping, MappingProperty, FieldMapping, NestedMapping, FieldType, get_standard_analyzer};
 use index::metadata::IndexMetaData;
 
 
@@ -96,8 +96,39 @@ impl FieldMappingBuilder {
 
 
 #[derive(Debug, PartialEq)]
+pub struct NestedMappingBuilder {
+    pub properties: HashMap<String, FieldMappingBuilder>,
+}
+
+
+impl Default for NestedMappingBuilder {
+    fn default() -> NestedMappingBuilder {
+        NestedMappingBuilder {
+            properties: HashMap::new(),
+        }
+    }
+}
+
+
+impl NestedMappingBuilder {
+    pub fn build(&self, index_metadata: &IndexMetaData) -> NestedMapping {
+        // Insert fields
+        let mut properties = HashMap::new();
+        for (field_name, field_builder) in self.properties.iter() {
+            properties.insert(field_name.to_string(), field_builder.build(index_metadata));
+        }
+
+        NestedMapping {
+            properties: properties,
+        }
+    }
+}
+
+
+#[derive(Debug, PartialEq)]
 pub enum MappingPropertyBuilder {
     Field(FieldMappingBuilder),
+    NestedMapping(NestedMappingBuilder),
 }
 
 
@@ -115,6 +146,9 @@ impl MappingBuilder {
             match *builder {
                 MappingPropertyBuilder::Field(ref field_builder) => {
                      properties.insert(field_name.to_string(), MappingProperty::Field(field_builder.build(index_metadata)));
+                }
+                MappingPropertyBuilder::NestedMapping(ref nested_mapping_builder) => {
+                    properties.insert(field_name.to_string(), MappingProperty::NestedMapping(nested_mapping_builder.build(index_metadata)));
                 }
             }
         }

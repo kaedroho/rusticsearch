@@ -3,7 +3,7 @@ use std::collections::{HashMap, BTreeSet};
 use serde_json;
 
 use mapping::FieldType;
-use mapping::build::{MappingBuilder, MappingPropertyBuilder, FieldMappingBuilder};
+use mapping::build::{MappingBuilder, MappingPropertyBuilder, FieldMappingBuilder, NestedMappingBuilder};
 
 
 #[derive(Debug, PartialEq)]
@@ -41,6 +41,7 @@ pub enum MappingParseError {
     ExpectedKey(String),
     UnrecognisedKeys(Vec<String>),
     FieldMappingParseError(String, FieldMappingParseError),
+    NestedMappingParseError(String, Box<MappingParseError>),
 }
 
 
@@ -212,6 +213,43 @@ fn parse_field(json: &serde_json::Value) -> Result<FieldMappingBuilder, FieldMap
 }
 
 
+fn parse_nested_mapping(json: &serde_json::Value) -> Result<NestedMappingBuilder, MappingParseError> {
+    let mapping_object = try!(json.as_object().ok_or(MappingParseError::ExpectedObject));
+
+    // Check for unrecognised keys
+    let provided_keys = mapping_object.keys().cloned().collect::<BTreeSet<String>>();
+    let allowed_keys = btreeset![
+        "type".to_string(),
+        "properties".to_string(),
+    ];
+    let unrecognised_keys = provided_keys.difference(&allowed_keys).cloned().collect::<Vec<String>>();
+
+    if !unrecognised_keys.is_empty() {
+        return Err(MappingParseError::UnrecognisedKeys(unrecognised_keys));
+    }
+
+    // Parse properties
+    let properties_json = try!(mapping_object.get("properties").ok_or(MappingParseError::ExpectedKey("properties".to_string())));
+    let properties_object = try!(properties_json.as_object().ok_or(MappingParseError::ExpectedObject));
+    let mut properties = HashMap::new();
+
+    for (prop_name, prop_json) in properties_object {
+        match parse_field(prop_json) {
+            Ok(field) => {
+                properties.insert(prop_name.to_string(), field);
+            }
+            Err(e) => {
+                return Err(MappingParseError::FieldMappingParseError(prop_name.to_string(), e));
+            }
+        }
+    }
+
+    Ok(NestedMappingBuilder {
+        properties: properties,
+    })
+}
+
+
 pub fn parse(json: &serde_json::Value) -> Result<MappingBuilder, MappingParseError> {
     let mapping_object = try!(json.as_object().ok_or(MappingParseError::ExpectedObject));
 
@@ -231,13 +269,28 @@ pub fn parse(json: &serde_json::Value) -> Result<MappingBuilder, MappingParseErr
     let properties_object = try!(properties_json.as_object().ok_or(MappingParseError::ExpectedObject));
     let mut properties = HashMap::new();
 
-    for (field_name, field_json) in properties_object {
-        match parse_field(field_json) {
-            Ok(field) => {
-                properties.insert(field_name.to_string(), MappingPropertyBuilder::Field(field));
+    for (prop_name, prop_json) in properties_object {
+        let prop_object = try!(prop_json.as_object().ok_or(MappingParseError::FieldMappingParseError(prop_name.to_string(), FieldMappingParseError::ExpectedObject)));
+
+        if prop_object.get("type") == Some(&serde_json::Value::String("nested".to_string())) {
+            // Property is a nested mapping
+            match parse_nested_mapping(prop_json) {
+                Ok(mapping) => {
+                    properties.insert(prop_name.to_string(), MappingPropertyBuilder::NestedMapping(mapping));
+                }
+                Err(e) => {
+                    return Err(MappingParseError::NestedMappingParseError(prop_name.to_string(), Box::new(e)));
+                }
             }
-            Err(e) => {
-                return Err(MappingParseError::FieldMappingParseError(field_name.to_string(), e));
+        } else {
+            // Property is a field (or maybe invalid, which is handled by parse_field)
+            match parse_field(prop_json) {
+                Ok(field) => {
+                    properties.insert(prop_name.to_string(), MappingPropertyBuilder::Field(field));
+                }
+                Err(e) => {
+                    return Err(MappingParseError::FieldMappingParseError(prop_name.to_string(), e));
+                }
             }
         }
     }
@@ -253,7 +306,7 @@ mod tests {
     use serde_json;
 
     use mapping::FieldType;
-    use mapping::build::{FieldMappingBuilder, MappingPropertyBuilder, MappingBuilder};
+    use mapping::build::{FieldMappingBuilder, NestedMappingBuilder, MappingPropertyBuilder, MappingBuilder};
 
     use super::{MappingParseError, FieldMappingParseError, parse, parse_field};
 
@@ -275,6 +328,39 @@ mod tests {
                     FieldMappingBuilder {
                         field_type: FieldType::String,
                         ..FieldMappingBuilder::default()
+                    }
+                )
+            }
+        }));
+    }
+
+    #[test]
+    fn test_parse_nested() {
+        let mapping = parse(&serde_json::from_str("
+        {
+            \"properties\": {
+                \"myfield\": {
+                    \"type\": \"nested\",
+                    \"properties\": {
+                        \"foo\": {
+                            \"type\": \"string\"
+                        }
+                    }
+                }
+            }
+        }
+        ").unwrap());
+
+        assert_eq!(mapping, Ok(MappingBuilder {
+            properties: hashmap! {
+                "myfield".to_string() => MappingPropertyBuilder::NestedMapping(
+                    NestedMappingBuilder {
+                        properties: hashmap! {
+                            "foo".to_string() => FieldMappingBuilder {
+                                field_type: FieldType::String,
+                                ..FieldMappingBuilder::default()
+                            }
+                        }
                     }
                 )
             }
