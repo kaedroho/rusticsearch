@@ -6,6 +6,11 @@ description = "A lightweight, Elasticsearch-compatible search server (early WIP)
 readme = "README.md"
 license = "Apache-2.0"
 
+[[bin]]
+name = "rusticsearch"
+path = "src/rusticsearch/main.rs"
+
+
 [dependencies]
 iron = "0.4.0"
 router = "0.2.0"
