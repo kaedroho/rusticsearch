@@ -27,9 +27,9 @@ slog = "0.6"
 slog-term = "0.6"
 
 [dependencies.kite]
-path = "kite"
+path = "src/kite"
 version = "0.0.2"
 
 [dependencies.kite_rocksdb]
-path = "kite_rocksdb"
+path = "src/kite_rocksdb"
 version = "0.0.1"
