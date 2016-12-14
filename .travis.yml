@@ -16,6 +16,6 @@ addons:
       - g++-5
 
 script:
-  - cargo test --manifest-path=kite/Cargo.toml
-  - cargo test --manifest-path=kite_rocksdb/Cargo.toml
+  - cargo test --manifest-path=src/kite/Cargo.toml
+  - cargo test --manifest-path=src/kite_rocksdb/Cargo.toml
   - cargo test
