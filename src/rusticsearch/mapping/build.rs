@@ -97,7 +97,7 @@ impl FieldMappingBuilder {
 
 #[derive(Debug, PartialEq)]
 pub struct NestedMappingBuilder {
-    pub properties: HashMap<String, FieldMappingBuilder>,
+    pub properties: HashMap<String, MappingPropertyBuilder>,
 }
 
 
@@ -114,8 +114,15 @@ impl NestedMappingBuilder {
     pub fn build(&self, index_metadata: &IndexMetaData) -> NestedMapping {
         // Insert fields
         let mut properties = HashMap::new();
-        for (field_name, field_builder) in self.properties.iter() {
-            properties.insert(field_name.to_string(), field_builder.build(index_metadata));
+        for (field_name, builder) in self.properties.iter() {
+            match *builder {
+                MappingPropertyBuilder::Field(ref field_builder) => {
+                     properties.insert(field_name.to_string(), MappingProperty::Field(field_builder.build(index_metadata)));
+                }
+                MappingPropertyBuilder::NestedMapping(ref nested_mapping_builder) => {
+                    properties.insert(field_name.to_string(), MappingProperty::NestedMapping(Box::new(nested_mapping_builder.build(index_metadata))));
+                }
+            }
         }
 
         NestedMapping {
@@ -128,7 +135,7 @@ impl NestedMappingBuilder {
 #[derive(Debug, PartialEq)]
 pub enum MappingPropertyBuilder {
     Field(FieldMappingBuilder),
-    NestedMapping(NestedMappingBuilder),
+    NestedMapping(Box<NestedMappingBuilder>),
 }
 
 
@@ -148,7 +155,7 @@ impl MappingBuilder {
                      properties.insert(field_name.to_string(), MappingProperty::Field(field_builder.build(index_metadata)));
                 }
                 MappingPropertyBuilder::NestedMapping(ref nested_mapping_builder) => {
-                    properties.insert(field_name.to_string(), MappingProperty::NestedMapping(nested_mapping_builder.build(index_metadata)));
+                    properties.insert(field_name.to_string(), MappingProperty::NestedMapping(Box::new(nested_mapping_builder.build(index_metadata))));
                 }
             }
         }

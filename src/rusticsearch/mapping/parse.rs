@@ -234,12 +234,27 @@ fn parse_nested_mapping(json: &serde_json::Value) -> Result<NestedMappingBuilder
     let mut properties = HashMap::new();
 
     for (prop_name, prop_json) in properties_object {
-        match parse_field(prop_json) {
-            Ok(field) => {
-                properties.insert(prop_name.to_string(), field);
+        let prop_object = try!(prop_json.as_object().ok_or(MappingParseError::FieldMappingParseError(prop_name.to_string(), FieldMappingParseError::ExpectedObject)));
+
+        if prop_object.get("type") == Some(&serde_json::Value::String("nested".to_string())) {
+            // Property is a nested mapping
+            match parse_nested_mapping(prop_json) {
+                Ok(mapping) => {
+                    properties.insert(prop_name.to_string(), MappingPropertyBuilder::NestedMapping(Box::new(mapping)));
+                }
+                Err(e) => {
+                    return Err(MappingParseError::NestedMappingParseError(prop_name.to_string(), Box::new(e)));
+                }
             }
-            Err(e) => {
-                return Err(MappingParseError::FieldMappingParseError(prop_name.to_string(), e));
+        } else {
+            // Property is a field (or maybe invalid, which is handled by parse_field)
+            match parse_field(prop_json) {
+                Ok(field) => {
+                    properties.insert(prop_name.to_string(), MappingPropertyBuilder::Field(field));
+                }
+                Err(e) => {
+                    return Err(MappingParseError::FieldMappingParseError(prop_name.to_string(), e));
+                }
             }
         }
     }
@@ -276,7 +291,7 @@ pub fn parse(json: &serde_json::Value) -> Result<MappingBuilder, MappingParseErr
             // Property is a nested mapping
             match parse_nested_mapping(prop_json) {
                 Ok(mapping) => {
-                    properties.insert(prop_name.to_string(), MappingPropertyBuilder::NestedMapping(mapping));
+                    properties.insert(prop_name.to_string(), MappingPropertyBuilder::NestedMapping(Box::new(mapping)));
                 }
                 Err(e) => {
                     return Err(MappingParseError::NestedMappingParseError(prop_name.to_string(), Box::new(e)));
@@ -353,16 +368,64 @@ mod tests {
 
         assert_eq!(mapping, Ok(MappingBuilder {
             properties: hashmap! {
-                "myfield".to_string() => MappingPropertyBuilder::NestedMapping(
+                "myfield".to_string() => MappingPropertyBuilder::NestedMapping(Box::new(
                     NestedMappingBuilder {
                         properties: hashmap! {
-                            "foo".to_string() => FieldMappingBuilder {
-                                field_type: FieldType::String,
-                                ..FieldMappingBuilder::default()
+                            "foo".to_string() => MappingPropertyBuilder::Field(
+                                FieldMappingBuilder {
+                                    field_type: FieldType::String,
+                                    ..FieldMappingBuilder::default()
+                                }
+                            )
+                        }
+                    }
+                ))
+            }
+        }));
+    }
+
+    #[test]
+    fn test_parse_nested_nested() {
+        let mapping = parse(&serde_json::from_str("
+        {
+            \"properties\": {
+                \"myfield\": {
+                    \"type\": \"nested\",
+                    \"properties\": {
+                        \"mynestedfield\": {
+                            \"type\": \"nested\",
+                            \"properties\": {
+                                \"foo\": {
+                                    \"type\": \"string\"
+                                }
                             }
                         }
                     }
-                )
+                }
+            }
+        }
+        ").unwrap());
+
+        assert_eq!(mapping, Ok(MappingBuilder {
+            properties: hashmap! {
+                "myfield".to_string() => MappingPropertyBuilder::NestedMapping(Box::new(
+                    NestedMappingBuilder {
+                        properties: hashmap! {
+                            "mynestedfield".to_string() => MappingPropertyBuilder::NestedMapping(Box::new(
+                                NestedMappingBuilder {
+                                    properties: hashmap! {
+                                        "foo".to_string() => MappingPropertyBuilder::Field(
+                                            FieldMappingBuilder {
+                                                field_type: FieldType::String,
+                                                ..FieldMappingBuilder::default()
+                                            }
+                                        )
+                                    }
+                                }
+                            ))
+                        }
+                    }
+                ))
             }
         }));
     }
