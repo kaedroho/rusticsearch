@@ -51,6 +51,10 @@ impl DocIdSet {
         }
     }
 
+    pub fn insert(&mut self, doc_id: u16) {
+        self.data.insert(doc_id);
+    }
+
     pub fn iter<'a>(&'a self) -> DocIdSetIterator<'a> {
         DocIdSetIterator {
             inner: self.data.iter(),

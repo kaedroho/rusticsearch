@@ -1,7 +1,9 @@
 use std::collections::HashMap;
 
 use kite::{Document, TermRef};
+use kite::doc_id_set::DocIdSet;
 use kite::schema::FieldRef;
+use kite::segment::Segment;
 use byteorder::{BigEndian, WriteBytesExt};
 
 use key_builder::KeyBuilder;
@@ -126,5 +128,41 @@ impl SegmentBuilder {
         }
 
         Ok(())
+    }
+}
+
+
+impl Segment for SegmentBuilder {
+    fn id(&self) -> u32 {
+        0
+    }
+
+    fn load_statistic(&self, stat_name: &[u8]) -> Result<Option<i64>, String> {
+        Ok(self.statistics.get(stat_name).cloned())
+    }
+
+    fn load_stored_field_value_raw(&self, doc_ord: u16, field_ref: FieldRef, value_type: &[u8]) -> Result<Option<Vec<u8>>, String> {
+        Ok(self.stored_field_values.get(&(field_ref, doc_ord, value_type.to_vec())).clone().cloned())
+    }
+
+    fn load_term_directory(&self, field_ref: FieldRef, term_ref: TermRef) -> Result<Option<DocIdSet>, String> {
+        match self.term_directories.get(&(field_ref, term_ref)) {
+            Some(doc_ids) => {
+                let mut doc_id_set = DocIdSet::new_filled(0);
+
+                for doc_id in doc_ids.iter() {
+                    doc_id_set.insert(*doc_id);
+                }
+
+                Ok(Some(doc_id_set))
+            }
+            None => {
+                Ok(None)
+            }
+        }
+    }
+
+    fn load_deletion_list(&self) -> Result<Option<DocIdSet>, String> {
+        Ok(Some(DocIdSet::new_filled(0)))
     }
 }
