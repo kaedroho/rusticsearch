@@ -38,7 +38,7 @@ impl SegmentBuilder {
     }
 
     // TODO: Need to translate field names to field refs and terms to term refs
-    pub fn add_document(&mut self, doc: Document) -> Result<(), DocumentInsertError> {
+    pub fn add_document(&mut self, doc: Document) -> Result<u16, DocumentInsertError> {
         // Get document ord
         let doc_id = self.current_doc;
         self.current_doc += 1;
@@ -125,6 +125,6 @@ impl SegmentBuilder {
             *stat += 1;
         }
 
-        Ok(())
+        Ok(doc_id)
     }
 }
