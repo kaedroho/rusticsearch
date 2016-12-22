@@ -2,6 +2,8 @@ use std::io::Read;
 use std::collections::HashMap;
 
 use rustc_serialize::json::{self, Json};
+use kite::document::DocRef;
+use kite_rocksdb::segment_builder::SegmentBuilder;
 
 use document::DocumentSource;
 
@@ -22,6 +24,8 @@ pub fn view_post_bulk(req: &mut Request) -> IronResult<Response> {
     req.body.read_to_string(&mut payload).unwrap();
 
     let mut items = Vec::new();
+    let mut segment_builder = SegmentBuilder::new();
+    let mut key_docid_map = HashMap::new();
 
     // Iterate
     let mut payload_lines = payload.split('\n');
@@ -76,7 +80,8 @@ pub fn view_post_bulk(req: &mut Request) -> IronResult<Response> {
                     document_source.prepare(mapping)
                 };
 
-                index.store.insert_or_update_document(&doc).unwrap();
+                let doc_internal_id = segment_builder.add_document(&doc).unwrap();
+                key_docid_map.insert(doc_id.to_string(), doc_internal_id);
 
                 // Insert into "items" array
                 let mut item = HashMap::new();
@@ -88,6 +93,17 @@ pub fn view_post_bulk(req: &mut Request) -> IronResult<Response> {
                 warn!("Unrecognised action! {}", action_name);
             }
         }
+    }
+
+    let index = get_index_or_404!(indices, "verdant");
+
+    // Write segment data
+    let segment = index.store.write_segment(&segment_builder).unwrap();
+
+    // Update document index
+    for (doc_key, doc_id) in key_docid_map {
+        let doc_ref = DocRef::from_segment_ord(segment, doc_id);
+        index.store.document_index.insert_or_replace_key(&index.store.db, &doc_key.as_bytes().iter().cloned().collect(), doc_ref).unwrap();
     }
 
     return Ok(json_response(status::Ok,

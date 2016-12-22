@@ -11,7 +11,7 @@ mod segment;
 mod segment_manager;
 mod segment_ops;
 mod segment_stats;
-mod segment_builder;
+pub mod segment_builder;
 mod term_dictionary;
 mod document_index;
 mod search;
@@ -119,10 +119,10 @@ impl From<segment_builder::DocumentInsertError> for DocumentInsertError {
 
 pub struct RocksDBIndexStore {
     schema: Arc<Schema>,
-    db: DB,
+    pub db: DB,
     term_dictionary: TermDictionaryManager,
     segments: SegmentManager,
-    document_index: DocumentIndexManager,
+    pub document_index: DocumentIndexManager,
 }
 
 
