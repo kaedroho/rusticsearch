@@ -41,7 +41,7 @@ fn bench_insert_single_document(b: &mut Bencher) {
     b.iter(|| {
         i += 1;
 
-        store.insert_or_update_document(Document {
+        store.insert_or_update_document(&Document {
             key: i.to_string(),
             indexed_fields: hashmap! {
                 body_field => tokens.clone(),
@@ -88,7 +88,7 @@ fn bench_insert_documents_parallel(b: &mut Bencher) {
 
     b.iter(move|| {
         docs.par_iter().for_each(|doc| {
-            store.insert_or_update_document(doc.clone());
+            store.insert_or_update_document(doc);
         });
     });
 }
