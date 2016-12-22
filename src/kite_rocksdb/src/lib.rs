@@ -211,7 +211,7 @@ impl RocksDBIndexStore {
         field_removed
     }
 
-    pub fn insert_or_update_document(&self, doc: Document) -> Result<(), DocumentInsertError> {
+    pub fn insert_or_update_document(&self, doc: &Document) -> Result<(), DocumentInsertError> {
         // Build segment in memory
         let mut builder = segment_builder::SegmentBuilder::new();
         let doc_key = doc.key.clone();
@@ -450,7 +450,7 @@ mod tests {
         let body_field = store.add_field("body".to_string(), FieldType::Text, FIELD_INDEXED).unwrap();
         let pk_field = store.add_field("pk".to_string(), FieldType::I64, FIELD_STORED).unwrap();
 
-        store.insert_or_update_document(Document {
+        store.insert_or_update_document(&Document {
             key: "test_doc".to_string(),
             indexed_fields: hashmap! {
                 title_field => vec![
@@ -468,7 +468,7 @@ mod tests {
             }
         }).unwrap();
 
-        store.insert_or_update_document(Document {
+        store.insert_or_update_document(&Document {
             key: "another_test_doc".to_string(),
             indexed_fields: hashmap! {
                 title_field => vec![

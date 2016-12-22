@@ -86,7 +86,7 @@ pub fn view_put_doc(req: &mut Request) -> IronResult<Response> {
         }
     };
 
-    index.store.insert_or_update_document(doc).unwrap();
+    index.store.insert_or_update_document(&doc).unwrap();
 
     // TODO: {"_index":"wagtail","_type":"searchtests_searchtest","_id":"searchtests_searchtest:5378","_version":1,"created":true}
     return Ok(json_response(status::Ok, "{}"));

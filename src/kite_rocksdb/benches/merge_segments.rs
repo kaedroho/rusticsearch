@@ -36,7 +36,7 @@ fn bench_merge_segments(b: &mut Bencher) {
 
     // Make 1000 single-document segments
     for i in 0..1000 {
-        store.insert_or_update_document(Document {
+        store.insert_or_update_document(&Document {
             key: i.to_string(),
             indexed_fields: hashmap! {
                 body_field => tokens.clone(),
