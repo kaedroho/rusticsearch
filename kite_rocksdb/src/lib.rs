@@ -212,29 +212,32 @@ impl RocksDBIndexStore {
     }
 
     pub fn insert_or_update_document(&self, doc: Document) -> Result<(), DocumentInsertError> {
-        // Allocate a new segment for the document
-        // Segment merges are very slow so we should avoid doing them at runtime
-        // which is why each new document is created in a fresh segment.
-        // Later on, a background process will come and merge any small segments
-        // together. (For best performance, documents should be
-        // inserted/updated in batches)
-        let segment = try!(self.segments.new_segment(&self.db));
+        // Build segment in memory
+        let mut builder = segment_builder::SegmentBuilder::new();
+        let doc_key = doc.key.clone();
+        try!(builder.add_document(doc));
 
-        // Create doc ref
+        // Write the segment
+        let segment = try!(self.write_segment(&builder));
+
+        // Update document index
         let doc_ref = DocRef::from_segment_ord(segment, 0);
+        try!(self.document_index.insert_or_replace_key(&self.db, &doc_key.as_bytes().iter().cloned().collect(), doc_ref));
+
+        Ok(())
+    }
+
+    pub fn write_segment(&self, builder: &segment_builder::SegmentBuilder) -> Result<u32, rocksdb::Error> {
+        // Allocate a segment ID
+        let segment = try!(self.segments.new_segment(&self.db));
 
         // Start write batch
         let mut write_batch = WriteBatch::default();
 
         // Set segment active flag, this will activate the segment as soon as the
         // write batch is written
-        let kb = KeyBuilder::segment_active(doc_ref.segment());
+        let kb = KeyBuilder::segment_active(segment);
         try!(write_batch.put(&kb.key(), b""));
-
-        // Build segment in memory
-        let mut builder = segment_builder::SegmentBuilder::new();
-        let doc_key = doc.key.clone();
-        try!(builder.add_document(doc));
 
         // Merge the term dictionary
         // Writes new terms to disk and generates mapping between the builder's term dictionary and the real one
@@ -276,13 +279,10 @@ impl RocksDBIndexStore {
             try!(write_batch.put(&kb.key(), &value_bytes));
         }
 
-        // Write document data
-         try!(self.db.write(write_batch));
+        // Write data
+        try!(self.db.write(write_batch));
 
-        // Update document index
-        try!(self.document_index.insert_or_replace_key(&self.db, &doc_key.as_bytes().iter().cloned().collect(), doc_ref));
-
-        Ok(())
+        Ok(segment)
     }
 
     pub fn remove_document_by_key(&self, doc_key: &str) -> Result<bool, rocksdb::Error> {
