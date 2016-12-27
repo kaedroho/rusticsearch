@@ -136,7 +136,6 @@ pub fn view_delete_index(req: &mut Request) -> IronResult<Response> {
         // Delete aliases
         let alias_names = indices.names.iter_index_aliases(index_ref).map(|n| n.to_string()).collect::<Vec<String>>();
         for alias_name in alias_names {
-            println!("DELETING {}", alias_name);
             let alias_deleted = indices.names.delete_alias(&alias_name, index_ref).unwrap();
 
             // If this was the only index being referenced by the alias, the alias would be deleted
