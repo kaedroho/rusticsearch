@@ -54,7 +54,6 @@ pub fn view_put_index(req: &mut Request) -> IronResult<Response> {
             // Create index
             let mut indices_dir = system.get_indices_dir();
             indices_dir.push(index_name);
-            indices_dir.set_extension("rsi");
             let mut index = Index::new(index_name.clone().to_owned(), RocksDBIndexStore::create(indices_dir).unwrap());
 
             // Insert standard and edgengram analyzers
@@ -123,7 +122,6 @@ pub fn view_delete_index(req: &mut Request) -> IronResult<Response> {
         // Delete file
         let mut indices_dir = system.get_indices_dir();
         indices_dir.push(&index_name);
-        indices_dir.set_extension("rsi");
         match fs::remove_dir_all(&indices_dir) {
             Ok(()) => {},
             Err(e) => {
