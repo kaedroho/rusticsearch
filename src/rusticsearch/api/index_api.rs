@@ -81,6 +81,14 @@ pub fn view_put_index(req: &mut Request) -> IronResult<Response> {
             // TODO: load settings
 
             let index_ref = indices.insert(index);
+
+            // If there's an alias with the new indexes name, delete it.
+            let alias_deleted = indices.names.delete_alias_whole(index_name).unwrap();
+            if alias_deleted {
+                 system.log.info("[api] deleted alias", b!("alias" => format!("{}", index_name)));
+            }
+
+            // Register canonical name
             indices.names.insert_canonical(index_name.clone().to_owned(), index_ref).unwrap();
 
             system.log.info("[api] created index", b!("index" => *index_name));

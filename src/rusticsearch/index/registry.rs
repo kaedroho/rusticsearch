@@ -107,6 +107,15 @@ impl NameRegistry {
         Ok(remove_alias)
     }
 
+    pub fn delete_alias_whole(&mut self, name: &str) -> Result<bool, ()> {
+        if let Some(&Name::Canonical(_)) = self.names.get(name) {
+            return Err(());
+        }
+
+        let alias = self.names.remove(name);
+        Ok(alias.is_some())
+    }
+
     pub fn find(&self, selector: &str) -> Vec<IndexRef> {
         let mut indices = Vec::new();
 
