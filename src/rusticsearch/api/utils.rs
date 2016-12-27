@@ -35,7 +35,7 @@ macro_rules! get_index_or_404 {
     ($indices: expr, $index_name: expr) => {{
         use api::utils::index_not_found_response;
 
-        let index_ref = match $indices.names.find_one($index_name) {
+        let index_ref = match $indices.names.find_canonical($index_name) {
             Some(index_ref) => index_ref,
             None => {
                 return Ok(index_not_found_response());
@@ -56,7 +56,7 @@ macro_rules! get_index_or_404_mut {
     ($indices: expr, $index_name: expr) => {{
         use api::utils::index_not_found_response;
 
-        let index_ref = match $indices.names.find_one($index_name) {
+        let index_ref = match $indices.names.find_canonical($index_name) {
             Some(index_ref) => index_ref,
             None => {
                 return Ok(index_not_found_response());

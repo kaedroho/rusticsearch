@@ -94,13 +94,12 @@ impl NameRegistry {
         indices
     }
 
-    pub fn find_one(&self, selector: &str) -> Option<IndexRef> {
-        let index_refs = self.find(selector);
+    pub fn find_canonical(&self, name: &str) -> Option<IndexRef> {
+        let name = self.names.get(name);
 
-        if index_refs.is_empty() {
-            None
-        } else {
-            Some(index_refs[0])
+        match name {
+            Some(&Name::Canonical(index_ref)) => Some(index_ref),
+            Some(&Name::Alias(_)) | None => None,
         }
     }
 

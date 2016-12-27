@@ -41,7 +41,7 @@ pub fn view_put_index(req: &mut Request) -> IronResult<Response> {
     // let data = json_from_request_body!(req);
 
     // Find index
-    let index_ref = indices.names.find_one(&index_name);
+    let index_ref = indices.names.find_canonical(&index_name);
 
     match index_ref {
         Some(_) => {
