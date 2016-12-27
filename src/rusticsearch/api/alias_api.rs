@@ -67,27 +67,29 @@ pub fn view_get_alias(req: &mut Request) -> IronResult<Response> {
 
 pub fn view_put_alias(req: &mut Request) -> IronResult<Response> {
     let ref system = get_system!(req);
-    let ref index_name = read_path_parameter!(req, "index").unwrap_or("");
+    let ref index_selector = read_path_parameter!(req, "index").unwrap_or("");
     let ref alias_name = read_path_parameter!(req, "alias").unwrap_or("");
 
     // Lock index array
     let mut indices = system.indices.write().unwrap();
 
-    {
-        // Get index
-        let mut index = get_index_or_404_mut!(indices, *index_name);
+    let index_refs = indices.names.find(*index_selector);
+    for index_ref in index_refs.iter() {
+        let index = indices.get_mut(index_ref);
 
-        // Insert alias into index
-        index.aliases.insert(alias_name.to_string());
+        if let Some(mut index) = index {
+            // Insert alias into index
+            index.aliases.insert(alias_name.to_string());
+        }
     }
 
     // Insert alias into names registry
-    match indices.names.insert_or_replace_alias(alias_name.to_string(), index_name.to_string()) {
-        Ok(None) => {
-            system.log.info("[api] created alias", b!("index" => *index_name, "alias" => *alias_name));
+    match indices.names.insert_or_replace_alias(alias_name.to_string(), index_refs) {
+        Ok(true) => {
+            system.log.info("[api] created alias", b!("index" => *index_selector, "alias" => *alias_name));
         }
-        Ok(Some(ref previous_index)) => {
-            system.log.info("[api] updated alias", b!("index" => *index_name, "alias" => *alias_name, "previous_index" => format!("{}", previous_index)));
+        Ok(false) => {
+            system.log.info("[api] updated alias", b!("index" => *index_selector, "alias" => *alias_name));
         }
         Err(_) => {
             // TODO

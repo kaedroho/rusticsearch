@@ -14,7 +14,7 @@ enum Name {
     Canonical(IndexRef),
 
     /// This is an alias
-    Alias(String),
+    Alias(Vec<IndexRef>),
 }
 
 
@@ -47,31 +47,31 @@ impl NameRegistry {
         Ok(())
     }
 
-    pub fn insert_alias(&mut self, name: String, selector: String) -> Result<(), ()> {
+    pub fn insert_alias(&mut self, name: String, indices: Vec<IndexRef>) -> Result<(), ()> {
         if let Some(_) = self.names.get(&name) {
             return Err(());
         }
 
-        self.names.insert(name, Name::Alias(selector));
+        self.names.insert(name, Name::Alias(indices));
         Ok(())
     }
 
-    pub fn insert_or_replace_alias(&mut self, name: String, selector: String) -> Result<Option<String>, ()> {
+    pub fn insert_or_replace_alias(&mut self, name: String, indices: Vec<IndexRef>) -> Result<bool, ()> {
         if let Some(&Name::Canonical(_)) = self.names.get(&name) {
             // Cannot replace if it is a canonical name
             return Err(());
         }
 
-        let old_alias = self.names.insert(name, Name::Alias(selector));
-        match old_alias {
-            Some(Name::Alias(old_alias)) => {
-                 Ok(Some(old_alias))
+        let old_indices = self.names.insert(name, Name::Alias(indices));
+        match old_indices {
+            Some(Name::Alias(_)) => {
+                 Ok(false)
             }
             Some(Name::Canonical(_)) => {
                 unreachable!();
             }
             None => {
-                Ok(None)
+                Ok(true)
             }
         }
     }
@@ -84,13 +84,10 @@ impl NameRegistry {
 
         // Resolve the name if we have one
         if let Some(name) = name {
-            let mut exclusion_list = Vec::new();
-
-            exclusion_list.push(selector.to_string());
-            self.resolve_name(name, &mut exclusion_list, &mut indices);
-            exclusion_list.pop();
-
-            debug_assert!(exclusion_list.len() == 0);
+            match *name {
+                Name::Canonical(ref index_ref) => indices.push(*index_ref),
+                Name::Alias(ref alias_indices) => indices.append(&mut alias_indices.clone()),
+            }
         }
 
         indices
@@ -103,23 +100,6 @@ impl NameRegistry {
             None
         } else {
             Some(index_refs[0])
-        }
-    }
-
-    fn resolve_name(&self, name: &Name, mut exclusion_list: &mut Vec<String>, mut indices: &mut Vec<IndexRef>) {
-        match *name {
-            Name::Canonical(ref index_ref) => indices.push(*index_ref),
-            Name::Alias(ref selector) => {
-                // Find name
-                let name = self.names.get(selector);
-
-                // Resolve the name if we have one
-                if let Some(name) = name {
-                    exclusion_list.push(selector.to_string());
-                    self.resolve_name(name, exclusion_list, &mut indices);
-                    exclusion_list.pop();
-                }
-            }
         }
     }
 }
