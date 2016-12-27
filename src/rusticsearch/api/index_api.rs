@@ -55,7 +55,6 @@ pub fn view_put_index(req: &mut Request) -> IronResult<Response> {
             let mut indices_dir = system.get_indices_dir();
             indices_dir.push(index_name);
             indices_dir.set_extension("rsi");
-            println!("CREATING {:?}", indices_dir);
             let mut index = Index::new(index_name.clone().to_owned(), RocksDBIndexStore::create(indices_dir).unwrap());
 
             // Insert standard and edgengram analyzers
