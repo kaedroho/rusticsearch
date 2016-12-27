@@ -77,6 +77,36 @@ impl NameRegistry {
         }
     }
 
+    pub fn delete_alias(&mut self, name: &str, index_ref: IndexRef) -> Result<bool, ()> {
+        let mut remove_alias = false;
+
+        match self.names.get_mut(name) {
+            Some(&mut Name::Alias(ref mut indices)) => {
+                // Remove index from alias
+                let index = match indices.iter().position(|ir| *ir == index_ref) {
+                    Some(index) => index,
+                    None => return Ok(false),
+                };
+
+                indices.remove(index);
+
+                if indices.is_empty() {
+                    remove_alias = true;
+                }
+            }
+            Some(&mut Name::Canonical(_)) => {
+                return Err(());
+            }
+            None => {}
+        }
+
+        if remove_alias {
+            self.names.remove(name);
+        }
+
+        Ok(remove_alias)
+    }
+
     pub fn find(&self, selector: &str) -> Vec<IndexRef> {
         let mut indices = Vec::new();
 
