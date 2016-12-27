@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::collections::hash_map::Iter as HashMapIter;
 use std::ops::{Deref, DerefMut};
 
 use index::Index;
@@ -100,6 +101,38 @@ impl NameRegistry {
             None
         } else {
             Some(index_refs[0])
+        }
+    }
+
+    pub fn iter_index_aliases<'a>(&'a self, index_ref: IndexRef) -> IndexAliasesIterator<'a> {
+        IndexAliasesIterator {
+            index_ref: index_ref,
+            names_iterator: self.names.iter(),
+        }
+    }
+}
+
+
+pub struct IndexAliasesIterator<'a> {
+    index_ref: IndexRef,
+    names_iterator: HashMapIter<'a, String, Name>,
+}
+
+
+impl<'a> Iterator for IndexAliasesIterator<'a> {
+    type Item = &'a str;
+
+    fn next(&mut self) -> Option<&'a str> {
+        loop {
+            match self.names_iterator.next() {
+                Some((name, &Name::Alias(ref indices))) => {
+                    if indices.iter().any(|ir| *ir == self.index_ref) {
+                        return Some(name);
+                    }
+                }
+                Some((_, &Name::Canonical(_))) => {}
+                None => return None
+            }
         }
     }
 }
