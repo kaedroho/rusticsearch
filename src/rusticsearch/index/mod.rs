@@ -14,7 +14,6 @@ pub struct Index {
     name: String,
     pub analyzers: AnalyzerRegistry,
     pub mappings: MappingRegistry,
-    pub aliases: HashSet<String>,
     pub store: RocksDBIndexStore,
 }
 
@@ -25,7 +24,6 @@ impl Index {
             name: name,
             analyzers: AnalyzerRegistry::new(),
             mappings: MappingRegistry::new(),
-            aliases: HashSet::new(),
             store: store,
         }
     }

@@ -18,14 +18,18 @@ pub fn view_get_global_alias(req: &mut Request) -> IronResult<Response> {
 
     // Find alias
     let mut found_aliases = HashMap::new();
-    for (_index_ref, index) in indices.iter() {
-        if index.aliases.contains(*alias_name) {
-            let mut inner_map = HashMap::new();
-            let mut inner_inner_map = HashMap::new();
-            inner_inner_map.insert(alias_name, HashMap::<String, String>::new());
-            inner_map.insert("aliases".to_owned(), inner_inner_map);
-            found_aliases.insert(index.name().clone(), inner_map);
-        }
+
+    for index_ref in indices.names.find(alias_name) {
+        let index = match indices.get(&index_ref) {
+            Some(index) => index,
+            None => continue,
+        };
+
+        let mut inner_map = HashMap::new();
+        let mut inner_inner_map = HashMap::new();
+        inner_inner_map.insert(alias_name, HashMap::<String, String>::new());
+        inner_map.insert("aliases".to_owned(), inner_inner_map);
+        found_aliases.insert(index.name().clone(), inner_map);
     }
 
     if !found_aliases.is_empty() {
@@ -54,10 +58,13 @@ pub fn view_get_alias(req: &mut Request) -> IronResult<Response> {
     let indices = system.indices.read().unwrap();
 
     // Get index
-    let index = get_index_or_404!(indices, *index_name);
+    let index_ref = match indices.names.find_canonical(index_name) {
+        Some(index_ref) => index_ref,
+        None => return Ok(json_response(status::NotFound, "{}")),
+    };
 
     // Find alias
-    if index.aliases.contains(*alias_name) {
+    if indices.names.iter_index_aliases(index_ref).any(|name| &name == alias_name) {
         return Ok(json_response(status::Ok, "{}"));
     } else {
         return Ok(json_response(status::NotFound, "{}"));
@@ -73,17 +80,8 @@ pub fn view_put_alias(req: &mut Request) -> IronResult<Response> {
     // Lock index array
     let mut indices = system.indices.write().unwrap();
 
-    let index_refs = indices.names.find(*index_selector);
-    for index_ref in index_refs.iter() {
-        let index = indices.get_mut(index_ref);
-
-        if let Some(mut index) = index {
-            // Insert alias into index
-            index.aliases.insert(alias_name.to_string());
-        }
-    }
-
     // Insert alias into names registry
+    let index_refs = indices.names.find(*index_selector);
     match indices.names.insert_or_replace_alias(alias_name.to_string(), index_refs) {
         Ok(true) => {
             system.log.info("[api] created alias", b!("index" => *index_selector, "alias" => *alias_name));
