@@ -1,8 +1,6 @@
 pub mod maintenance;
 pub mod registry;
 
-use std::collections::HashSet;
-
 use kite_rocksdb::RocksDBIndexStore;
 
 use analysis::registry::AnalyzerRegistry;
