@@ -71,7 +71,7 @@ pub fn view_put_index(req: &mut Request) -> IronResult<Response> {
     // TODO: load settings
 
     let index_ref = indices.insert(index);
-    indices.aliases.insert(index_name.clone().to_owned(), index_ref);
+    indices.names.insert_canonical(index_name.clone().to_owned(), index_ref).unwrap();
 
     system.log.info("[api] created index", b!("index" => *index_name));
 
@@ -90,13 +90,13 @@ pub fn view_delete_index(req: &mut Request) -> IronResult<Response> {
     get_index_or_404!(indices, *index_name);
 
     // Remove index from array
-    let index_ref = match indices.aliases.get(*index_name) {
-        Some(index_ref) => Some(*index_ref),
-        None => None
-    };
+    let index_ref = indices.names.find_one(*index_name);
 
-    if let Some(ref index_ref) = index_ref {
-        indices.remove(index_ref);
+    if let Some(index_ref) = index_ref {
+        indices.remove(&index_ref);
+
+        // Delete canonical name
+        indices.names.delete_canonical(&index_name, index_ref).unwrap();
     }
 
     // Delete file

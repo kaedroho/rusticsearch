@@ -73,29 +73,27 @@ pub fn view_put_alias(req: &mut Request) -> IronResult<Response> {
     // Lock index array
     let mut indices = system.indices.write().unwrap();
 
-    let is_updating = {
+    {
         // Get index
         let mut index = get_index_or_404_mut!(indices, *index_name);
 
         // Insert alias into index
-        let is_updating = index.aliases.contains(*alias_name);
-        index.aliases.insert(alias_name.clone().to_owned());
-
-        is_updating
-    };
-
-    // Insert alias
-    let index_ref = indices.aliases.get(*index_name).map(|r| *r);
-
-    if let Some(index_ref) = index_ref {
-        indices.aliases.insert(alias_name.clone().to_owned(), index_ref);
+        index.aliases.insert(alias_name.to_string());
     }
 
-    if is_updating {
-        system.log.info("[api] updated alias", b!("index" => *index_name, "alias" => *alias_name));
-    } else {
-        system.log.info("[api] created alias", b!("index" => *index_name, "alias" => *alias_name));
+    // Insert alias into names registry
+    match indices.names.insert_or_replace_alias(alias_name.to_string(), index_name.to_string()) {
+        Ok(None) => {
+            system.log.info("[api] created alias", b!("index" => *index_name, "alias" => *alias_name));
+        }
+        Ok(Some(ref previous_index)) => {
+            system.log.info("[api] updated alias", b!("index" => *index_name, "alias" => *alias_name, "previous_index" => format!("{}", previous_index)));
+        }
+        Err(_) => {
+            // TODO
+            return Ok(json_response(status::Ok, "{\"acknowledged\": false}"));
+        }
     }
 
-    return Ok(json_response(status::Ok, "{\"acknowledged\": true}"));
+    Ok(json_response(status::Ok, "{\"acknowledged\": true}"))
 }

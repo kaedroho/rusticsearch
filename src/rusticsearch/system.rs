@@ -53,7 +53,7 @@ impl System {
                                 Ok(index) => {
                                     let mut indices_w = self.indices.write().unwrap();
                                     let index_ref = indices_w.insert(index);
-                                    indices_w.aliases.insert(index_name, index_ref);
+                                    indices_w.names.insert_canonical(index_name, index_ref).unwrap();
                                 }
                                 Err(e) => {
                                     self.log.error("[sys] failed to open index", b!(
