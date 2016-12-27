@@ -94,36 +94,45 @@ pub fn view_put_index(req: &mut Request) -> IronResult<Response> {
 
 pub fn view_delete_index(req: &mut Request) -> IronResult<Response> {
     let ref system = get_system!(req);
-    let ref index_name = read_path_parameter!(req, "index").unwrap_or("");
+    let ref index_selector = read_path_parameter!(req, "index").unwrap_or("");
 
     // Lock index array
     let mut indices = system.indices.write().unwrap();
 
     // Make sure the index exists
-    get_index_or_404!(indices, *index_name);
+    get_index_or_404!(indices, *index_selector);
 
-    // Remove index from array
-    let index_ref = indices.names.find_one(*index_name);
+    // Remove indices
+    for index_ref in indices.names.find(*index_selector) {
+        // Get the index name
+        let index_name = {
+            if let Some(index) = indices.get(&index_ref) {
+                index.name().to_string()
+            } else {
+                // Index doesn't exist
+                continue;
+            }
+        };
 
-    if let Some(index_ref) = index_ref {
+        // Remove index from array
         indices.remove(&index_ref);
 
         // Delete canonical name
         indices.names.delete_canonical(&index_name, index_ref).unwrap();
-    }
 
-    // Delete file
-    let mut indices_dir = system.get_indices_dir();
-    indices_dir.push(index_name);
-    indices_dir.set_extension("rsi");
-    match fs::remove_dir_all(&indices_dir) {
-        Ok(()) => {},
-        Err(e) => {
-            system.log.warn("[api] failed to delete index data", b!("index" => *index_name, "error" => format!("{}", e)));
+        // Delete file
+        let mut indices_dir = system.get_indices_dir();
+        indices_dir.push(&index_name);
+        indices_dir.set_extension("rsi");
+        match fs::remove_dir_all(&indices_dir) {
+            Ok(()) => {},
+            Err(e) => {
+                system.log.warn("[api] failed to delete index data", b!("index" => format!("{}", index_name), "error" => format!("{}", e)));
+            }
         }
-    }
 
-    system.log.info("[api] deleted index", b!("index" => *index_name));
+        system.log.info("[api] deleted index", b!("index" => format!("{}", index_name)));
+    }
 
     return Ok(json_response(status::Ok, "{\"acknowledged\": true}"));
 }
