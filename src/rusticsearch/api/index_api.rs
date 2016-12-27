@@ -85,7 +85,7 @@ pub fn view_put_index(req: &mut Request) -> IronResult<Response> {
             // If there's an alias with the new indexes name, delete it.
             let alias_deleted = indices.names.delete_alias_whole(index_name).unwrap();
             if alias_deleted {
-                 system.log.info("[api] deleted alias", b!("alias" => format!("{}", index_name)));
+                 system.log.info("[api] deleted alias", b!("alias" => format!("{}", index_name), "reason" => "replaced by index"));
             }
 
             // Register canonical name
@@ -146,7 +146,7 @@ pub fn view_delete_index(req: &mut Request) -> IronResult<Response> {
 
             // If this was the only index being referenced by the alias, the alias would be deleted
             if alias_deleted {
-                 system.log.info("[api] deleted alias", b!("alias" => format!("{}", alias_name)));
+                 system.log.info("[api] deleted alias", b!("alias" => format!("{}", alias_name), "reason" => "no indices left"));
             }
         }
     }
