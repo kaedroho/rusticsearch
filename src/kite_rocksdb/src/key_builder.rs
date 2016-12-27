@@ -16,6 +16,13 @@ impl KeyBuilder {
         }
     }
 
+    pub fn metadata(key: &[u8]) -> KeyBuilder {
+        let mut kb = KeyBuilder::new();
+        kb.push_char(b'.');
+        kb.push_string(key);
+        kb
+    }
+
     pub fn stored_field_value(segment: u32, doc_ord: u16, field_ord: u32, value_type: &[u8]) -> KeyBuilder {
         let mut kb = KeyBuilder::new();
         kb.push_char(b'v');

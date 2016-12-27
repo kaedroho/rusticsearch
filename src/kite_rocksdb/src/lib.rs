@@ -292,6 +292,22 @@ impl RocksDBIndexStore {
         }
     }
 
+    pub fn put_metadata(&self, key: &[u8], value: &[u8]) -> Result<(), rocksdb::Error> {
+        let kb = KeyBuilder::metadata(key);
+        self.db.put(&kb.key(), value)
+    }
+
+    pub fn get_metadata(&self, key: &[u8]) -> Result<Option<Vec<u8>>, rocksdb::Error> {
+        let kb = KeyBuilder::metadata(key);
+        let val = try!(self.db.get(&kb.key()));
+        Ok(val.map(|val| val.to_vec()))
+    }
+
+    pub fn delete_metadata(&self, key: &[u8]) -> Result<(), rocksdb::Error> {
+        let kb = KeyBuilder::metadata(key);
+        self.db.delete(&kb.key())
+    }
+
     pub fn reader<'a>(&'a self) -> RocksDBIndexReader<'a> {
         RocksDBIndexReader {
             store: &self,
@@ -402,6 +418,12 @@ impl<'a> RocksDBIndexReader<'a> {
             }
             None => Ok(None),
         }
+    }
+
+    pub fn get_metadata(&self, key: &[u8]) -> Result<Option<Vec<u8>>, rocksdb::Error> {
+        let kb = KeyBuilder::metadata(key);
+        let val = try!(self.snapshot.get(&kb.key()));
+        Ok(val.map(|val| val.to_vec()))
     }
 }
 
