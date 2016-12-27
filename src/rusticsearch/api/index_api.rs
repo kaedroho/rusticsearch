@@ -40,40 +40,53 @@ pub fn view_put_index(req: &mut Request) -> IronResult<Response> {
     // Load data from body
     // let data = json_from_request_body!(req);
 
-    // Create index
-    let mut indices_dir = system.get_indices_dir();
-    indices_dir.push(index_name);
-    indices_dir.set_extension("rsi");
-    let mut index = Index::new(index_name.clone().to_owned(), RocksDBIndexStore::create(indices_dir).unwrap());
+    // Find index
+    let index_ref = indices.names.find_one(&index_name);
 
-    // Insert standard and edgengram analyzers
-    // TODO: Load these from index settings
-    index.analyzers.insert("standard".to_string(), AnalyzerSpec {
-        tokenizer: TokenizerSpec::Standard,
-        filters: vec![
-            FilterSpec::Lowercase,
-            FilterSpec::ASCIIFolding,
-        ]
-    });
-    index.analyzers.insert("edgengram_analyzer".to_string(), AnalyzerSpec {
-        tokenizer: TokenizerSpec::Standard,
-        filters: vec![
-            FilterSpec::Lowercase,
-            FilterSpec::ASCIIFolding,
-            FilterSpec::NGram {
-                min_size: 2,
-                max_size: 15,
-                edge: Edge::Left
-            },
-        ]
-    });
+    match index_ref {
+        Some(_) => {
+            // Update existing index
+            // TODO
 
-    // TODO: load settings
+            system.log.info("[api] updated index", b!("index" => *index_name));
+        }
+        None => {
+            // Create index
+            let mut indices_dir = system.get_indices_dir();
+            indices_dir.push(index_name);
+            indices_dir.set_extension("rsi");
+            let mut index = Index::new(index_name.clone().to_owned(), RocksDBIndexStore::create(indices_dir).unwrap());
 
-    let index_ref = indices.insert(index);
-    indices.names.insert_canonical(index_name.clone().to_owned(), index_ref).unwrap();
+            // Insert standard and edgengram analyzers
+            // TODO: Load these from index settings
+            index.analyzers.insert("standard".to_string(), AnalyzerSpec {
+                tokenizer: TokenizerSpec::Standard,
+                filters: vec![
+                    FilterSpec::Lowercase,
+                    FilterSpec::ASCIIFolding,
+                ]
+            });
+            index.analyzers.insert("edgengram_analyzer".to_string(), AnalyzerSpec {
+                tokenizer: TokenizerSpec::Standard,
+                filters: vec![
+                    FilterSpec::Lowercase,
+                    FilterSpec::ASCIIFolding,
+                    FilterSpec::NGram {
+                        min_size: 2,
+                        max_size: 15,
+                        edge: Edge::Left
+                    },
+                ]
+            });
 
-    system.log.info("[api] created index", b!("index" => *index_name));
+            // TODO: load settings
+
+            let index_ref = indices.insert(index);
+            indices.names.insert_canonical(index_name.clone().to_owned(), index_ref).unwrap();
+
+            system.log.info("[api] created index", b!("index" => *index_name));
+        }
+    }
 
     return Ok(json_response(status::Ok, "{\"acknowledged\": true}"));
 }
