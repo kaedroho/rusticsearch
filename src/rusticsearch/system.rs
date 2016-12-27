@@ -43,21 +43,23 @@ impl System {
             Ok(files) => {
                 for file in files {
                     let path = file.unwrap().path();
-                    let index_name: String = path.file_name().unwrap().to_str().unwrap().to_owned();
+                    if path.is_dir() {
+                        let index_name: String = path.file_name().unwrap().to_str().unwrap().to_owned();
 
-                    match self.load_index(index_name.clone().to_owned(), path.as_path()) {
-                        Ok(index) => {
-                            let mut indices_w = self.indices.write().unwrap();
-                            let index_ref = indices_w.insert(index);
-                            indices_w.names.insert_canonical(index_name.clone(), index_ref).unwrap();
+                        match self.load_index(index_name.clone().to_owned(), path.as_path()) {
+                            Ok(index) => {
+                                let mut indices_w = self.indices.write().unwrap();
+                                let index_ref = indices_w.insert(index);
+                                indices_w.names.insert_canonical(index_name.clone(), index_ref).unwrap();
 
-                             self.log.info("[sys] loaded index", b!("index" => index_name));
-                        }
-                        Err(e) => {
-                            self.log.error("[sys] failed to open index", b!(
-                                "index" => index_name,
-                                "error" => e
-                            ));
+                                self.log.info("[sys] loaded index", b!("index" => index_name));
+                            }
+                            Err(e) => {
+                                self.log.error("[sys] failed to open index", b!(
+                                    "index" => index_name,
+                                    "error" => e
+                                ));
+                            }
                         }
                     }
                 }
