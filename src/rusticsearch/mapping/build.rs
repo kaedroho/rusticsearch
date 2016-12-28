@@ -39,7 +39,7 @@ impl FieldMappingBuilder {
     pub fn build(&self, analyzers: &AnalyzerRegistry) -> FieldMapping {
         let base_analyzer = match self.base_analyzer {
             Some(ref base_analyzer) => {
-                match analyzers.get(base_analyzer) {
+                match analyzers.analyzers().get(base_analyzer) {
                     Some(analyzer) => Some(analyzer),
                     None => None,
                 }
@@ -50,7 +50,7 @@ impl FieldMappingBuilder {
         let index_analyzer = if self.is_analyzed {
             match self.index_analyzer {
                 Some(ref index_analyzer) => {
-                    match analyzers.get(index_analyzer) {
+                    match analyzers.analyzers().get(index_analyzer) {
                         Some(analyzer) => Some(analyzer.clone()),
                         None => {
                             // TODO: error
@@ -67,7 +67,7 @@ impl FieldMappingBuilder {
         let search_analyzer = if self.is_analyzed {
             match self.search_analyzer {
                 Some(ref search_analyzer) => {
-                    match analyzers.get(search_analyzer) {
+                    match analyzers.analyzers().get(search_analyzer) {
                         Some(analyzer) => Some(analyzer.clone()),
                         None => {
                             // TODO: error
@@ -355,7 +355,7 @@ mod tests {
     #[test]
     fn test_build_field_custom_base_analyzer() {
         let mut analyzers = AnalyzerRegistry::new();
-        analyzers.insert("my-analyzer".to_string(), build_test_analyzer());
+        analyzers.insert_analyzer("my-analyzer".to_string(), build_test_analyzer());
 
         let builder = FieldMappingBuilder {
             field_type: FieldType::String,
@@ -376,7 +376,7 @@ mod tests {
     #[test]
     fn test_build_field_custom_index_analyzer() {
         let mut analyzers = AnalyzerRegistry::new();
-        analyzers.insert("my-analyzer".to_string(), build_test_analyzer());
+        analyzers.insert_analyzer("my-analyzer".to_string(), build_test_analyzer());
 
         let builder = FieldMappingBuilder {
             field_type: FieldType::String,
@@ -397,7 +397,7 @@ mod tests {
     #[test]
     fn test_build_field_custom_search_analyzer() {
         let mut analyzers = AnalyzerRegistry::new();
-        analyzers.insert("my-analyzer".to_string(), build_test_analyzer());
+        analyzers.insert_analyzer("my-analyzer".to_string(), build_test_analyzer());
 
         let builder = FieldMappingBuilder {
             field_type: FieldType::String,

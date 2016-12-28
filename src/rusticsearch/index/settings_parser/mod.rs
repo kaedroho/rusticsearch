@@ -87,7 +87,7 @@ pub fn parse(index_settings: &mut IndexSettings, data: Json) -> Result<(), Index
                         Err(e) => return Err(IndexSettingsParseError::AnalyzerParseError(name.to_string(), e)),
                     };
 
-                    index_settings.analyzers.insert(name.clone(), analyzer);
+                    index_settings.analyzers.insert_analyzer(name.clone(), analyzer);
                 }
             }
         }
@@ -120,7 +120,7 @@ mod tests {
 
         assert_eq!(settings.analyzers.tokenizers().len(), 1);
         assert_eq!(settings.analyzers.filters().len(), 2);
-        assert_eq!(settings.analyzers.len(), 1);
+        assert_eq!(settings.analyzers.analyzers().len(), 1);
 
         // Check builtin tokenizers
         let standard_tokenizer = settings.analyzers.tokenizers().get("standard").expect("'standard' tokenizer wasn't created");
@@ -134,7 +134,7 @@ mod tests {
         assert_eq!(*asciifolding_filter, FilterSpec::ASCIIFolding);
 
         // Check builtin analyzers
-        let standard_analyzer = settings.analyzers.get("standard").expect("'standard' analyzer wasn't created");
+        let standard_analyzer = settings.analyzers.analyzers().get("standard").expect("'standard' analyzer wasn't created");
         assert_eq!(*standard_analyzer, AnalyzerSpec {
             tokenizer: TokenizerSpec::Standard,
             filters: vec![
@@ -206,7 +206,7 @@ mod tests {
 
         assert_eq!(settings.analyzers.tokenizers().len(), 5);
         assert_eq!(settings.analyzers.filters().len(), 6);
-        assert_eq!(settings.analyzers.len(), 1);
+        assert_eq!(settings.analyzers.analyzers().len(), 1);
 
         // Check tokenizers
         let ngram_tokenizer = settings.analyzers.tokenizers().get("ngram_tokenizer").expect("'ngram_tokenizer' wasn't created");
