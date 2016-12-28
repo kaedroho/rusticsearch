@@ -62,21 +62,16 @@ pub fn view_put_index(req: &mut Request) -> IronResult<Response> {
                 }
             }
 
-            // Create index
-            let mut indices_dir = system.get_indices_dir();
-            indices_dir.push(index_name);
-            let mut index = Index::new(index_name.clone().to_owned(), RocksDBIndexStore::create(indices_dir).unwrap());
-
             // Insert standard and edgengram analyzers
             // TODO: Load these from index settings
-            index.analyzers.insert("standard".to_string(), AnalyzerSpec {
+            index_settings.analyzers.insert("standard".to_string(), AnalyzerSpec {
                 tokenizer: TokenizerSpec::Standard,
                 filters: vec![
                     FilterSpec::Lowercase,
                     FilterSpec::ASCIIFolding,
                 ]
             });
-            index.analyzers.insert("edgengram_analyzer".to_string(), AnalyzerSpec {
+            index_settings.analyzers.insert("edgengram_analyzer".to_string(), AnalyzerSpec {
                 tokenizer: TokenizerSpec::Standard,
                 filters: vec![
                     FilterSpec::Lowercase,
@@ -89,6 +84,10 @@ pub fn view_put_index(req: &mut Request) -> IronResult<Response> {
                 ]
             });
 
+            // Create index
+            let mut indices_dir = system.get_indices_dir();
+            indices_dir.push(index_name);
+            let index = Index::new(index_name.clone().to_owned(), index_settings, RocksDBIndexStore::create(indices_dir).unwrap());
             let index_ref = indices.insert(index);
 
             // If there's an alias with the new indexes name, delete it.

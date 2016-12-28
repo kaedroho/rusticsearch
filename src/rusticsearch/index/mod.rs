@@ -5,24 +5,24 @@ pub mod settings_parser;
 
 use kite_rocksdb::RocksDBIndexStore;
 
-use analysis::registry::AnalyzerRegistry;
 use mapping::{Mapping, FieldMapping, MappingRegistry};
+use index::settings::IndexSettings;
 
 
 #[derive(Debug)]
 pub struct Index {
     name: String,
-    pub analyzers: AnalyzerRegistry,
+    pub settings: IndexSettings,
     pub mappings: MappingRegistry,
     pub store: RocksDBIndexStore,
 }
 
 
 impl Index {
-    pub fn new(name: String, store: RocksDBIndexStore) -> Index {
+    pub fn new(name: String, settings: IndexSettings, store: RocksDBIndexStore) -> Index {
         Index {
             name: name,
-            analyzers: AnalyzerRegistry::new(),
+            settings: settings,
             mappings: MappingRegistry::new(),
             store: store,
         }

@@ -46,7 +46,7 @@ pub fn view_put_mapping(req: &mut Request) -> IronResult<Response> {
             return Ok(json_response(status::BadRequest, "{\"acknowledged\": false}"));
         }
     };
-    let mut mapping = mapping_builder.build(&index.analyzers);
+    let mut mapping = mapping_builder.build(&index.settings.analyzers);
     debug!("{:#?}", mapping);
     let is_updating = index.mappings.contains_key(*mapping_name);
 

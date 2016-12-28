@@ -23,6 +23,30 @@ impl AnalyzerRegistry {
         }
     }
 
+    pub fn insert_tokenizer(&mut self, name: String, tokenizer: TokenizerSpec) -> Option<TokenizerSpec> {
+        self.tokenizers.insert(name, tokenizer)
+    }
+
+    pub fn get_tokenizer(&self, name: &str) -> Option<&TokenizerSpec> {
+        self.tokenizers.get(name)
+    }
+
+    pub fn tokenizers_len(&self) -> usize {
+        self.tokenizers.len()
+    }
+
+    pub fn insert_filter(&mut self, name: String, filter: FilterSpec) -> Option<FilterSpec> {
+        self.filters.insert(name, filter)
+    }
+
+    pub fn get_filter(&self, name: &str) -> Option<&FilterSpec> {
+        self.filters.get(name)
+    }
+
+    pub fn filters_len(&self) -> usize {
+        self.filters.len()
+    }
+
     fn get_default_analyzer(&self) -> AnalyzerSpec {
         self.get("default").cloned().unwrap_or_else(|| {
             AnalyzerSpec {

@@ -1,10 +1,7 @@
-use std::collections::HashMap;
-
 use rustc_serialize::json::Json;
 
 use analysis::AnalyzerSpec;
-use analysis::tokenizers::TokenizerSpec;
-use analysis::filters::FilterSpec;
+use analysis::registry::AnalyzerRegistry;
 
 
 #[derive(Debug, PartialEq)]
@@ -19,7 +16,7 @@ pub enum AnalyzerParseError {
 }
 
 
-pub fn parse(json: &Json, tokenizers: &HashMap<String, TokenizerSpec>, filters: &HashMap<String, FilterSpec>) -> Result<AnalyzerSpec, AnalyzerParseError> {
+pub fn parse(json: &Json, analyzers: &AnalyzerRegistry) -> Result<AnalyzerSpec, AnalyzerParseError> {
     let data = try!(json.as_object().ok_or(AnalyzerParseError::ExpectedObject));
 
     // Get type
@@ -39,7 +36,7 @@ pub fn parse(json: &Json, tokenizers: &HashMap<String, TokenizerSpec>, filters: 
                 None => return Err(AnalyzerParseError::ExpectedKey("tokenizer".to_string())),
             };
 
-            let tokenizer_spec = match tokenizers.get(tokenizer_name) {
+            let tokenizer_spec = match analyzers.get_tokenizer(tokenizer_name) {
                 Some(tokenizer_spec) => tokenizer_spec,
                 None => return Err(AnalyzerParseError::UnrecognisedTokenizer(tokenizer_name.to_string())),
             };
@@ -58,7 +55,7 @@ pub fn parse(json: &Json, tokenizers: &HashMap<String, TokenizerSpec>, filters: 
                             // Get filter
                             match filter_name_json.as_string() {
                                 Some(filter_name) => {
-                                    let filter_spec = match filters.get(filter_name) {
+                                    let filter_spec = match analyzers.get_filter(filter_name) {
                                         Some(filter_spec) => filter_spec,
                                         None => return Err(AnalyzerParseError::UnrecognisedFilter(filter_name.to_string())),
                                     };
