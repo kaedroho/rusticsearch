@@ -69,6 +69,17 @@ impl KeyBuilder {
         kb
     }
 
+    pub fn segment_field_dir_list(segment: u32, field_ord: u32) -> KeyBuilder {
+        let mut kb = KeyBuilder::new();
+        kb.push_char(b'd');
+        kb.push_string(field_ord.to_string().as_bytes());
+        kb.separator();
+        kb.push_char(b'0');
+        kb.separator();
+        kb.push_string(segment.to_string().as_bytes());
+        kb
+    }
+
     pub fn segment_stat_prefix(segment: u32) -> KeyBuilder {
         let mut kb = KeyBuilder::new();
         kb.push_char(b's');

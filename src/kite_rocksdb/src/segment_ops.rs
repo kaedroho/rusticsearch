@@ -44,7 +44,7 @@ impl RocksDBIndexStore {
         write_options.set_sync(false);
         write_options.disable_wal(true);
 
-        // Merge the term directories
+        // Merge the term/field directories
         // The term directory keys are ordered to be most convenient for retrieving all the segments
         // of for a term/field combination in one go (field/term/segment). So we don't end up pulling
         // in a lot of unwanted data, we firstly iterate the keys, it they one of the source segments

@@ -47,6 +47,12 @@ impl<'a> Segment for RocksDBSegment<'a> {
         Ok(doc_id_set)
     }
 
+    fn load_field_directory(&self, field_ref: FieldRef) -> Result<Option<DocIdSet>, String> {
+        let kb = KeyBuilder::segment_field_dir_list(self.id, field_ref.ord());
+        let doc_id_set = try!(self.reader.snapshot.get(&kb.key())).map(|doc_id_set| DocIdSet::from_bytes(doc_id_set.to_vec()));
+        Ok(doc_id_set)
+    }
+
     fn load_deletion_list(&self) -> Result<Option<DocIdSet>, String> {
         let kb = KeyBuilder::segment_del_list(self.id);
         let doc_id_set = try!(self.reader.snapshot.get(&kb.key())).map(|doc_id_set| DocIdSet::from_bytes(doc_id_set.to_vec()));

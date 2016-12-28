@@ -17,6 +17,7 @@ pub enum CombinatorScorer {
 pub enum ScoreFunctionOp {
     Literal(f64),
     TermScorer(FieldRef, TermRef, TermScorer),
+    FieldScorer(FieldRef, f64),
     CombinatorScorer(u32, CombinatorScorer),
 }
 
@@ -80,6 +81,9 @@ pub fn plan_score_function(index_reader: &RocksDBIndexReader, mut score_function
                 1 => {},
                 _ => score_function.push(ScoreFunctionOp::CombinatorScorer(total_terms, CombinatorScorer::Avg)),
             }
+        }
+        Query::MatchHasField{field, score} => {
+            score_function.push(ScoreFunctionOp::FieldScorer(field, score));
         }
         Query::Conjunction{ref queries} => {
             plan_score_function_combinator(index_reader, &mut score_function, queries, CombinatorScorer::Avg);

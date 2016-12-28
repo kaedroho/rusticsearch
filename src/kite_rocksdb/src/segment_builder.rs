@@ -13,6 +13,7 @@ pub struct SegmentBuilder {
     pub term_dictionary: HashMap<Term, TermRef>,
     current_term_ref: u32,
     pub term_directories: HashMap<(FieldRef, TermRef), Vec<u16>>,
+    pub field_directories: HashMap<FieldRef, Vec<u16>>,
     pub statistics: HashMap<Vec<u8>, i64>,
     pub stored_field_values: HashMap<(FieldRef, u16, Vec<u8>), Vec<u8>>,
 }
@@ -32,6 +33,7 @@ impl SegmentBuilder {
             term_dictionary: HashMap::new(),
             current_term_ref: 0,
             term_directories: HashMap::new(),
+            field_directories: HashMap::new(),
             statistics: HashMap::new(),
             stored_field_values: HashMap::new(),
         }
@@ -118,6 +120,9 @@ impl SegmentBuilder {
                 let mut stat = self.statistics.entry(stat_name).or_insert(0);
                 *stat += field_token_count;
             }
+
+            // Write field directory list
+            self.field_directories.entry(*field).or_insert_with(Vec::new).push(doc_id);
         }
 
         // Insert stored fields

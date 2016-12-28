@@ -27,6 +27,10 @@ pub enum Query {
         term_selector: TermSelector,
         scorer: TermScorer,
     },
+    MatchHasField {
+        field: FieldRef,
+        score: f64,
+    },
     Conjunction {
         queries: Vec<Query>,
     },
@@ -128,6 +132,9 @@ impl Query {
             Query::MultiTerm{ref mut scorer, ..} => {
                 scorer.boost *= add_boost;
             }
+            Query::MatchHasField{ref mut score, ..} => {
+                *score *= add_boost;
+            }
             Query::Conjunction{ref mut queries} => {
                 for query in queries {
                     query.boost(add_boost);
@@ -177,6 +184,9 @@ impl Query {
                 }
 
                 false
+            }
+            Query::MatchHasField{ref field, ..} => {
+                doc.indexed_fields.contains_key(field)
             }
             Query::Conjunction{ref queries} => {
                 for query in queries {
@@ -256,6 +266,13 @@ impl Query {
                 }
 
                 None
+            }
+            Query::MatchHasField{ref field, score} => {
+                if doc.indexed_fields.contains_key(field) {
+                    Some(score)
+                } else {
+                    None
+                }
             }
             Query::Conjunction{ref queries} => {
                 let mut total_score = 0.0f64;

@@ -31,6 +31,12 @@ fn run_boolean_query<S: Segment>(boolean_query: &Vec<BooleanQueryOp>, is_negated
                     None => stack.push(DocIdSet::new_filled(0)),
                 }
             }
+            BooleanQueryOp::PushFieldDirectory(field_ref) => {
+                match try!(segment.load_field_directory(field_ref)) {
+                    Some(doc_id_set) => stack.push(doc_id_set),
+                    None => stack.push(DocIdSet::new_filled(0)),
+                }
+            }
             BooleanQueryOp::PushDeletionList => {
                     match try!(segment.load_deletion_list()) {
                     Some(doc_id_set) => stack.push(doc_id_set),
@@ -105,6 +111,19 @@ fn score_doc<S: Segment, R: StatisticsReader>(doc_id: u16, score_function: &Vec<
 
                             let score = scorer.similarity_model.score(term_frequency as u32, field_length, try!(stats.total_tokens(field_ref)) as u64, try!(stats.total_docs(field_ref)) as u64, try!(stats.term_document_frequency(field_ref, term_ref)) as u64);
                             stack.push(score * scorer.boost);
+                        } else {
+                            stack.push(0.0f64);
+                        }
+                    }
+                    None => stack.push(0.0f64),
+                }
+            }
+            ScoreFunctionOp::FieldScorer(field_ref, score) => {
+                // TODO: Check this isn't really slow
+                match try!(segment.load_field_directory(field_ref)) {
+                    Some(doc_id_set) => {
+                        if doc_id_set.contains_doc(doc_id) {
+                            stack.push(score);
                         } else {
                             stack.push(0.0f64);
                         }

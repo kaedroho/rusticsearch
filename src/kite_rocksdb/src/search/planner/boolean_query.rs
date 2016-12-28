@@ -12,6 +12,7 @@ pub enum BooleanQueryOp {
     PushEmpty,
     PushFull,
     PushTermDirectory(FieldRef, TermRef),
+    PushFieldDirectory(FieldRef),
     PushDeletionList,
     And,
     Or,
@@ -120,6 +121,17 @@ impl BooleanQueryBuilder {
 
         self.stack.push(Rc::new(Leaf{
             op: PushTermDirectory(field_ref, term_ref),
+            return_type: Sparse,
+        }));
+    }
+
+    pub fn push_field_directory(&mut self, field_ref: FieldRef) {
+        use self::BooleanQueryOp::*;
+        use self::BooleanQueryBlock::*;
+        use self::BooleanQueryBlockReturnType::*;
+
+        self.stack.push(Rc::new(Leaf{
+            op: PushFieldDirectory(field_ref),
             return_type: Sparse,
         }));
     }
@@ -390,6 +402,9 @@ pub fn plan_boolean_query(index_reader: &RocksDBIndexReader, mut builder: &mut B
                 builder.push_term_directory(field, term_ref);
                 builder.or_combinator();
             }
+        }
+        Query::MatchHasField{field,..} => {
+            builder.push_field_directory(field);
         }
         Query::Conjunction{ref queries} => {
             plan_boolean_query_combinator(index_reader, &mut builder, queries, |builder| builder.and_combinator());

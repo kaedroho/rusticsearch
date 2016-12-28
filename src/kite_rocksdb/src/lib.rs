@@ -271,6 +271,22 @@ impl RocksDBIndexStore {
             try!(write_batch.put(&kb.key(), &doc_ids_bytes));
         }
 
+        // Write field directories
+        for (field_ref, doc_ids) in builder.field_directories.iter() {
+
+            // Convert doc_id list to bytes
+            let mut doc_ids_bytes = Vec::with_capacity(doc_ids.len() * 2);
+            for doc_id in doc_ids.iter() {
+                let mut doc_id_bytes = [0; 2];
+                BigEndian::write_u16(&mut doc_id_bytes, *doc_id);
+                doc_ids_bytes.push(doc_id_bytes[0]);
+                doc_ids_bytes.push(doc_id_bytes[1]);
+            }
+
+            let kb = KeyBuilder::segment_field_dir_list(segment, field_ref.ord());
+            try!(write_batch.put(&kb.key(), &doc_ids_bytes));
+        }
+
         // Write stored fields
         for (&(field_ref, doc_id, ref value_type), value) in builder.stored_field_values.iter() {
             let kb = KeyBuilder::stored_field_value(segment, doc_id, field_ref.ord(), value_type);
