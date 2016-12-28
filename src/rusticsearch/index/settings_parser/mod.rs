@@ -15,8 +15,11 @@ use self::analysis_analyzer::{AnalyzerParseError, parse as parse_analyzer};
 pub enum IndexSettingsParseError {
     ExpectedObject,
     TokenizerParseError(String, TokenizerParseError),
+    TokenizerAlreadyExists(String),
     FilterParseError(String, FilterParseError),
+    FilterAlreadyExists(String),
     AnalyzerParseError(String, AnalyzerParseError),
+    AnalyzerAlreadyExists(String),
 }
 
 
@@ -53,7 +56,10 @@ pub fn parse(index_settings: &mut IndexSettings, data: Json) -> Result<(), Index
                         Err(e) => return Err(IndexSettingsParseError::TokenizerParseError(name.to_string(), e)),
                     };
 
-                    index_settings.analyzers.insert_tokenizer(name.clone(), tokenizer);
+                    let result = index_settings.analyzers.insert_tokenizer(name.clone(), tokenizer);
+                    if result.is_err() {
+                        return Err(IndexSettingsParseError::TokenizerAlreadyExists(name.clone()));
+                    }
                 }
             }
 
@@ -70,7 +76,10 @@ pub fn parse(index_settings: &mut IndexSettings, data: Json) -> Result<(), Index
                         Err(e) => return Err(IndexSettingsParseError::FilterParseError(name.to_string(), e)),
                     };
 
-                    index_settings.analyzers.insert_filter(name.clone(), filter);
+                    let result = index_settings.analyzers.insert_filter(name.clone(), filter);
+                    if result.is_err() {
+                        return Err(IndexSettingsParseError::FilterAlreadyExists(name.clone()));
+                    }
                 }
             }
 
@@ -87,7 +96,10 @@ pub fn parse(index_settings: &mut IndexSettings, data: Json) -> Result<(), Index
                         Err(e) => return Err(IndexSettingsParseError::AnalyzerParseError(name.to_string(), e)),
                     };
 
-                    index_settings.analyzers.insert_analyzer(name.clone(), analyzer);
+                    let result = index_settings.analyzers.insert_analyzer(name.clone(), analyzer);
+                    if result.is_err() {
+                        return Err(IndexSettingsParseError::AnalyzerAlreadyExists(name.clone()));
+                    }
                 }
             }
         }
@@ -305,5 +317,27 @@ mod tests {
         ").unwrap()).err().expect("parse() was supposed to return an error, but didn't");
 
         assert_eq!(error, IndexSettingsParseError::FilterParseError("bad_filter".to_string(), FilterParseError::UnrecognisedType("foo".to_string())));
+    }
+
+    #[test]
+    fn test_disallows_name_clash() {
+        let mut settings = IndexSettings::default();
+        let error = parse(&mut settings, Json::from_str("
+        {
+            \"settings\": {
+                \"analysis\": {
+                    \"filter\": {
+                        \"lowercase\": {
+                            \"type\": \"nGram\",
+                            \"min_gram\": 3,
+                            \"max_gram\": 15
+                        }
+                    }
+                }
+            }
+        }
+        ").unwrap()).err().expect("parse() was supposed to return an error, but didn't");
+
+        assert_eq!(error, IndexSettingsParseError::FilterAlreadyExists("lowercase".to_string()));
     }
 }

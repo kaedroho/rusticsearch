@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::collections::hash_map::Entry;
 use std::ops::{Deref, DerefMut};
 
 use analysis::AnalyzerSpec;
@@ -41,24 +42,42 @@ impl AnalyzerRegistry {
         analyzers
     }
 
-    pub fn insert_analyzer(&mut self, name: String, analyzer: AnalyzerSpec) -> Option<AnalyzerSpec> {
-        self.analyzers.insert(name, analyzer)
+    pub fn insert_analyzer(&mut self, name: String, analyzer: AnalyzerSpec) -> Result<(), AnalyzerSpec> {
+        match self.analyzers.entry(name) {
+            Entry::Occupied(_) => Err(analyzer),
+            Entry::Vacant(v) => {
+                v.insert(analyzer);
+                Ok(())
+            }
+        }
     }
 
     pub fn analyzers(&self) -> &HashMap<String, AnalyzerSpec> {
         &self.analyzers
     }
 
-    pub fn insert_tokenizer(&mut self, name: String, tokenizer: TokenizerSpec) -> Option<TokenizerSpec> {
-        self.tokenizers.insert(name, tokenizer)
+    pub fn insert_tokenizer(&mut self, name: String, tokenizer: TokenizerSpec) -> Result<(), TokenizerSpec> {
+        match self.tokenizers.entry(name) {
+            Entry::Occupied(_) => Err(tokenizer),
+            Entry::Vacant(v) => {
+                v.insert(tokenizer);
+                Ok(())
+            }
+        }
     }
 
     pub fn tokenizers(&self) -> &HashMap<String, TokenizerSpec> {
         &self.tokenizers
     }
 
-    pub fn insert_filter(&mut self, name: String, filter: FilterSpec) -> Option<FilterSpec> {
-        self.filters.insert(name, filter)
+    pub fn insert_filter(&mut self, name: String, filter: FilterSpec) -> Result<(), FilterSpec> {
+        match self.filters.entry(name) {
+            Entry::Occupied(_) => Err(filter),
+            Entry::Vacant(v) => {
+                v.insert(filter);
+                Ok(())
+            }
+        }
     }
 
     pub fn filters(&self) -> &HashMap<String, FilterSpec> {

@@ -355,7 +355,7 @@ mod tests {
     #[test]
     fn test_build_field_custom_base_analyzer() {
         let mut analyzers = AnalyzerRegistry::new();
-        analyzers.insert_analyzer("my-analyzer".to_string(), build_test_analyzer());
+        analyzers.insert_analyzer("my-analyzer".to_string(), build_test_analyzer()).unwrap();
 
         let builder = FieldMappingBuilder {
             field_type: FieldType::String,
@@ -376,7 +376,7 @@ mod tests {
     #[test]
     fn test_build_field_custom_index_analyzer() {
         let mut analyzers = AnalyzerRegistry::new();
-        analyzers.insert_analyzer("my-analyzer".to_string(), build_test_analyzer());
+        analyzers.insert_analyzer("my-analyzer".to_string(), build_test_analyzer()).unwrap();
 
         let builder = FieldMappingBuilder {
             field_type: FieldType::String,
@@ -397,7 +397,7 @@ mod tests {
     #[test]
     fn test_build_field_custom_search_analyzer() {
         let mut analyzers = AnalyzerRegistry::new();
-        analyzers.insert_analyzer("my-analyzer".to_string(), build_test_analyzer());
+        analyzers.insert_analyzer("my-analyzer".to_string(), build_test_analyzer()).unwrap();
 
         let builder = FieldMappingBuilder {
             field_type: FieldType::String,
