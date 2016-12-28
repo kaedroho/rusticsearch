@@ -19,10 +19,16 @@ use api::iron::typemap::Key;
 use api::router::Router;
 
 use system::System;
+use VERSION;
 
 
 fn view_home(_: &mut Request) -> IronResult<Response> {
-    Ok(Response::with((status::Ok, "Hello World!")))
+    Ok(Response::with((status::Ok, format!("{{
+  \"cluster_name\" : \"rusticsearch\",
+  \"version\" : {{
+    \"number\" : \"{}\",
+  }}
+}}", VERSION))))
 }
 
 
