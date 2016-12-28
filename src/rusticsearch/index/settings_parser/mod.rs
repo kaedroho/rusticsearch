@@ -104,6 +104,7 @@ mod tests {
     use analysis::ngram_generator::Edge;
     use analysis::tokenizers::TokenizerSpec;
     use analysis::filters::FilterSpec;
+    use analysis::AnalyzerSpec;
     use index::settings::IndexSettings;
 
     use super::{parse, IndexSettingsParseError};
@@ -111,16 +112,36 @@ mod tests {
     use super::analysis_filter::FilterParseError;
 
     #[test]
-    fn test_empty() {
+    fn test_default() {
         let mut settings = IndexSettings::default();
         parse(&mut settings, Json::from_str("
-        {
-        }
+        {}
         ").unwrap()).expect("parse() returned an error");
 
-        assert_eq!(settings.analyzers.tokenizers_len(), 0);
-        assert_eq!(settings.analyzers.filters_len(), 0);
-        assert_eq!(settings.analyzers.len(), 0);
+        assert_eq!(settings.analyzers.tokenizers_len(), 1);
+        assert_eq!(settings.analyzers.filters_len(), 2);
+        assert_eq!(settings.analyzers.len(), 1);
+
+        // Check builtin tokenizers
+        let standard_tokenizer = settings.analyzers.get_tokenizer("standard").expect("'standard' tokenizer wasn't created");
+        assert_eq!(*standard_tokenizer, TokenizerSpec::Standard);
+
+        // Check builtin filters
+        let lowercase_filter = settings.analyzers.get_filter("lowercase").expect("'lowercase' filter wasn't created");
+        assert_eq!(*lowercase_filter, FilterSpec::Lowercase);
+
+        let asciifolding_filter = settings.analyzers.get_filter("asciifolding").expect("'asciifolding' filter wasn't created");
+        assert_eq!(*asciifolding_filter, FilterSpec::ASCIIFolding);
+
+        // Check builtin analyzers
+        let standard_analyzer = settings.analyzers.get("standard").expect("'standard' analyzer wasn't created");
+        assert_eq!(*standard_analyzer, AnalyzerSpec {
+            tokenizer: TokenizerSpec::Standard,
+            filters: vec![
+                FilterSpec::Lowercase,
+                FilterSpec::ASCIIFolding,
+            ]
+        });
     }
 
     #[test]
@@ -183,9 +204,9 @@ mod tests {
         }
         ").unwrap()).expect("parse() returned an error");
 
-        assert_eq!(settings.analyzers.tokenizers_len(), 4);
-        assert_eq!(settings.analyzers.filters_len(), 4);
-        assert_eq!(settings.analyzers.len(), 0);
+        assert_eq!(settings.analyzers.tokenizers_len(), 5);
+        assert_eq!(settings.analyzers.filters_len(), 6);
+        assert_eq!(settings.analyzers.len(), 1);
 
         // Check tokenizers
         let ngram_tokenizer = settings.analyzers.get_tokenizer("ngram_tokenizer").expect("'ngram_tokenizer' wasn't created");

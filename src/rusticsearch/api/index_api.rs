@@ -4,10 +4,6 @@ use std::io::Read;
 use rustc_serialize::json::Json;
 use kite_rocksdb::RocksDBIndexStore;
 
-use analysis::AnalyzerSpec;
-use analysis::tokenizers::TokenizerSpec;
-use analysis::filters::FilterSpec;
-use analysis::ngram_generator::Edge;
 use index::Index;
 use index::settings::IndexSettings;
 use index::settings_parser::parse as parse_index_settings;
@@ -61,28 +57,6 @@ pub fn view_put_index(req: &mut Request) -> IronResult<Response> {
                     return Ok(json_response(status::BadRequest, "{\"message\": \"Couldn't parse index settings\"}"));
                 }
             }
-
-            // Insert standard and edgengram analyzers
-            // TODO: Load these from index settings
-            index_settings.analyzers.insert("standard".to_string(), AnalyzerSpec {
-                tokenizer: TokenizerSpec::Standard,
-                filters: vec![
-                    FilterSpec::Lowercase,
-                    FilterSpec::ASCIIFolding,
-                ]
-            });
-            index_settings.analyzers.insert("edgengram_analyzer".to_string(), AnalyzerSpec {
-                tokenizer: TokenizerSpec::Standard,
-                filters: vec![
-                    FilterSpec::Lowercase,
-                    FilterSpec::ASCIIFolding,
-                    FilterSpec::NGram {
-                        min_size: 2,
-                        max_size: 15,
-                        edge: Edge::Left
-                    },
-                ]
-            });
 
             // Create index
             let mut indices_dir = system.get_indices_dir();
