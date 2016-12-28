@@ -45,24 +45,16 @@ impl AnalyzerRegistry {
         self.tokenizers.insert(name, tokenizer)
     }
 
-    pub fn get_tokenizer(&self, name: &str) -> Option<&TokenizerSpec> {
-        self.tokenizers.get(name)
-    }
-
-    pub fn tokenizers_len(&self) -> usize {
-        self.tokenizers.len()
+    pub fn tokenizers(&self) -> &HashMap<String, TokenizerSpec> {
+        &self.tokenizers
     }
 
     pub fn insert_filter(&mut self, name: String, filter: FilterSpec) -> Option<FilterSpec> {
         self.filters.insert(name, filter)
     }
 
-    pub fn get_filter(&self, name: &str) -> Option<&FilterSpec> {
-        self.filters.get(name)
-    }
-
-    pub fn filters_len(&self) -> usize {
-        self.filters.len()
+    pub fn filters(&self) -> &HashMap<String, FilterSpec> {
+        &self.filters
     }
 
     fn get_default_analyzer(&self) -> AnalyzerSpec {

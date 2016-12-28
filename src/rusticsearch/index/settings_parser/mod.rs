@@ -118,19 +118,19 @@ mod tests {
         {}
         ").unwrap()).expect("parse() returned an error");
 
-        assert_eq!(settings.analyzers.tokenizers_len(), 1);
-        assert_eq!(settings.analyzers.filters_len(), 2);
+        assert_eq!(settings.analyzers.tokenizers().len(), 1);
+        assert_eq!(settings.analyzers.filters().len(), 2);
         assert_eq!(settings.analyzers.len(), 1);
 
         // Check builtin tokenizers
-        let standard_tokenizer = settings.analyzers.get_tokenizer("standard").expect("'standard' tokenizer wasn't created");
+        let standard_tokenizer = settings.analyzers.tokenizers().get("standard").expect("'standard' tokenizer wasn't created");
         assert_eq!(*standard_tokenizer, TokenizerSpec::Standard);
 
         // Check builtin filters
-        let lowercase_filter = settings.analyzers.get_filter("lowercase").expect("'lowercase' filter wasn't created");
+        let lowercase_filter = settings.analyzers.filters().get("lowercase").expect("'lowercase' filter wasn't created");
         assert_eq!(*lowercase_filter, FilterSpec::Lowercase);
 
-        let asciifolding_filter = settings.analyzers.get_filter("asciifolding").expect("'asciifolding' filter wasn't created");
+        let asciifolding_filter = settings.analyzers.filters().get("asciifolding").expect("'asciifolding' filter wasn't created");
         assert_eq!(*asciifolding_filter, FilterSpec::ASCIIFolding);
 
         // Check builtin analyzers
@@ -204,33 +204,33 @@ mod tests {
         }
         ").unwrap()).expect("parse() returned an error");
 
-        assert_eq!(settings.analyzers.tokenizers_len(), 5);
-        assert_eq!(settings.analyzers.filters_len(), 6);
+        assert_eq!(settings.analyzers.tokenizers().len(), 5);
+        assert_eq!(settings.analyzers.filters().len(), 6);
         assert_eq!(settings.analyzers.len(), 1);
 
         // Check tokenizers
-        let ngram_tokenizer = settings.analyzers.get_tokenizer("ngram_tokenizer").expect("'ngram_tokenizer' wasn't created");
+        let ngram_tokenizer = settings.analyzers.tokenizers().get("ngram_tokenizer").expect("'ngram_tokenizer' wasn't created");
         assert_eq!(*ngram_tokenizer, TokenizerSpec::NGram {
             min_size: 3,
             max_size: 15,
             edge: Edge::Neither,
         });
 
-        let edgengram_tokenizer = settings.analyzers.get_tokenizer("edgengram_tokenizer").expect("'edgengram_tokenizer' wasn't created");
+        let edgengram_tokenizer = settings.analyzers.tokenizers().get("edgengram_tokenizer").expect("'edgengram_tokenizer' wasn't created");
         assert_eq!(*edgengram_tokenizer, TokenizerSpec::NGram {
             min_size: 2,
             max_size: 15,
             edge: Edge::Left,
         });
 
-        let edgengram_tokenizer_side_front = settings.analyzers.get_tokenizer("edgengram_tokenizer_side_front").expect("'edgengram_tokenizer_side_front' wasn't created");
+        let edgengram_tokenizer_side_front = settings.analyzers.tokenizers().get("edgengram_tokenizer_side_front").expect("'edgengram_tokenizer_side_front' wasn't created");
         assert_eq!(*edgengram_tokenizer_side_front, TokenizerSpec::NGram {
             min_size: 2,
             max_size: 15,
             edge: Edge::Left,
         });
 
-        let edgengram_tokenizer_side_back = settings.analyzers.get_tokenizer("edgengram_tokenizer_side_back").expect("'edgengram_tokenizer_side_back' wasn't created");
+        let edgengram_tokenizer_side_back = settings.analyzers.tokenizers().get("edgengram_tokenizer_side_back").expect("'edgengram_tokenizer_side_back' wasn't created");
         assert_eq!(*edgengram_tokenizer_side_back, TokenizerSpec::NGram {
             min_size: 2,
             max_size: 15,
@@ -238,28 +238,28 @@ mod tests {
         });
 
         // Check filters
-        let ngram_filter = settings.analyzers.get_filter("ngram_filter").expect("'ngram_filter' wasn't created");
+        let ngram_filter = settings.analyzers.filters().get("ngram_filter").expect("'ngram_filter' wasn't created");
         assert_eq!(*ngram_filter, FilterSpec::NGram {
             min_size: 3,
             max_size: 15,
             edge: Edge::Neither,
         });
 
-        let edgengram_filter = settings.analyzers.get_filter("edgengram_filter").expect("'edgengram_filter' wasn't created");
+        let edgengram_filter = settings.analyzers.filters().get("edgengram_filter").expect("'edgengram_filter' wasn't created");
         assert_eq!(*edgengram_filter, FilterSpec::NGram {
             min_size: 2,
             max_size: 15,
             edge: Edge::Left,
         });
 
-        let edgengram_filter_side_front = settings.analyzers.get_filter("edgengram_filter_side_front").expect("'edgengram_filter_side_front' wasn't created");
+        let edgengram_filter_side_front = settings.analyzers.filters().get("edgengram_filter_side_front").expect("'edgengram_filter_side_front' wasn't created");
         assert_eq!(*edgengram_filter_side_front, FilterSpec::NGram {
             min_size: 2,
             max_size: 15,
             edge: Edge::Left,
         });
 
-        let edgengram_filter_side_back = settings.analyzers.get_filter("edgengram_filter_side_back").expect("'edgengram_filter_side_back' wasn't created");
+        let edgengram_filter_side_back = settings.analyzers.filters().get("edgengram_filter_side_back").expect("'edgengram_filter_side_back' wasn't created");
         assert_eq!(*edgengram_filter_side_back, FilterSpec::NGram {
             min_size: 2,
             max_size: 15,
