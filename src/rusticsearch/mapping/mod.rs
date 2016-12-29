@@ -1,9 +1,10 @@
 pub mod build;
 pub mod parse;
 
-use std::collections::HashMap;
+use std::collections::{HashMap, BTreeMap};
 
 use serde_json;
+use serde_json::value::ToJson;
 use chrono::{DateTime, UTC};
 use kite::{Term, Token};
 use kite::document::FieldValue;
@@ -39,6 +40,18 @@ pub enum FieldType {
 impl Default for FieldType {
     fn default() -> FieldType {
         FieldType::String
+    }
+}
+
+
+impl ToString for FieldType {
+    fn to_string(&self) -> String {
+        match *self {
+            FieldType::String => "string".to_string(),
+            FieldType::Integer => "integer".to_string(),
+            FieldType::Boolean => "boolean".to_string(),
+            FieldType::Date => "date".to_string(),
+        }
     }
 }
 
@@ -88,6 +101,34 @@ impl Default for FieldMapping {
             index_analyzer: None,
             search_analyzer: None,
         }
+    }
+}
+
+
+impl ToJson for FieldMapping {
+    fn to_json(&self) -> Result<serde_json::Value, serde_json::Error> {
+        let index = match (self.is_indexed, &self.index_analyzer) {
+            (false, &None) => "no",
+            (true, &None) => "not_analyzed",
+            _ => {
+                if self.data_type == FieldType::String {
+                    "analyzed"
+                } else {
+                    "not_analyzed"
+                }
+            }
+        };
+
+        Ok(json!({
+            "type": self.data_type.to_string(),
+            "index": index,
+            "store": self.is_stored,
+            // TODO
+            // "index_analyzer"
+            // "search_analyzer"
+            "boost": self.boost,
+            "include_in_all": self.is_in_all
+        }))
     }
 }
 
@@ -289,6 +330,23 @@ pub struct NestedMapping {
 }
 
 
+impl ToJson for NestedMapping {
+    fn to_json(&self) -> Result<serde_json::Value, serde_json::Error> {
+        let mut properties_json = BTreeMap::new();
+
+        // TODO: Exclude "_all" field
+        for (name, prop) in self.properties.iter() {
+            properties_json.insert(name.to_string(), try!(prop.to_json()));
+        }
+
+        Ok(json!({
+            "type": "nested",
+            "properties": properties_json,
+        }))
+    }
+}
+
+
 #[derive(Debug, PartialEq)]
 pub enum MappingProperty {
     Field(FieldMapping),
@@ -296,9 +354,35 @@ pub enum MappingProperty {
 }
 
 
+impl ToJson for MappingProperty {
+    fn to_json(&self) -> Result<serde_json::Value, serde_json::Error> {
+        match *self {
+            MappingProperty::Field(ref field) => field.to_json(),
+            MappingProperty::NestedMapping(ref mapping) => mapping.to_json(),
+        }
+    }
+}
+
+
 #[derive(Debug, PartialEq)]
 pub struct Mapping {
     pub properties: HashMap<String, MappingProperty>,
+}
+
+
+impl ToJson for Mapping {
+    fn to_json(&self) -> Result<serde_json::Value, serde_json::Error> {
+        let mut properties_json = BTreeMap::new();
+
+        // TODO: Exclude "_all" field
+        for (name, prop) in self.properties.iter() {
+            properties_json.insert(name.to_string(), try!(prop.to_json()));
+        }
+
+        Ok(json!({
+            "properties": properties_json,
+        }))
+    }
 }
 
 

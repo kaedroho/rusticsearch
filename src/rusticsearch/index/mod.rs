@@ -3,6 +3,7 @@ pub mod registry;
 pub mod metadata;
 
 use std::sync::RwLock;
+use std::path::PathBuf;
 
 use kite_rocksdb::RocksDBIndexStore;
 use uuid::Uuid;
@@ -35,5 +36,11 @@ impl Index {
 
     pub fn canonical_name(&self) -> &str {
         &self.canonical_name
+    }
+
+    pub fn metadata_path(&self) -> PathBuf {
+        let mut path = self.store.path().to_path_buf();
+        path.push("metadata.json");
+        path
     }
 }

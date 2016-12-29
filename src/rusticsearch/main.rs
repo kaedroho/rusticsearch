@@ -15,6 +15,7 @@ extern crate unicode_segmentation;
 extern crate uuid;
 #[macro_use]
 extern crate serde_json;
+extern crate atomicwrites;
 
 pub mod analysis;
 pub mod query_parser;

@@ -119,6 +119,7 @@ pub fn view_put_mapping(req: &mut Request) -> IronResult<Response> {
     }
 
     index_metadata.mappings.insert(mapping_name.clone().to_owned(), mapping);
+    index_metadata.save(index.metadata_path()).unwrap();
 
     if is_updating {
         // TODO: New mapping should be merged with existing one

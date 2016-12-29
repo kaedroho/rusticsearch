@@ -63,6 +63,7 @@ pub fn view_put_index(req: &mut Request) -> IronResult<Response> {
             let mut indices_dir = system.get_indices_dir();
             indices_dir.push(index_name);
             let index = Index::new(Uuid::new_v4(), index_name.clone().to_owned(), metadata, RocksDBIndexStore::create(indices_dir).unwrap());
+            index.metadata.read().unwrap().save(index.metadata_path()).unwrap();
             let index_ref = indices.insert(index);
 
             // If there's an alias with the new indexes name, delete it.

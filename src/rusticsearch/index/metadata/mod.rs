@@ -1,6 +1,10 @@
 pub mod parse;
+pub mod file;
 
-use std::collections::HashMap;
+use std::collections::{HashMap, BTreeMap};
+
+use serde_json;
+use serde_json::value::ToJson;
 
 use analysis::AnalyzerSpec;
 use analysis::tokenizers::TokenizerSpec;
@@ -114,5 +118,23 @@ impl IndexMetaData {
         }
 
         None
+    }
+}
+
+
+impl ToJson for IndexMetaData {
+    fn to_json(&self) -> Result<serde_json::Value, serde_json::Error> {
+        let mut mappings_json = BTreeMap::new();
+
+        for (name, mapping) in self.mappings.iter() {
+            mappings_json.insert(name.to_string(), try!(mapping.to_json()));
+        }
+
+        Ok(json!({
+            "settings": {
+                "analysis": {},  // TODO
+            },
+            "mappings": mappings_json,
+        }))
     }
 }
