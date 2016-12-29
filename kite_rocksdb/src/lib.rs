@@ -193,6 +193,10 @@ impl RocksDBIndexStore {
         })
     }
 
+    pub fn path(&self) -> &Path {
+        self.db.path()
+    }
+
     pub fn add_field(&mut self, name: String, field_type: FieldType, field_flags: FieldFlags) -> Result<FieldRef, AddFieldError> {
         let mut schema_copy = (*self.schema).clone();
         let field_ref = try!(schema_copy.add_field(name, field_type, field_flags));
