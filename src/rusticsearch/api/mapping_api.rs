@@ -48,7 +48,7 @@ pub fn view_put_mapping(req: &mut Request) -> IronResult<Response> {
     };
     let mut mapping = mapping_builder.build(&index.metadata.analyzers);
     debug!("{:#?}", mapping);
-    let is_updating = index.mappings.contains_key(*mapping_name);
+    let is_updating = index.metadata.mappings.contains_key(*mapping_name);
 
     // Find list of new fields that need to be added to the store
     let new_fields = {
@@ -113,7 +113,7 @@ pub fn view_put_mapping(req: &mut Request) -> IronResult<Response> {
         }
     }
 
-    index.mappings.insert(mapping_name.clone().to_owned(), mapping);
+    index.metadata.mappings.insert(mapping_name.clone().to_owned(), mapping);
 
     if is_updating {
         // TODO: New mapping should be merged with existing one

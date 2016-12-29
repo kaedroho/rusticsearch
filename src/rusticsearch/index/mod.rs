@@ -5,7 +5,7 @@ pub mod metadata_parser;
 
 use kite_rocksdb::RocksDBIndexStore;
 
-use mapping::{Mapping, FieldMapping, MappingRegistry};
+use mapping::{Mapping, FieldMapping};
 use index::metadata::IndexMetaData;
 
 
@@ -13,7 +13,6 @@ use index::metadata::IndexMetaData;
 pub struct Index {
     name: String,
     pub metadata: IndexMetaData,
-    pub mappings: MappingRegistry,
     pub store: RocksDBIndexStore,
 }
 
@@ -23,7 +22,6 @@ impl Index {
         Index {
             name: name,
             metadata: metadata,
-            mappings: MappingRegistry::new(),
             store: store,
         }
     }
@@ -33,10 +31,10 @@ impl Index {
     }
 
     pub fn get_mapping_by_name(&self, name: &str) -> Option<&Mapping> {
-        self.mappings.get(name)
+        self.metadata.mappings.get(name)
     }
 
     pub fn get_field_mapping_by_name(&self, name: &str) -> Option<&FieldMapping> {
-        self.mappings.get_field(name)
+        self.metadata.mappings.get_field(name)
     }
 }
