@@ -7,7 +7,7 @@ use kite_rocksdb::RocksDBIndexStore;
 
 use index::Index;
 use index::registry::IndexRegistry;
-use index::settings::IndexSettings;
+use index::metadata::IndexMetaData;
 
 
 pub struct System {
@@ -35,7 +35,7 @@ impl System {
     fn load_index(&self, name: String, path: &Path) -> Result<Index, String> {
         let store = try!(RocksDBIndexStore::open(path));
 
-        Ok(Index::new(name, IndexSettings::default(), store))
+        Ok(Index::new(name, IndexMetaData::default(), store))
     }
 
     pub fn load_indices(&self) {

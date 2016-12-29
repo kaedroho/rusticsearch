@@ -1,28 +1,28 @@
 pub mod maintenance;
 pub mod registry;
-pub mod settings;
-pub mod settings_parser;
+pub mod metadata;
+pub mod metadata_parser;
 
 use kite_rocksdb::RocksDBIndexStore;
 
 use mapping::{Mapping, FieldMapping, MappingRegistry};
-use index::settings::IndexSettings;
+use index::metadata::IndexMetaData;
 
 
 #[derive(Debug)]
 pub struct Index {
     name: String,
-    pub settings: IndexSettings,
+    pub metadata: IndexMetaData,
     pub mappings: MappingRegistry,
     pub store: RocksDBIndexStore,
 }
 
 
 impl Index {
-    pub fn new(name: String, settings: IndexSettings, store: RocksDBIndexStore) -> Index {
+    pub fn new(name: String, metadata: IndexMetaData, store: RocksDBIndexStore) -> Index {
         Index {
             name: name,
-            settings: settings,
+            metadata: metadata,
             mappings: MappingRegistry::new(),
             store: store,
         }

@@ -5,8 +5,8 @@ use rustc_serialize::json::Json;
 use kite_rocksdb::RocksDBIndexStore;
 
 use index::Index;
-use index::settings::IndexSettings;
-use index::settings_parser::parse as parse_index_settings;
+use index::metadata::IndexMetaData;
+use index::metadata_parser::parse as parse_index_metadata;
 
 use api::persistent;
 use api::iron::prelude::*;
@@ -48,9 +48,9 @@ pub fn view_put_index(req: &mut Request) -> IronResult<Response> {
             system.log.info("[api] updated index", b!("index" => *index_name));
         }
         None => {
-            // Load settings
-            let mut index_settings = IndexSettings::default();
-            match json_from_request_body!(req).map(|data| parse_index_settings(&mut index_settings, data)) {
+            // Load metadata
+            let mut metadata = IndexMetaData::default();
+            match json_from_request_body!(req).map(|data| parse_index_metadata(&mut metadata, data)) {
                 Some(Ok(())) | None => {}
                 Some(Err(_)) => {
                     // TODO: better error
@@ -61,7 +61,7 @@ pub fn view_put_index(req: &mut Request) -> IronResult<Response> {
             // Create index
             let mut indices_dir = system.get_indices_dir();
             indices_dir.push(index_name);
-            let index = Index::new(index_name.clone().to_owned(), index_settings, RocksDBIndexStore::create(indices_dir).unwrap());
+            let index = Index::new(index_name.clone().to_owned(), metadata, RocksDBIndexStore::create(indices_dir).unwrap());
             let index_ref = indices.insert(index);
 
             // If there's an alias with the new indexes name, delete it.
