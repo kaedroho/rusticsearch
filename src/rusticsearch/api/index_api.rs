@@ -3,6 +3,7 @@ use std::io::Read;
 
 use rustc_serialize::json::Json;
 use kite_rocksdb::RocksDBIndexStore;
+use uuid::Uuid;
 
 use index::Index;
 use index::metadata::IndexMetaData;
@@ -61,7 +62,7 @@ pub fn view_put_index(req: &mut Request) -> IronResult<Response> {
             // Create index
             let mut indices_dir = system.get_indices_dir();
             indices_dir.push(index_name);
-            let index = Index::new(index_name.clone().to_owned(), metadata, RocksDBIndexStore::create(indices_dir).unwrap());
+            let index = Index::new(Uuid::new_v4(), index_name.clone().to_owned(), metadata, RocksDBIndexStore::create(indices_dir).unwrap());
             let index_ref = indices.insert(index);
 
             // If there's an alias with the new indexes name, delete it.
@@ -96,7 +97,7 @@ pub fn view_delete_index(req: &mut Request) -> IronResult<Response> {
         // Get the index name
         let index_name = {
             if let Some(index) = indices.get(&index_ref) {
-                index.name().to_string()
+                index.canonical_name().to_string()
             } else {
                 // Index doesn't exist
                 continue;

@@ -29,7 +29,7 @@ pub fn view_get_global_alias(req: &mut Request) -> IronResult<Response> {
         let mut inner_inner_map = HashMap::new();
         inner_inner_map.insert(alias_name, HashMap::<String, String>::new());
         inner_map.insert("aliases".to_owned(), inner_inner_map);
-        found_aliases.insert(index.name().clone(), inner_map);
+        found_aliases.insert(index.canonical_name().clone(), inner_map);
     }
 
     if !found_aliases.is_empty() {

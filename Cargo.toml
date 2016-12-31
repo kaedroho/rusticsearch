@@ -26,6 +26,7 @@ roaring = "0.4.0"
 byteorder = "0.5"
 slog = "0.6"
 slog-term = "0.6"
+uuid = { version = "0.3", features = ["v4"] }
 
 [dependencies.kite]
 path = "src/kite"

@@ -4,6 +4,7 @@ use std::fs;
 
 use slog::Logger;
 use kite_rocksdb::RocksDBIndexStore;
+use uuid::Uuid;
 
 use index::Index;
 use index::registry::IndexRegistry;
@@ -32,10 +33,10 @@ impl System {
         dir
     }
 
-    fn load_index(&self, name: String, path: &Path) -> Result<Index, String> {
+    fn load_index(&self, id: Uuid, name: String, path: &Path) -> Result<Index, String> {
         let store = try!(RocksDBIndexStore::open(path));
 
-        Ok(Index::new(name, IndexMetaData::default(), store))
+        Ok(Index::new(id, name, IndexMetaData::default(), store))
     }
 
     pub fn load_indices(&self) {
@@ -47,7 +48,7 @@ impl System {
                     if path.is_dir() {
                         let index_name: String = path.file_name().unwrap().to_str().unwrap().to_owned();
 
-                        match self.load_index(index_name.clone().to_owned(), path.as_path()) {
+                        match self.load_index(Uuid::new_v4(), index_name.clone().to_owned(), path.as_path()) {
                             Ok(index) => {
                                 let mut indices_w = self.indices.write().unwrap();
                                 let index_ref = indices_w.insert(index);

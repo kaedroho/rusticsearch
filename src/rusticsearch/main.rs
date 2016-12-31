@@ -13,6 +13,7 @@ extern crate slog_term;
 #[macro_use]
 extern crate maplit;
 extern crate unicode_segmentation;
+extern crate uuid;
 
 pub mod analysis;
 pub mod query_parser;

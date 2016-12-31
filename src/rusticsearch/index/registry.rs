@@ -2,11 +2,20 @@ use std::collections::HashMap;
 use std::collections::hash_map::Iter as HashMapIter;
 use std::ops::{Deref, DerefMut};
 
+use uuid::Uuid;
+
 use index::Index;
 
 
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
-pub struct IndexRef(u32);
+pub struct IndexRef(Uuid);
+
+
+impl IndexRef {
+    pub fn id(&self) -> &Uuid {
+        &self.0
+    }
+}
 
 
 #[derive(Debug)]
@@ -178,7 +187,6 @@ impl<'a> Iterator for IndexAliasesIterator<'a> {
 
 #[derive(Debug)]
 pub struct IndexRegistry {
-    ref_counter: u32,
     indices: HashMap<IndexRef, Index>,
     pub names: NameRegistry,
 }
@@ -187,7 +195,6 @@ pub struct IndexRegistry {
 impl IndexRegistry {
     pub fn new() -> IndexRegistry {
         IndexRegistry {
-            ref_counter: 1,
             indices: HashMap::new(),
             names: NameRegistry {
                 names: HashMap::new(),
@@ -196,9 +203,7 @@ impl IndexRegistry {
     }
 
     pub fn insert(&mut self, index: Index) -> IndexRef {
-        let index_ref = IndexRef(self.ref_counter);
-        self.ref_counter += 1;
-
+        let index_ref = IndexRef(index.id().clone());
         self.indices.insert(index_ref, index);
 
         index_ref
