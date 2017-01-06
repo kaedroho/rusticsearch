@@ -58,10 +58,11 @@ pub fn view_post_bulk(req: &mut Request) -> IronResult<Response> {
 
                 // Find index
                 let index = get_index_or_404!(indices, doc_index);
+                let index_metadata = index.metadata.read().unwrap();
 
                 let doc = {
                     // Find mapping
-                    let mapping = match index.get_mapping_by_name(doc_type) {
+                    let mapping = match index_metadata.mappings.get(doc_type) {
                         Some(mapping) => mapping,
                         None => {
                             return Ok(json_response(status::NotFound, "{\"message\": \"Mapping not found\"}"));

@@ -23,9 +23,10 @@ pub fn view_get_doc(req: &mut Request) -> IronResult<Response> {
 
     // Get index
     let index = get_index_or_404!(indices, *index_name);
+    let index_metadata = index.metadata.read().unwrap();
 
     // Check that the mapping exists
-    if index.get_mapping_by_name(mapping_name).is_none() {
+    if !index_metadata.mappings.contains_key(*mapping_name) {
         return Ok(json_response(status::NotFound, "{\"message\": \"Mapping not found\"}"));
     }
 
@@ -64,10 +65,11 @@ pub fn view_put_doc(req: &mut Request) -> IronResult<Response> {
 
     // Get index
     let index = get_index_or_404!(indices, *index_name);
+    let index_metadata = index.metadata.read().unwrap();
 
     let doc = {
         // Find mapping
-        let mapping = match index.get_mapping_by_name(mapping_name) {
+        let mapping = match index_metadata.mappings.get(*mapping_name) {
             Some(mapping) => mapping,
             None => {
                 return Ok(json_response(status::NotFound, "{\"message\": \"Mapping not found\"}"));
@@ -104,9 +106,10 @@ pub fn view_delete_doc(req: &mut Request) -> IronResult<Response> {
 
     // Get index
     let index = get_index_or_404!(indices, *index_name);
+    let index_metadata = index.metadata.read().unwrap();
 
     // Check that the mapping exists
-    if index.get_mapping_by_name(mapping_name).is_none() {
+    if !index_metadata.mappings.contains_key(*mapping_name) {
         return Ok(json_response(status::NotFound, "{\"message\": \"Mapping not found\"}"));
     }
 
