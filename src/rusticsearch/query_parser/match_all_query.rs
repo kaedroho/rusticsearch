@@ -51,7 +51,7 @@ pub fn parse(json: &Json) -> Result<Box<QueryBuilder>, QueryParseError> {
 mod tests {
     use rustc_serialize::json::Json;
 
-    use kite::{Term, Query, TermScorer};
+    use kite::Query;
     use kite::schema::Schema;
 
     use query_parser::{QueryBuildContext, QueryParseError};

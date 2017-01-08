@@ -117,8 +117,6 @@ impl <'a> Iterator for NGramGenerator<'a> {
 
 #[cfg(test)]
 mod tests {
-    use kite::{Term, Token};
-
     use super::{Edge, NGramGenerator};
 
     #[test]

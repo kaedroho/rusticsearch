@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-use std::ops::{Deref, DerefMut};
 
 use analysis::AnalyzerSpec;
 use analysis::tokenizers::TokenizerSpec;

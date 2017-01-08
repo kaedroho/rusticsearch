@@ -131,8 +131,6 @@ impl MappingBuilder {
 
 #[cfg(test)]
 mod tests {
-    use std::collections::HashMap;
-
     use analysis::registry::AnalyzerRegistry;
     use analysis::AnalyzerSpec;
     use analysis::tokenizers::TokenizerSpec;
