@@ -135,7 +135,11 @@ impl RocksDBIndexStore {
 
         // Schema
         let schema = Schema::new();
-        try!(db.put(b".schema", json::encode(&schema).unwrap().as_bytes()));
+        let schema_encoded = match json::encode(&schema) {
+            Ok(schema_encoded) => schema_encoded,
+            Err(e) => return Err(format!("schema encode error: {:?}", e).into()),
+        };
+        try!(db.put(b".schema", schema_encoded.as_bytes()));
 
         // Segment manager
         let segments = try!(SegmentManager::new(&db));
@@ -163,9 +167,12 @@ impl RocksDBIndexStore {
         let schema = match try!(db.get(b".schema")) {
             Some(schema) => {
                 let schema = schema.to_utf8().unwrap().to_string();
-                json::decode(&schema).unwrap()
+                match json::decode(&schema) {
+                    Ok(schema) => schema,
+                    Err(e) => return Err(format!("schema parse error: {:?}", e).into()),
+                }
             }
-            None => Schema::new(),  // TODO: error
+            None => return Err("unable to find schema in store".into()),
         };
 
         // Segment manager
