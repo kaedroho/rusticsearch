@@ -439,14 +439,14 @@ mod tests {
     fn test_open() {
         remove_dir_all("test_indices/test_open");
 
+        // Check that it fails to open a DB which doesn't exist
         let store = RocksDBIndexStore::open("test_indices/test_open");
         assert!(store.is_err());
 
-        // Create DB
-        let mut opts = Options::default();
-        opts.create_if_missing(true);
-        DB::open(&opts, "test_indices/test_open");
+        // Create the DB
+        RocksDBIndexStore::create("test_indices/test_open");
 
+        // Now try and open it
         let store = RocksDBIndexStore::open("test_indices/test_open");
         assert!(store.is_ok());
     }
