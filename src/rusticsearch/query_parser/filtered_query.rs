@@ -4,7 +4,7 @@ use rustc_serialize::json::Json;
 use kite::Query;
 use kite::schema::Schema;
 
-use query_parser::{QueryParseContext, QueryParseError, QueryBuilder, parse as parse_query};
+use query_parser::{QueryBuildContext, QueryParseError, QueryBuilder, parse as parse_query};
 
 
 #[derive(Debug)]
@@ -15,21 +15,21 @@ struct FilteredQueryBuilder {
 
 
 impl QueryBuilder for FilteredQueryBuilder {
-    fn build(&self, schema: &Schema) -> Query {
+    fn build(&self, context: &QueryBuildContext, schema: &Schema) -> Query {
         let query = match self.query {
-            Some(ref query) => query.build(schema),
+            Some(ref query) => query.build(context, schema),
             None => Query::new_match_all(),
         };
 
         Query::Filter {
             query: Box::new(query),
-            filter: Box::new(self.filter.build(schema)),
+            filter: Box::new(self.filter.build(&context.clone().no_score(), schema)),
         }
     }
 }
 
 
-pub fn parse(context: &QueryParseContext, json: &Json) -> Result<Box<QueryBuilder>, QueryParseError> {
+pub fn parse(json: &Json) -> Result<Box<QueryBuilder>, QueryParseError> {
     let object = try!(json.as_object().ok_or(QueryParseError::ExpectedObject));
 
     let mut query = None;
@@ -40,11 +40,11 @@ pub fn parse(context: &QueryParseContext, json: &Json) -> Result<Box<QueryBuilde
     for (key, value) in object.iter() {
         match key.as_ref() {
             "query" => {
-                query = Some(try!(parse_query(&context.clone(), value)));
+                query = Some(try!(parse_query(value)));
             }
             "filter" => {
                 has_filter_key = true;
-                filter = Some(try!(parse_query(&context.clone().no_score(), value)));
+                filter = Some(try!(parse_query(value)));
             }
             _ => return Err(QueryParseError::UnrecognisedKey(key.clone()))
         }
@@ -68,7 +68,7 @@ mod tests {
     use kite::{Term, Query, TermScorer};
     use kite::schema::{Schema, FieldType, FIELD_INDEXED};
 
-    use query_parser::{QueryParseContext, QueryParseError};
+    use query_parser::{QueryBuildContext, QueryParseError};
 
     use super::parse;
 
@@ -77,7 +77,7 @@ mod tests {
         let mut schema = Schema::new();
         let the_field = schema.add_field("the".to_string(), FieldType::Text, FIELD_INDEXED).unwrap();
 
-        let query = parse(&QueryParseContext::new(), &Json::from_str("
+        let query = parse(&Json::from_str("
         {
             \"query\": {
                 \"term\": {
@@ -90,7 +90,7 @@ mod tests {
                 }
             }
         }
-        ").unwrap()).and_then(|builder| Ok(builder.build(&schema)));
+        ").unwrap()).and_then(|builder| Ok(builder.build(&QueryBuildContext::new(), &schema)));
 
         assert_eq!(query, Ok(Query::Filter {
             query: Box::new(Query::MatchTerm {
@@ -111,7 +111,7 @@ mod tests {
         let mut schema = Schema::new();
         let the_field = schema.add_field("the".to_string(), FieldType::Text, FIELD_INDEXED).unwrap();
 
-        let query = parse(&QueryParseContext::new(), &Json::from_str("
+        let query = parse(&Json::from_str("
         {
             \"filter\": {
                 \"term\": {
@@ -119,7 +119,7 @@ mod tests {
                 }
             }
         }
-        ").unwrap()).and_then(|builder| Ok(builder.build(&schema)));
+        ").unwrap()).and_then(|builder| Ok(builder.build(&QueryBuildContext::new(), &schema)));
 
         assert_eq!(query, Ok(Query::Filter {
             query: Box::new(Query::new_match_all()),
@@ -134,14 +134,14 @@ mod tests {
     #[test]
     fn test_gives_error_for_incorrect_type() {
         // String
-        let query = parse(&QueryParseContext::new(), &Json::from_str("
+        let query = parse(&Json::from_str("
         \"hello\"
         ").unwrap());
 
         assert_eq!(query.err(), Some(QueryParseError::ExpectedObject));
 
         // Array
-        let query = parse(&QueryParseContext::new(), &Json::from_str("
+        let query = parse(&Json::from_str("
         [
             \"foo\"
         ]
@@ -150,14 +150,14 @@ mod tests {
         assert_eq!(query.err(), Some(QueryParseError::ExpectedObject));
 
         // Integer
-        let query = parse(&QueryParseContext::new(), &Json::from_str("
+        let query = parse(&Json::from_str("
         123
         ").unwrap());
 
         assert_eq!(query.err(), Some(QueryParseError::ExpectedObject));
 
         // Float
-        let query = parse(&QueryParseContext::new(), &Json::from_str("
+        let query = parse(&Json::from_str("
         123.1234
         ").unwrap());
 
@@ -166,7 +166,7 @@ mod tests {
 
     #[test]
     fn test_gives_error_for_invalid_query() {
-        let query = parse(&QueryParseContext::new(), &Json::from_str("
+        let query = parse(&Json::from_str("
         {
             \"query\": \"foo\",
             \"filter\": {
@@ -182,7 +182,7 @@ mod tests {
 
     #[test]
     fn test_gives_error_for_missing_filter() {
-        let query = parse(&QueryParseContext::new(), &Json::from_str("
+        let query = parse(&Json::from_str("
         {
             \"query\": {
                 \"term\": {
@@ -197,7 +197,7 @@ mod tests {
 
     #[test]
     fn test_gives_error_for_invalid_filter() {
-        let query = parse(&QueryParseContext::new(), &Json::from_str("
+        let query = parse(&Json::from_str("
         {
             \"query\": {
                 \"term\": {
@@ -213,7 +213,7 @@ mod tests {
 
     #[test]
     fn test_gives_error_for_unexpected_key() {
-        let query = parse(&QueryParseContext::new(), &Json::from_str("
+        let query = parse(&Json::from_str("
         {
             \"query\": {
                 \"term\": {

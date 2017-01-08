@@ -23,28 +23,28 @@ use mapping::MappingRegistry;
 
 
 #[derive(Debug, Clone)]
-pub struct QueryParseContext<'a> {
+pub struct QueryBuildContext<'a> {
     pub mappings: Option<&'a MappingRegistry>,
     score_required: bool,
 }
 
 
-impl<'a> QueryParseContext<'a> {
-    pub fn new() -> QueryParseContext<'a> {
-        QueryParseContext {
+impl<'a> QueryBuildContext<'a> {
+    pub fn new() -> QueryBuildContext<'a> {
+        QueryBuildContext {
             mappings: None,
             score_required: true
         }
     }
 
     #[inline]
-    pub fn set_mappings(mut self, mappings: &'a MappingRegistry) -> QueryParseContext<'a> {
+    pub fn set_mappings(mut self, mappings: &'a MappingRegistry) -> QueryBuildContext<'a> {
         self.mappings = Some(mappings);
         self
     }
 
     #[inline]
-    pub fn no_score(mut self) -> QueryParseContext<'a> {
+    pub fn no_score(mut self) -> QueryBuildContext<'a> {
         self.score_required = false;
         self
     }
@@ -69,11 +69,11 @@ pub enum QueryParseError {
 
 
 pub trait QueryBuilder: Debug {
-    fn build(&self, schema: &Schema) -> Query;
+    fn build(&self, context: &QueryBuildContext, schema: &Schema) -> Query;
 }
 
 
-fn get_query_parser(query_name: &str) -> Option<fn(&QueryParseContext, &Json) -> Result<Box<QueryBuilder>, QueryParseError>> {
+fn get_query_parser(query_name: &str) -> Option<fn(&Json) -> Result<Box<QueryBuilder>, QueryParseError>> {
     match query_name {
         "match" => Some(match_query::parse),
         "multi_match" => Some(multi_match_query::parse),
@@ -92,7 +92,7 @@ fn get_query_parser(query_name: &str) -> Option<fn(&QueryParseContext, &Json) ->
 }
 
 
-pub fn parse(context: &QueryParseContext, json: &Json) -> Result<Box<QueryBuilder>, QueryParseError> {
+pub fn parse(json: &Json) -> Result<Box<QueryBuilder>, QueryParseError> {
     let object = try!(json.as_object().ok_or(QueryParseError::ExpectedObject));
 
     let query_type = if object.len() == 1 {
@@ -102,7 +102,7 @@ pub fn parse(context: &QueryParseContext, json: &Json) -> Result<Box<QueryBuilde
     };
 
     match get_query_parser(&query_type) {
-        Some(parse) => parse(context, object.get(query_type).unwrap()),
+        Some(parse) => parse(object.get(query_type).unwrap()),
         None => Err(QueryParseError::UnrecognisedQueryType(query_type.clone())),
     }
 }

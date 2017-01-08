@@ -6,13 +6,13 @@ use kite::schema::Schema;
 
 use mapping::FieldSearchOptions;
 
-use query_parser::{QueryParseContext, QueryParseError, QueryBuilder};
+use query_parser::{QueryBuildContext, QueryParseError, QueryBuilder};
 use query_parser::utils::{parse_string, parse_float, Operator, parse_operator, parse_field_and_boost};
 
 
 #[derive(Debug)]
 struct MultiMatchQueryBuilder {
-    fields: Vec<(String, f64, FieldSearchOptions)>,
+    fields: Vec<(String, f64)>,
     query: String,
     operator: Operator,
     boost: f64,
@@ -20,10 +20,21 @@ struct MultiMatchQueryBuilder {
 
 
 impl QueryBuilder for MultiMatchQueryBuilder {
-    fn build(&self, schema: &Schema) -> Query {
+    fn build(&self, context: &QueryBuildContext, schema: &Schema) -> Query {
         // Convert query string into term query objects
         let mut field_queries = Vec::new();
-        for &(ref field_name, field_boost, ref field_search_options) in self.fields.iter() {
+        for &(ref field_name, field_boost) in self.fields.iter() {
+            // Get search options for field
+            let field_search_options = match context.mappings {
+                Some(mappings) => {
+                    match mappings.get_field(&field_name) {
+                        Some(field_mapping) => field_mapping.get_search_options(),
+                        None => FieldSearchOptions::default(),  // TODO: error?
+                    }
+                }
+                None => FieldSearchOptions::default(),  // TODO: error?
+            };
+
             // Tokenise query string
             let tokens = match field_search_options.analyzer {
                 Some(ref analyzer) => {
@@ -69,7 +80,7 @@ impl QueryBuilder for MultiMatchQueryBuilder {
 }
 
 
-pub fn parse(context: &QueryParseContext, json: &Json) -> Result<Box<QueryBuilder>, QueryParseError> {
+pub fn parse(json: &Json) -> Result<Box<QueryBuilder>, QueryParseError> {
     let object = try!(json.as_object().ok_or(QueryParseError::ExpectedObject));
 
     // Get configuration
@@ -117,25 +128,8 @@ pub fn parse(context: &QueryParseContext, json: &Json) -> Result<Box<QueryBuilde
         return Err(QueryParseError::ExpectedKey("query"))
     }
 
-    // Add search options to fields
-    let mut fields = Vec::new();
-    for (field_name, field_boost) in fields_with_boosts {
-        // Get search options for field
-        let field_search_options = match context.mappings {
-            Some(mappings) => {
-                match mappings.get_field(&field_name) {
-                    Some(field_mapping) => field_mapping.get_search_options(),
-                    None => FieldSearchOptions::default(),  // TODO: error?
-                }
-            }
-            None => FieldSearchOptions::default(),  // TODO: error?
-        };
-
-        fields.push((field_name, field_boost, field_search_options));
-    }
-
     Ok(Box::new(MultiMatchQueryBuilder {
-        fields: fields,
+        fields: fields_with_boosts,
         query: query,
         operator: operator,
         boost: boost,
@@ -150,7 +144,7 @@ mod tests {
     use kite::{Term, Query, TermScorer};
     use kite::schema::{Schema, FieldType, FIELD_INDEXED};
 
-    use query_parser::{QueryParseContext, QueryParseError};
+    use query_parser::{QueryBuildContext, QueryParseError};
 
     use super::parse;
 
@@ -160,12 +154,12 @@ mod tests {
         let bar_field = schema.add_field("bar".to_string(), FieldType::Text, FIELD_INDEXED).unwrap();
         let baz_field = schema.add_field("baz".to_string(), FieldType::Text, FIELD_INDEXED).unwrap();
 
-        let query = parse(&QueryParseContext::new(), &Json::from_str("
+        let query = parse(&Json::from_str("
         {
             \"query\": \"foo\",
             \"fields\": [\"bar\", \"baz\"]
         }
-        ").unwrap()).and_then(|builder| Ok(builder.build(&schema)));
+        ").unwrap()).and_then(|builder| Ok(builder.build(&QueryBuildContext::new(), &schema)));
 
         assert_eq!(query, Ok(Query::DisjunctionMax {
             queries: vec![
@@ -189,12 +183,12 @@ mod tests {
         let bar_field = schema.add_field("bar".to_string(), FieldType::Text, FIELD_INDEXED).unwrap();
         let baz_field = schema.add_field("baz".to_string(), FieldType::Text, FIELD_INDEXED).unwrap();
 
-        let query = parse(&QueryParseContext::new(), &Json::from_str("
+        let query = parse(&Json::from_str("
         {
             \"query\": \"hello world\",
             \"fields\": [\"bar\", \"baz\"]
         }
-        ").unwrap()).and_then(|builder| Ok(builder.build(&schema)));
+        ").unwrap()).and_then(|builder| Ok(builder.build(&QueryBuildContext::new(), &schema)));
 
         assert_eq!(query, Ok(Query::DisjunctionMax {
             queries: vec![
@@ -236,13 +230,13 @@ mod tests {
         let bar_field = schema.add_field("bar".to_string(), FieldType::Text, FIELD_INDEXED).unwrap();
         let baz_field = schema.add_field("baz".to_string(), FieldType::Text, FIELD_INDEXED).unwrap();
 
-        let query = parse(&QueryParseContext::new(), &Json::from_str("
+        let query = parse(&Json::from_str("
         {
             \"query\": \"foo\",
             \"fields\": [\"bar\", \"baz\"],
             \"boost\": 2.0
         }
-        ").unwrap()).and_then(|builder| Ok(builder.build(&schema)));
+        ").unwrap()).and_then(|builder| Ok(builder.build(&QueryBuildContext::new(), &schema)));
 
         assert_eq!(query, Ok(Query::DisjunctionMax {
             queries: vec![
@@ -266,13 +260,13 @@ mod tests {
         let bar_field = schema.add_field("bar".to_string(), FieldType::Text, FIELD_INDEXED).unwrap();
         let baz_field = schema.add_field("baz".to_string(), FieldType::Text, FIELD_INDEXED).unwrap();
 
-        let query = parse(&QueryParseContext::new(), &Json::from_str("
+        let query = parse(&Json::from_str("
         {
             \"query\": \"foo\",
             \"fields\": [\"bar\", \"baz\"],
             \"boost\": 2
         }
-        ").unwrap()).and_then(|builder| Ok(builder.build(&schema)));
+        ").unwrap()).and_then(|builder| Ok(builder.build(&QueryBuildContext::new(), &schema)));
 
         assert_eq!(query, Ok(Query::DisjunctionMax {
             queries: vec![
@@ -296,12 +290,12 @@ mod tests {
         let bar_field = schema.add_field("bar".to_string(), FieldType::Text, FIELD_INDEXED).unwrap();
         let baz_field = schema.add_field("baz".to_string(), FieldType::Text, FIELD_INDEXED).unwrap();
 
-        let query = parse(&QueryParseContext::new(), &Json::from_str("
+        let query = parse(&Json::from_str("
         {
             \"query\": \"foo\",
             \"fields\": [\"bar^2\", \"baz^1.0\"]
         }
-        ").unwrap()).and_then(|builder| Ok(builder.build(&schema)));
+        ").unwrap()).and_then(|builder| Ok(builder.build(&QueryBuildContext::new(), &schema)));
 
         assert_eq!(query, Ok(Query::DisjunctionMax {
             queries: vec![
@@ -325,13 +319,13 @@ mod tests {
         let bar_field = schema.add_field("bar".to_string(), FieldType::Text, FIELD_INDEXED).unwrap();
         let baz_field = schema.add_field("baz".to_string(), FieldType::Text, FIELD_INDEXED).unwrap();
 
-        let query = parse(&QueryParseContext::new(), &Json::from_str("
+        let query = parse(&Json::from_str("
         {
             \"query\": \"foo\",
             \"fields\": [\"bar^2\", \"baz^1.0\"],
             \"boost\": 2.0
         }
-        ").unwrap()).and_then(|builder| Ok(builder.build(&schema)));
+        ").unwrap()).and_then(|builder| Ok(builder.build(&QueryBuildContext::new(), &schema)));
 
         assert_eq!(query, Ok(Query::DisjunctionMax {
             queries: vec![
@@ -355,13 +349,13 @@ mod tests {
         let baz_field = schema.add_field("baz".to_string(), FieldType::Text, FIELD_INDEXED).unwrap();
         let quux_field = schema.add_field("quux".to_string(), FieldType::Text, FIELD_INDEXED).unwrap();
 
-        let query = parse(&QueryParseContext::new(), &Json::from_str("
+        let query = parse(&Json::from_str("
         {
             \"query\": \"foo bar\",
             \"fields\": [\"baz\", \"quux\"],
             \"operator\": \"and\"
         }
-        ").unwrap()).and_then(|builder| Ok(builder.build(&schema)));
+        ").unwrap()).and_then(|builder| Ok(builder.build(&QueryBuildContext::new(), &schema)));
 
         assert_eq!(query, Ok(Query::DisjunctionMax {
             queries: vec![
@@ -400,14 +394,14 @@ mod tests {
     #[test]
     fn test_gives_error_for_incorrect_type() {
         // String
-        let query = parse(&QueryParseContext::new(), &Json::from_str("
+        let query = parse(&Json::from_str("
         \"foo\"
         ").unwrap());
 
         assert_eq!(query.err(), Some(QueryParseError::ExpectedObject));
 
         // Array
-        let query = parse(&QueryParseContext::new(), &Json::from_str("
+        let query = parse(&Json::from_str("
         [
             \"foo\"
         ]
@@ -416,14 +410,14 @@ mod tests {
         assert_eq!(query.err(), Some(QueryParseError::ExpectedObject));
 
         // Integer
-        let query = parse(&QueryParseContext::new(), &Json::from_str("
+        let query = parse(&Json::from_str("
         123
         ").unwrap());
 
         assert_eq!(query.err(), Some(QueryParseError::ExpectedObject));
 
         // Float
-        let query = parse(&QueryParseContext::new(), &Json::from_str("
+        let query = parse(&Json::from_str("
         123.1234
         ").unwrap());
 
@@ -433,7 +427,7 @@ mod tests {
     #[test]
     fn test_gives_error_for_incorrect_query_type() {
         // Object
-        let query = parse(&QueryParseContext::new(), &Json::from_str("
+        let query = parse(&Json::from_str("
         {
             \"query\": {
                 \"foo\": \"bar\"
@@ -445,7 +439,7 @@ mod tests {
         assert_eq!(query.err(), Some(QueryParseError::ExpectedString));
 
         // Array
-        let query = parse(&QueryParseContext::new(), &Json::from_str("
+        let query = parse(&Json::from_str("
         {
             \"query\": [\"foo\"],
             \"fields\": [\"bar\", \"baz\"]
@@ -455,7 +449,7 @@ mod tests {
         assert_eq!(query.err(), Some(QueryParseError::ExpectedString));
 
         // Integer
-        let query = parse(&QueryParseContext::new(), &Json::from_str("
+        let query = parse(&Json::from_str("
         {
             \"query\": 123,
             \"fields\": [\"bar\", \"baz\"]
@@ -465,7 +459,7 @@ mod tests {
         assert_eq!(query.err(), Some(QueryParseError::ExpectedString));
 
         // Float
-        let query = parse(&QueryParseContext::new(), &Json::from_str("
+        let query = parse(&Json::from_str("
         {
             \"query\": 123.456,
             \"fields\": [\"bar\", \"baz\"]
@@ -477,7 +471,7 @@ mod tests {
     #[test]
     fn test_gives_error_for_incorrect_fields_type() {
         // String
-        let query = parse(&QueryParseContext::new(), &Json::from_str("
+        let query = parse(&Json::from_str("
         {
             \"query\": \"foo\",
             \"fields\": \"bar\"
@@ -487,7 +481,7 @@ mod tests {
         assert_eq!(query.err(), Some(QueryParseError::ExpectedArray));
 
         // Object
-        let query = parse(&QueryParseContext::new(), &Json::from_str("
+        let query = parse(&Json::from_str("
         {
             \"query\": \"foo\",
             \"fields\": {
@@ -499,7 +493,7 @@ mod tests {
         assert_eq!(query.err(), Some(QueryParseError::ExpectedArray));
 
         // Integer
-        let query = parse(&QueryParseContext::new(), &Json::from_str("
+        let query = parse(&Json::from_str("
         {
             \"query\": \"foo\",
             \"fields\": 123
@@ -509,7 +503,7 @@ mod tests {
         assert_eq!(query.err(), Some(QueryParseError::ExpectedArray));
 
         // Float
-        let query = parse(&QueryParseContext::new(), &Json::from_str("
+        let query = parse(&Json::from_str("
         {
             \"query\": \"foo\",
             \"fields\": 123.456
@@ -522,7 +516,7 @@ mod tests {
     #[test]
     fn test_gives_error_for_incorrect_boost_type() {
         // String
-        let query = parse(&QueryParseContext::new(), &Json::from_str("
+        let query = parse(&Json::from_str("
         {
             \"query\": \"foo\",
             \"fields\": [\"bar\", \"baz\"],
@@ -533,7 +527,7 @@ mod tests {
         assert_eq!(query.err(), Some(QueryParseError::ExpectedFloat));
 
         // Array
-        let query = parse(&QueryParseContext::new(), &Json::from_str("
+        let query = parse(&Json::from_str("
         {
             \"query\": \"foo\",
             \"fields\": [\"bar\", \"baz\"],
@@ -544,7 +538,7 @@ mod tests {
         assert_eq!(query.err(), Some(QueryParseError::ExpectedFloat));
 
         // Object
-        let query = parse(&QueryParseContext::new(), &Json::from_str("
+        let query = parse(&Json::from_str("
         {
             \"query\": \"foo\",
             \"fields\": [\"bar\", \"baz\"],
@@ -559,7 +553,7 @@ mod tests {
 
     #[test]
     fn test_gives_error_for_missing_query() {
-        let query = parse(&QueryParseContext::new(), &Json::from_str("
+        let query = parse(&Json::from_str("
         {
             \"fields\": [\"bar\", \"baz\"]
         }
@@ -570,7 +564,7 @@ mod tests {
 
     #[test]
     fn test_gives_error_for_missing_fields() {
-        let query = parse(&QueryParseContext::new(), &Json::from_str("
+        let query = parse(&Json::from_str("
         {
             \"query\": \"foo\"
         }
@@ -581,7 +575,7 @@ mod tests {
 
     #[test]
     fn test_gives_error_for_extra_key() {
-        let query = parse(&QueryParseContext::new(), &Json::from_str("
+        let query = parse(&Json::from_str("
         {
             \"query\": \"foo\",
             \"fields\": [\"bar\", \"baz\"],

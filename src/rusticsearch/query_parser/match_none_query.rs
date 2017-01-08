@@ -4,7 +4,7 @@ use rustc_serialize::json::Json;
 use kite::Query;
 use kite::schema::Schema;
 
-use query_parser::{QueryParseContext, QueryParseError, QueryBuilder};
+use query_parser::{QueryBuildContext, QueryParseError, QueryBuilder};
 
 
 #[derive(Debug)]
@@ -12,13 +12,13 @@ struct MatchNoneQueryBuilder;
 
 
 impl QueryBuilder for MatchNoneQueryBuilder {
-    fn build(&self, _schema: &Schema) -> Query {
+    fn build(&self, _context: &QueryBuildContext, _schema: &Schema) -> Query {
         Query::MatchNone
     }
 }
 
 
-pub fn parse(_context: &QueryParseContext, json: &Json) -> Result<Box<QueryBuilder>, QueryParseError> {
+pub fn parse(json: &Json) -> Result<Box<QueryBuilder>, QueryParseError> {
     let object = try!(json.as_object().ok_or(QueryParseError::ExpectedObject));
 
     // Get configuration
@@ -39,7 +39,7 @@ mod tests {
     use kite::{Term, Query};
     use kite::schema::Schema;
 
-    use query_parser::{QueryParseContext, QueryParseError};
+    use query_parser::{QueryBuildContext, QueryParseError};
 
     use super::parse;
 
@@ -47,10 +47,10 @@ mod tests {
     fn test_match_none_query() {
         let schema = Schema::new();
 
-        let query = parse(&QueryParseContext::new(), &Json::from_str("
+        let query = parse(&Json::from_str("
         {
         }
-        ").unwrap()).and_then(|builder| Ok(builder.build(&schema)));
+        ").unwrap()).and_then(|builder| Ok(builder.build(&QueryBuildContext::new(), &schema)));
 
         assert_eq!(query, Ok(Query::MatchNone))
     }
@@ -58,7 +58,7 @@ mod tests {
     #[test]
     fn test_gives_error_for_incorrect_type() {
         // Array
-        let query = parse(&QueryParseContext::new(), &Json::from_str("
+        let query = parse(&Json::from_str("
         [
             \"foo\"
         ]
@@ -67,14 +67,14 @@ mod tests {
         assert_eq!(query.err(), Some(QueryParseError::ExpectedObject));
 
         // Integer
-        let query = parse(&QueryParseContext::new(), &Json::from_str("
+        let query = parse(&Json::from_str("
         123
         ").unwrap());
 
         assert_eq!(query.err(), Some(QueryParseError::ExpectedObject));
 
         // Float
-        let query = parse(&QueryParseContext::new(), &Json::from_str("
+        let query = parse(&Json::from_str("
         123.1234
         ").unwrap());
 
@@ -83,7 +83,7 @@ mod tests {
 
     #[test]
     fn test_gives_error_for_unrecognised_key() {
-        let query = parse(&QueryParseContext::new(), &Json::from_str("
+        let query = parse(&Json::from_str("
         {
             \"hello\": \"world\"
         }
