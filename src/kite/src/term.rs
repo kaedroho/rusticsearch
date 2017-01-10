@@ -22,8 +22,7 @@ impl TermRef {
 pub enum Term {
     String(String),
     Boolean(bool),
-    I64(i64),
-    U64(u64),
+    Integer(i64),
     DateTime(DateTime<UTC>),
 }
 
@@ -35,8 +34,8 @@ impl Term {
             Json::String(ref string) => Some(Term::String(string.clone())),
             Json::Boolean(value) => Some(Term::Boolean(value)),
             Json::F64(_) => None,
-            Json::I64(value) => Some(Term::I64(value)),
-            Json::U64(value) => Some(Term::U64(value)),
+            Json::I64(value) => Some(Term::Integer(value)),
+            Json::U64(value) => Some(Term::Integer(value as i64)),  // FIXME
             Json::Null => None,
             Json::Array(_) => None,
             Json::Object(_) => None,
@@ -47,8 +46,7 @@ impl Term {
         match *self {
             Term::String(ref string) => Json::String(string.clone()),
             Term::Boolean(value) => Json::Boolean(value),
-            Term::I64(value) => Json::I64(value),
-            Term::U64(value) => Json::U64(value),
+            Term::Integer(value) => Json::I64(value),
             Term::DateTime(value) => Json::String(value.to_rfc3339()),
         }
     }
@@ -71,14 +69,9 @@ impl Term {
                     vec![b'f']
                 }
             }
-            Term::I64(value) => {
+            Term::Integer(value) => {
                 let mut bytes = Vec::with_capacity(8);
                 bytes.write_i64::<BigEndian>(value).unwrap();
-                bytes
-            }
-            Term::U64(value) => {
-                let mut bytes = Vec::with_capacity(8);
-                bytes.write_u64::<BigEndian>(value).unwrap();
                 bytes
             }
             Term::DateTime(value) => {
@@ -137,24 +130,17 @@ mod tests {
     }
 
     #[test]
-    fn test_i64_to_bytes() {
-        let term = Term::I64(123);
+    fn test_integer_to_bytes() {
+        let term = Term::Integer(123);
 
         assert_eq!(term.to_bytes(), vec![0, 0, 0, 0, 0, 0, 0, 123])
     }
 
     #[test]
-    fn test_negative_i64_to_bytes() {
-        let term = Term::I64(-123);
+    fn test_negative_integer_to_bytes() {
+        let term = Term::Integer(-123);
 
         assert_eq!(term.to_bytes(), vec![255, 255, 255, 255, 255, 255, 255, 133])
-    }
-
-    #[test]
-    fn test_u64_to_bytes() {
-        let term = Term::U64(123);
-
-        assert_eq!(term.to_bytes(), vec![0, 0, 0, 0, 0, 0, 0, 123])
     }
 
     #[test]

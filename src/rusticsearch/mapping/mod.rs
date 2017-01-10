@@ -183,8 +183,8 @@ impl FieldMapping {
             }
             FieldType::Integer => {
                 match value {
-                    Json::U64(num) => Some(vec![Token{term: Term::I64(num as i64), position: 1}]),
-                    Json::I64(num) => Some(vec![Token{term: Term::I64(num), position: 1}]),
+                    Json::U64(num) => Some(vec![Token{term: Term::Integer(num as i64), position: 1}]),  // FIXME
+                    Json::I64(num) => Some(vec![Token{term: Term::Integer(num), position: 1}]),
                     _ => None,
                 }
             }

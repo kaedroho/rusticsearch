@@ -127,7 +127,7 @@ mod tests {
 
         assert_eq!(query, Ok(Query::MatchTerm {
             field: foo_field,
-            term: Term::U64(123),
+            term: Term::Integer(123),
             scorer: TermScorer::default(),
         }));
     }
