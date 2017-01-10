@@ -25,7 +25,6 @@ pub enum Term {
     I64(i64),
     U64(u64),
     DateTime(DateTime<UTC>),
-    //F64(f64),
 }
 
 
@@ -35,7 +34,7 @@ impl Term {
         match *json {
             Json::String(ref string) => Some(Term::String(string.clone())),
             Json::Boolean(value) => Some(Term::Boolean(value)),
-            Json::F64(_) => None, //Term::F64(value),
+            Json::F64(_) => None,
             Json::I64(value) => Some(Term::I64(value)),
             Json::U64(value) => Some(Term::U64(value)),
             Json::Null => None,
@@ -48,7 +47,6 @@ impl Term {
         match *self {
             Term::String(ref string) => Json::String(string.clone()),
             Term::Boolean(value) => Json::Boolean(value),
-            //Term::F64(value) => Json::F64(value),
             Term::I64(value) => Json::I64(value),
             Term::U64(value) => Json::U64(value),
             Term::DateTime(value) => Json::String(value.to_rfc3339()),
