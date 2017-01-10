@@ -76,12 +76,12 @@ mod tests {
             queries: vec![
                 Query::Term {
                     field: test_field,
-                    term: Term::from_string("foo".to_string()),
+                    term: Term::from_string("foo"),
                     scorer: TermScorer::default(),
                 },
                 Query::Term {
                     field: test_field,
-                    term: Term::from_string("bar".to_string()),
+                    term: Term::from_string("bar"),
                     scorer: TermScorer::default(),
                 },
             ],

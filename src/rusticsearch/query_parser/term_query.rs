@@ -107,7 +107,7 @@ mod tests {
 
         assert_eq!(query, Ok(Query::Term {
             field: foo_field,
-            term: Term::from_string("bar".to_string()),
+            term: Term::from_string("bar"),
             scorer: TermScorer::default(),
         }));
     }
@@ -145,7 +145,7 @@ mod tests {
 
         assert_eq!(query, Ok(Query::Term {
             field: foo_field,
-            term: Term::from_string("bar".to_string()),
+            term: Term::from_string("bar"),
             scorer: TermScorer::default(),
         }));
     }
@@ -166,7 +166,7 @@ mod tests {
 
         assert_eq!(query, Ok(Query::Term {
             field: foo_field,
-            term: Term::from_string("bar".to_string()),
+            term: Term::from_string("bar"),
             scorer: TermScorer::default_with_boost(2.0f64),
         }));
     }
@@ -187,7 +187,7 @@ mod tests {
 
         assert_eq!(query, Ok(Query::Term {
             field: foo_field,
-            term: Term::from_string("bar".to_string()),
+            term: Term::from_string("bar"),
             scorer: TermScorer::default_with_boost(2.0f64),
         }));
     }

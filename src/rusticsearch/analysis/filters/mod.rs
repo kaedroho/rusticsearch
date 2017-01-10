@@ -31,8 +31,8 @@ use analysis::filters::asciifolding::ASCIIFoldingFilter;
 /// let tokens = filtered_token_stream.collect::<Vec<Token>>();
 ///
 /// assert_eq!(tokens, vec![
-///     Token { term: Term::from_string("hello".to_string()), position: 1 },
-///     Token { term: Term::from_string("world".to_string()), position: 2 },
+///     Token { term: Term::from_string("hello"), position: 1 },
+///     Token { term: Term::from_string("world"), position: 2 },
 /// ]);
 /// ```
 #[derive(Debug, Clone, PartialEq)]

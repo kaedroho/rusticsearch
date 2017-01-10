@@ -134,7 +134,7 @@ impl FieldMapping {
                             }
                             None => {
                                 vec![
-                                    Token {term: Term::from_string(string.to_string()), position: 1}
+                                    Token {term: Term::from_string(&string), position: 1}
                                 ]
                             }
                         };

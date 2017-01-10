@@ -39,7 +39,7 @@ impl QueryBuilder for MatchQueryBuilder {
                 token_stream.collect::<Vec<Token>>()
             }
             None => {
-                vec![Token {term: Term::from_string(self.query.clone()), position: 1}]
+                vec![Token {term: Term::from_string(&self.query), position: 1}]
             }
         };
 
@@ -148,7 +148,7 @@ mod tests {
 
         assert_eq!(query, Ok(Query::Term {
             field: foo_field,
-            term: Term::from_string("bar".to_string()),
+            term: Term::from_string("bar"),
             scorer: TermScorer::default(),
         }))
     }
@@ -170,12 +170,12 @@ mod tests {
             queries: vec![
                 Query::Term {
                     field: foo_field,
-                    term: Term::from_string("bar".to_string()),
+                    term: Term::from_string("bar"),
                     scorer: TermScorer::default(),
                 },
                 Query::Term {
                     field: foo_field,
-                    term: Term::from_string("baz".to_string()),
+                    term: Term::from_string("baz"),
                     scorer: TermScorer::default(),
                 }
             ],
@@ -197,12 +197,12 @@ mod tests {
             queries: vec![
                 Query::Term {
                     field: foo_field,
-                    term: Term::from_string("bar".to_string()),
+                    term: Term::from_string("bar"),
                     scorer: TermScorer::default(),
                 },
                 Query::Term {
                     field: foo_field,
-                    term: Term::from_string("baz".to_string()),
+                    term: Term::from_string("baz"),
                     scorer: TermScorer::default(),
                 }
             ],
@@ -225,7 +225,7 @@ mod tests {
 
         assert_eq!(query, Ok(Query::Term {
             field: foo_field,
-            term: Term::from_string("bar".to_string()),
+            term: Term::from_string("bar"),
             scorer: TermScorer::default_with_boost(2.0f64),
         }))
     }
@@ -246,7 +246,7 @@ mod tests {
 
         assert_eq!(query, Ok(Query::Term {
             field: foo_field,
-            term: Term::from_string("bar".to_string()),
+            term: Term::from_string("bar"),
             scorer: TermScorer::default_with_boost(2.0f64),
         }))
     }
@@ -269,12 +269,12 @@ mod tests {
             queries: vec![
                 Query::Term {
                     field: foo_field,
-                    term: Term::from_string("bar".to_string()),
+                    term: Term::from_string("bar"),
                     scorer: TermScorer::default(),
                 },
                 Query::Term {
                     field: foo_field,
-                    term: Term::from_string("baz".to_string()),
+                    term: Term::from_string("baz"),
                     scorer: TermScorer::default(),
                 }
             ],

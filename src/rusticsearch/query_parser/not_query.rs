@@ -58,7 +58,7 @@ mod tests {
             query: Box::new(Query::new_all()),
             exclude: Box::new(Query::Term {
                 field: test_field,
-                term: Term::from_string("foo".to_string()),
+                term: Term::from_string("foo"),
                 scorer: TermScorer::default(),
             }),
         }))

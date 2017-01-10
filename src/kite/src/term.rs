@@ -26,7 +26,7 @@ impl Term {
     pub fn from_json(json: &Json) -> Option<Term> {
         // TODO: Should be aware of mappings
         match *json {
-            Json::String(ref string) => Some(Term::from_string(string.clone())),
+            Json::String(ref string) => Some(Term::from_string(string)),
             Json::Boolean(value) => Some(Term::from_boolean(value)),
             Json::F64(_) => None,
             Json::I64(value) => Some(Term::from_integer(value)),
@@ -37,7 +37,7 @@ impl Term {
         }
     }
 
-    pub fn from_string(string: String) -> Term {
+    pub fn from_string(string: &str) -> Term {
         let mut bytes = Vec::with_capacity(string.len());
 
         for byte in string.as_bytes() {
@@ -83,21 +83,21 @@ mod tests {
 
     #[test]
     fn test_string_to_bytes() {
-        let term = Term::from_string("foo".to_string());
+        let term = Term::from_string("foo");
 
         assert_eq!(term.to_bytes(), vec![102, 111, 111])
     }
 
     #[test]
     fn test_hiragana_string_to_bytes() {
-        let term = Term::from_string("こんにちは".to_string());
+        let term = Term::from_string("こんにちは");
 
         assert_eq!(term.to_bytes(), vec![227, 129, 147, 227, 130, 147, 227, 129, 171, 227, 129, 161, 227, 129, 175])
     }
 
     #[test]
     fn test_blank_string_to_bytes() {
-        let term = Term::from_string("".to_string());
+        let term = Term::from_string("");
 
         assert_eq!(term.to_bytes(), vec![])
     }

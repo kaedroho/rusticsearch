@@ -45,7 +45,7 @@ impl<'a> Iterator for NGramFilter<'a> {
 
                         for gram in ngram_generator {
                             self.output_buffer.push_back(Token {
-                                term: Term::from_string(gram.to_string()),
+                                term: Term::from_string(gram),
                                 position: token.position,
                             });
                         }
@@ -71,73 +71,73 @@ mod tests {
     #[test]
     fn test_ngram_filter() {
         let mut tokens: Vec<Token> = vec![
-            Token { term: Term::from_string("hello".to_string()), position: 1 },
+            Token { term: Term::from_string("hello"), position: 1 },
         ];
 
         let token_filter = NGramFilter::new(Box::new(tokens.drain((..))), 2, 3, Edge::Neither);
         let tokens = token_filter.collect::<Vec<Token>>();
 
         assert_eq!(tokens, vec![
-            Token { term: Term::from_string("he".to_string()), position: 1 },
-            Token { term: Term::from_string("hel".to_string()), position: 1 },
-            Token { term: Term::from_string("el".to_string()), position: 1 },
-            Token { term: Term::from_string("ell".to_string()), position: 1 },
-            Token { term: Term::from_string("ll".to_string()), position: 1 },
-            Token { term: Term::from_string("llo".to_string()), position: 1 },
-            Token { term: Term::from_string("lo".to_string()), position: 1 },
+            Token { term: Term::from_string("he"), position: 1 },
+            Token { term: Term::from_string("hel"), position: 1 },
+            Token { term: Term::from_string("el"), position: 1 },
+            Token { term: Term::from_string("ell"), position: 1 },
+            Token { term: Term::from_string("ll"), position: 1 },
+            Token { term: Term::from_string("llo"), position: 1 },
+            Token { term: Term::from_string("lo"), position: 1 },
         ]);
     }
 
     #[test]
     fn test_edgengram_filter() {
         let mut tokens: Vec<Token> = vec![
-            Token { term: Term::from_string("hello".to_string()), position: 1 },
-            Token { term: Term::from_string("world".to_string()), position: 2 }
+            Token { term: Term::from_string("hello"), position: 1 },
+            Token { term: Term::from_string("world"), position: 2 }
         ];
 
         let token_filter = NGramFilter::new(Box::new(tokens.drain((..))), 2, 3, Edge::Left);
         let tokens = token_filter.collect::<Vec<Token>>();
 
         assert_eq!(tokens, vec![
-            Token { term: Term::from_string("he".to_string()), position: 1 },
-            Token { term: Term::from_string("hel".to_string()), position: 1 },
-            Token { term: Term::from_string("wo".to_string()), position: 2 },
-            Token { term: Term::from_string("wor".to_string()), position: 2 },
+            Token { term: Term::from_string("he"), position: 1 },
+            Token { term: Term::from_string("hel"), position: 1 },
+            Token { term: Term::from_string("wo"), position: 2 },
+            Token { term: Term::from_string("wor"), position: 2 },
         ]);
     }
 
     #[test]
     fn test_edgengram_filter_max_size() {
         let mut tokens: Vec<Token> = vec![
-            Token { term: Term::from_string("hello".to_string()), position: 1 },
+            Token { term: Term::from_string("hello"), position: 1 },
         ];
 
         let token_filter = NGramFilter::new(Box::new(tokens.drain((..))), 2, 1000, Edge::Left);
         let tokens = token_filter.collect::<Vec<Token>>();
 
         assert_eq!(tokens, vec![
-            Token { term: Term::from_string("he".to_string()), position: 1 },
-            Token { term: Term::from_string("hel".to_string()), position: 1 },
-            Token { term: Term::from_string("hell".to_string()), position: 1 },
-            Token { term: Term::from_string("hello".to_string()), position: 1 },
+            Token { term: Term::from_string("he"), position: 1 },
+            Token { term: Term::from_string("hel"), position: 1 },
+            Token { term: Term::from_string("hell"), position: 1 },
+            Token { term: Term::from_string("hello"), position: 1 },
         ]);
     }
 
     #[test]
     fn test_edgengram_filter_right() {
         let mut tokens: Vec<Token> = vec![
-            Token { term: Term::from_string("hello".to_string()), position: 1 },
-            Token { term: Term::from_string("world".to_string()), position: 2 }
+            Token { term: Term::from_string("hello"), position: 1 },
+            Token { term: Term::from_string("world"), position: 2 }
         ];
 
         let token_filter = NGramFilter::new(Box::new(tokens.drain((..))), 2, 3, Edge::Right);
         let tokens = token_filter.collect::<Vec<Token>>();
 
         assert_eq!(tokens, vec![
-            Token { term: Term::from_string("lo".to_string()), position: 1 },
-            Token { term: Term::from_string("llo".to_string()), position: 1 },
-            Token { term: Term::from_string("ld".to_string()), position: 2 },
-            Token { term: Term::from_string("rld".to_string()), position: 2 },
+            Token { term: Term::from_string("lo"), position: 1 },
+            Token { term: Term::from_string("llo"), position: 1 },
+            Token { term: Term::from_string("ld"), position: 2 },
+            Token { term: Term::from_string("rld"), position: 2 },
         ]);
     }
 }

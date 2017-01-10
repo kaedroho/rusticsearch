@@ -95,12 +95,12 @@ mod tests {
         assert_eq!(query, Ok(Query::Filter {
             query: Box::new(Query::Term {
                 field: the_field,
-                term: Term::from_string("query".to_string()),
+                term: Term::from_string("query"),
                 scorer: TermScorer::default(),
             }),
             filter: Box::new(Query::Term {
                 field: the_field,
-                term: Term::from_string("filter".to_string()),
+                term: Term::from_string("filter"),
                 scorer: TermScorer::default(),
             }),
         }))
@@ -125,7 +125,7 @@ mod tests {
             query: Box::new(Query::new_all()),
             filter: Box::new(Query::Term {
                 field: the_field,
-                term: Term::from_string("filter".to_string()),
+                term: Term::from_string("filter"),
                 scorer: TermScorer::default(),
             }),
         }))

@@ -24,8 +24,8 @@ use analysis::tokenizers::ngram::NGramTokenizer;
 /// let tokens = token_stream.collect::<Vec<Token>>();
 ///
 /// assert_eq!(tokens, vec![
-///     Token { term: Term::from_string("Hello".to_string()), position: 1 },
-///     Token { term: Term::from_string("world".to_string()), position: 2 },
+///     Token { term: Term::from_string("Hello"), position: 1 },
+///     Token { term: Term::from_string("world"), position: 2 },
 /// ]);
 /// ```
 #[derive(Debug, Clone, PartialEq)]

@@ -33,7 +33,7 @@ impl<'a> Iterator for ASCIIFoldingFilter<'a> {
                 Some(Token {
                     term: match str::from_utf8(&token.term.to_bytes()) {
                         Ok(ref string) => {
-                            Term::from_string(fold_to_ascii(string))
+                            Term::from_string(&fold_to_ascii(string))
                         }
                         _ => token.term,
                     },
@@ -55,30 +55,30 @@ mod tests {
     #[test]
     fn test_simple() {
         let mut tokens: Vec<Token> = vec![
-            Token { term: Term::from_string("Ĥéllø".to_string()), position: 1 },
+            Token { term: Term::from_string("Ĥéllø"), position: 1 },
         ];
 
         let token_filter = ASCIIFoldingFilter::new(Box::new(tokens.drain((..))));
         let tokens = token_filter.collect::<Vec<Token>>();
 
         assert_eq!(tokens, vec![
-            Token { term: Term::from_string("Hello".to_string()), position: 1 }
+            Token { term: Term::from_string("Hello"), position: 1 }
         ]);
     }
 
     #[test]
     fn test_hiragana_not_changed() {
         let mut tokens: Vec<Token> = vec![
-            Token { term: Term::from_string("こんにちは".to_string()), position: 1 },
-            Token { term: Term::from_string("ハチ公".to_string()), position: 2 },
+            Token { term: Term::from_string("こんにちは"), position: 1 },
+            Token { term: Term::from_string("ハチ公"), position: 2 },
         ];
 
         let token_filter = ASCIIFoldingFilter::new(Box::new(tokens.drain((..))));
         let tokens = token_filter.collect::<Vec<Token>>();
 
         assert_eq!(tokens, vec![
-            Token { term: Term::from_string("こんにちは".to_string()), position: 1 },
-            Token { term: Term::from_string("ハチ公".to_string()), position: 2 },
+            Token { term: Term::from_string("こんにちは"), position: 1 },
+            Token { term: Term::from_string("ハチ公"), position: 2 },
         ]);
     }
 }

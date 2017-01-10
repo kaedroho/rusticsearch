@@ -38,7 +38,7 @@ impl<'a> Iterator for NGramTokenizer<'a> {
             if let Some(ref mut ngram_generator) = self.ngram_generator {
                 if let Some(gram) = ngram_generator.next() {
                     return Some(Token {
-                        term: Term::from_string(gram.to_string()),
+                        term: Term::from_string(gram),
                         position: self.position_counter,
                     });
                 }
@@ -76,13 +76,13 @@ mod tests {
         let tokens = tokenizer.collect::<Vec<Token>>();
 
         assert_eq!(tokens, vec![
-            Token { term: Term::from_string("he".to_string()), position: 1 },
-            Token { term: Term::from_string("hel".to_string()), position: 1 },
-            Token { term: Term::from_string("el".to_string()), position: 1 },
-            Token { term: Term::from_string("ell".to_string()), position: 1 },
-            Token { term: Term::from_string("ll".to_string()), position: 1 },
-            Token { term: Term::from_string("llo".to_string()), position: 1 },
-            Token { term: Term::from_string("lo".to_string()), position: 1 },
+            Token { term: Term::from_string("he"), position: 1 },
+            Token { term: Term::from_string("hel"), position: 1 },
+            Token { term: Term::from_string("el"), position: 1 },
+            Token { term: Term::from_string("ell"), position: 1 },
+            Token { term: Term::from_string("ll"), position: 1 },
+            Token { term: Term::from_string("llo"), position: 1 },
+            Token { term: Term::from_string("lo"), position: 1 },
         ]);
     }
 
@@ -92,10 +92,10 @@ mod tests {
         let tokens = tokenizer.collect::<Vec<Token>>();
 
         assert_eq!(tokens, vec![
-            Token { term: Term::from_string("he".to_string()), position: 1 },
-            Token { term: Term::from_string("hel".to_string()), position: 1 },
-            Token { term: Term::from_string("wo".to_string()), position: 2 },
-            Token { term: Term::from_string("wor".to_string()), position: 2 },
+            Token { term: Term::from_string("he"), position: 1 },
+            Token { term: Term::from_string("hel"), position: 1 },
+            Token { term: Term::from_string("wo"), position: 2 },
+            Token { term: Term::from_string("wor"), position: 2 },
         ]);
     }
 
@@ -105,10 +105,10 @@ mod tests {
         let tokens = tokenizer.collect::<Vec<Token>>();
 
         assert_eq!(tokens, vec![
-            Token { term: Term::from_string("he".to_string()), position: 1 },
-            Token { term: Term::from_string("hel".to_string()), position: 1 },
-            Token { term: Term::from_string("hell".to_string()), position: 1 },
-            Token { term: Term::from_string("hello".to_string()), position: 1 },
+            Token { term: Term::from_string("he"), position: 1 },
+            Token { term: Term::from_string("hel"), position: 1 },
+            Token { term: Term::from_string("hell"), position: 1 },
+            Token { term: Term::from_string("hello"), position: 1 },
         ]);
     }
 
@@ -118,10 +118,10 @@ mod tests {
         let tokens = tokenizer.collect::<Vec<Token>>();
 
         assert_eq!(tokens, vec![
-            Token { term: Term::from_string("lo".to_string()), position: 1 },
-            Token { term: Term::from_string("llo".to_string()), position: 1 },
-            Token { term: Term::from_string("ld".to_string()), position: 2 },
-            Token { term: Term::from_string("rld".to_string()), position: 2 },
+            Token { term: Term::from_string("lo"), position: 1 },
+            Token { term: Term::from_string("llo"), position: 1 },
+            Token { term: Term::from_string("ld"), position: 2 },
+            Token { term: Term::from_string("rld"), position: 2 },
         ]);
     }
 }
