@@ -51,7 +51,7 @@ pub fn plan_score_function(index_reader: &RocksDBIndexReader, mut score_function
         }
         Query::Term{field, ref term, ref scorer} => {
             // Get term
-            let term_bytes = term.to_bytes();
+            let term_bytes = term.as_bytes().to_vec();
             let term_ref = match index_reader.store.term_dictionary.get(&term_bytes) {
                 Some(term_ref) => term_ref,
                 None => {

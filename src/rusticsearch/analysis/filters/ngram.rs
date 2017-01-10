@@ -40,7 +40,7 @@ impl<'a> Iterator for NGramFilter<'a> {
 
             match token {
                 Some(token) => {
-                    if let Ok(ref word) = str::from_utf8(&token.term.to_bytes()) {
+                    if let Ok(ref word) = str::from_utf8(&token.term.as_bytes()) {
                         let ngram_generator = NGramGenerator::new(&word, self.min_size, self.max_size, self.edge);
 
                         for gram in ngram_generator {

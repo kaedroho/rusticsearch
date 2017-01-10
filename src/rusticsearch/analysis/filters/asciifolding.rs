@@ -31,11 +31,11 @@ impl<'a> Iterator for ASCIIFoldingFilter<'a> {
         match self.tokens.next() {
             Some(token) => {
                 Some(Token {
-                    term: match str::from_utf8(&token.term.to_bytes()) {
+                    term: match str::from_utf8(token.term.as_bytes()) {
                         Ok(ref string) => {
                             Term::from_string(&fold_to_ascii(string))
                         }
-                        _ => token.term,
+                        _ => token.term.clone(),
                     },
                     position: token.position,
                 })
