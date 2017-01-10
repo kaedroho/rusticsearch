@@ -42,15 +42,6 @@ impl Term {
         }
     }
 
-    pub fn as_json(&self) -> Json {
-        match *self {
-            Term::String(ref string) => Json::String(string.clone()),
-            Term::Boolean(value) => Json::Boolean(value),
-            Term::Integer(value) => Json::I64(value),
-            Term::DateTime(value) => Json::String(value.to_rfc3339()),
-        }
-    }
-
     pub fn to_bytes(&self) -> Vec<u8> {
         match *self {
             Term::String(ref string) => {
