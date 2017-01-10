@@ -539,17 +539,17 @@ mod tests {
 
         let query = Query::Disjunction {
             queries: vec![
-                Query::MatchTerm {
+                Query::Term {
                     field: title_field,
                     term: Term::String("howdy".to_string()),
                     scorer: TermScorer::default_with_boost(2.0f64),
                 },
-                Query::MatchTerm {
+                Query::Term {
                     field: title_field,
                     term: Term::String("partner".to_string()),
                     scorer: TermScorer::default_with_boost(2.0f64),
                 },
-                Query::MatchTerm {
+                Query::Term {
                     field: title_field,
                     term: Term::String("hello".to_string()),
                     scorer: TermScorer::default_with_boost(2.0f64),

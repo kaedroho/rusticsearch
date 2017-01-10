@@ -74,12 +74,12 @@ mod tests {
 
         assert_eq!(query, Ok(Query::Disjunction {
             queries: vec![
-                Query::MatchTerm {
+                Query::Term {
                     field: test_field,
                     term: Term::String("foo".to_string()),
                     scorer: TermScorer::default(),
                 },
-                Query::MatchTerm {
+                Query::Term {
                     field: test_field,
                     term: Term::String("bar".to_string()),
                     scorer: TermScorer::default(),

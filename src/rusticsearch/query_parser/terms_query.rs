@@ -19,7 +19,7 @@ impl QueryBuilder for TermsQueryBuilder {
         // Create a term query for each token
         let mut queries = Vec::new();
         for term in self.terms.iter() {
-            queries.push(Query::MatchTerm {
+            queries.push(Query::Term {
                 field: schema.get_field_by_name(&self.field).unwrap(),
                 term: term.clone(),
                 scorer: TermScorer::default(),
@@ -78,12 +78,12 @@ mod tests {
 
         assert_eq!(query, Ok(Query::Disjunction {
             queries: vec![
-                Query::MatchTerm {
+                Query::Term {
                     field: foo_field,
                     term: Term::String("bar".to_string()),
                     scorer: TermScorer::default(),
                 },
-                Query::MatchTerm {
+                Query::Term {
                     field: foo_field,
                     term: Term::String("baz".to_string()),
                     scorer: TermScorer::default(),

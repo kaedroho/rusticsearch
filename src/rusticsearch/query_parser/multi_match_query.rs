@@ -48,7 +48,7 @@ impl QueryBuilder for MultiMatchQueryBuilder {
 
             let mut term_queries = Vec::new();
             for token in tokens {
-                term_queries.push(Query::MatchTerm {
+                term_queries.push(Query::Term {
                     field: schema.get_field_by_name(field_name).unwrap(),
                     term: token.term,
                     scorer: TermScorer::default(),
@@ -163,12 +163,12 @@ mod tests {
 
         assert_eq!(query, Ok(Query::DisjunctionMax {
             queries: vec![
-                Query::MatchTerm {
+                Query::Term {
                     field: bar_field,
                     term: Term::String("foo".to_string()),
                     scorer: TermScorer::default(),
                 },
-                Query::MatchTerm {
+                Query::Term {
                     field:baz_field,
                     term: Term::String("foo".to_string()),
                     scorer: TermScorer::default(),
@@ -194,12 +194,12 @@ mod tests {
             queries: vec![
                 Query::Disjunction {
                     queries: vec![
-                        Query::MatchTerm {
+                        Query::Term {
                             field: bar_field,
                             term: Term::String("hello".to_string()),
                             scorer: TermScorer::default(),
                         },
-                        Query::MatchTerm {
+                        Query::Term {
                             field: bar_field,
                             term: Term::String("world".to_string()),
                             scorer: TermScorer::default(),
@@ -208,12 +208,12 @@ mod tests {
                 },
                 Query::Disjunction {
                     queries: vec![
-                        Query::MatchTerm {
+                        Query::Term {
                             field: baz_field,
                             term: Term::String("hello".to_string()),
                             scorer: TermScorer::default(),
                         },
-                        Query::MatchTerm {
+                        Query::Term {
                             field: baz_field,
                             term: Term::String("world".to_string()),
                             scorer: TermScorer::default(),
@@ -240,12 +240,12 @@ mod tests {
 
         assert_eq!(query, Ok(Query::DisjunctionMax {
             queries: vec![
-                Query::MatchTerm {
+                Query::Term {
                     field: bar_field,
                     term: Term::String("foo".to_string()),
                     scorer: TermScorer::default_with_boost(2.0f64),
                 },
-                Query::MatchTerm {
+                Query::Term {
                     field: baz_field,
                     term: Term::String("foo".to_string()),
                     scorer: TermScorer::default_with_boost(2.0f64),
@@ -270,12 +270,12 @@ mod tests {
 
         assert_eq!(query, Ok(Query::DisjunctionMax {
             queries: vec![
-                Query::MatchTerm {
+                Query::Term {
                     field: bar_field,
                     term: Term::String("foo".to_string()),
                     scorer: TermScorer::default_with_boost(2.0f64),
                 },
-                Query::MatchTerm {
+                Query::Term {
                     field: baz_field,
                     term: Term::String("foo".to_string()),
                     scorer: TermScorer::default_with_boost(2.0f64),
@@ -299,12 +299,12 @@ mod tests {
 
         assert_eq!(query, Ok(Query::DisjunctionMax {
             queries: vec![
-                Query::MatchTerm {
+                Query::Term {
                     field: bar_field,
                     term: Term::String("foo".to_string()),
                     scorer: TermScorer::default_with_boost(2.0f64),
                 },
-                Query::MatchTerm {
+                Query::Term {
                     field: baz_field,
                     term: Term::String("foo".to_string()),
                     scorer: TermScorer::default(),
@@ -329,12 +329,12 @@ mod tests {
 
         assert_eq!(query, Ok(Query::DisjunctionMax {
             queries: vec![
-                Query::MatchTerm {
+                Query::Term {
                     field: bar_field,
                     term: Term::String("foo".to_string()),
                     scorer: TermScorer::default_with_boost(4.0f64),
                 },
-                Query::MatchTerm {
+                Query::Term {
                     field: baz_field,
                     term: Term::String("foo".to_string()),
                     scorer: TermScorer::default_with_boost(2.0f64),
@@ -361,12 +361,12 @@ mod tests {
             queries: vec![
                 Query::Conjunction {
                     queries: vec![
-                        Query::MatchTerm {
+                        Query::Term {
                             field: baz_field,
                             term: Term::String("foo".to_string()),
                             scorer: TermScorer::default(),
                         },
-                        Query::MatchTerm {
+                        Query::Term {
                             field: baz_field,
                             term: Term::String("bar".to_string()),
                             scorer: TermScorer::default(),
@@ -375,12 +375,12 @@ mod tests {
                 },
                 Query::Conjunction {
                     queries: vec![
-                        Query::MatchTerm {
+                        Query::Term {
                             field: quux_field,
                             term: Term::String("foo".to_string()),
                             scorer: TermScorer::default(),
                         },
-                        Query::MatchTerm {
+                        Query::Term {
                             field: quux_field,
                             term: Term::String("bar".to_string()),
                             scorer: TermScorer::default(),

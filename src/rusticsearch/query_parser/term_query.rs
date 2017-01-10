@@ -18,7 +18,7 @@ struct TermQueryBuilder {
 
 impl QueryBuilder for TermQueryBuilder {
     fn build(&self, _context: &QueryBuildContext, schema: &Schema) -> Query {
-        let mut query = Query::MatchTerm {
+        let mut query = Query::Term {
             field: schema.get_field_by_name(&self.field).unwrap(),
             term: self.term.clone(),
             scorer: TermScorer::default(),
@@ -105,7 +105,7 @@ mod tests {
         }
         ").unwrap()).and_then(|builder| Ok(builder.build(&QueryBuildContext::new(), &schema)));
 
-        assert_eq!(query, Ok(Query::MatchTerm {
+        assert_eq!(query, Ok(Query::Term {
             field: foo_field,
             term: Term::String("bar".to_string()),
             scorer: TermScorer::default(),
@@ -125,7 +125,7 @@ mod tests {
         }
         ").unwrap()).and_then(|builder| Ok(builder.build(&QueryBuildContext::new(), &schema)));
 
-        assert_eq!(query, Ok(Query::MatchTerm {
+        assert_eq!(query, Ok(Query::Term {
             field: foo_field,
             term: Term::Integer(123),
             scorer: TermScorer::default(),
@@ -143,7 +143,7 @@ mod tests {
         }
         ").unwrap()).and_then(|builder| Ok(builder.build(&QueryBuildContext::new(), &schema)));
 
-        assert_eq!(query, Ok(Query::MatchTerm {
+        assert_eq!(query, Ok(Query::Term {
             field: foo_field,
             term: Term::String("bar".to_string()),
             scorer: TermScorer::default(),
@@ -164,7 +164,7 @@ mod tests {
         }
         ").unwrap()).and_then(|builder| Ok(builder.build(&QueryBuildContext::new(), &schema)));
 
-        assert_eq!(query, Ok(Query::MatchTerm {
+        assert_eq!(query, Ok(Query::Term {
             field: foo_field,
             term: Term::String("bar".to_string()),
             scorer: TermScorer::default_with_boost(2.0f64),
@@ -185,7 +185,7 @@ mod tests {
         }
         ").unwrap()).and_then(|builder| Ok(builder.build(&QueryBuildContext::new(), &schema)));
 
-        assert_eq!(query, Ok(Query::MatchTerm {
+        assert_eq!(query, Ok(Query::Term {
             field: foo_field,
             term: Term::String("bar".to_string()),
             scorer: TermScorer::default_with_boost(2.0f64),

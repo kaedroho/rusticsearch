@@ -46,7 +46,7 @@ impl QueryBuilder for MatchQueryBuilder {
         // Create a term query for each token
         let mut sub_queries = Vec::new();
         for token in tokens {
-            sub_queries.push(Query::MatchTerm {
+            sub_queries.push(Query::Term {
                 field: schema.get_field_by_name(&self.field).unwrap(),
                 term: token.term,
                 scorer: TermScorer::default(),
@@ -146,7 +146,7 @@ mod tests {
         }
         ").unwrap()).and_then(|builder| Ok(builder.build(&QueryBuildContext::new(), &schema)));
 
-        assert_eq!(query, Ok(Query::MatchTerm {
+        assert_eq!(query, Ok(Query::Term {
             field: foo_field,
             term: Term::String("bar".to_string()),
             scorer: TermScorer::default(),
@@ -168,12 +168,12 @@ mod tests {
 
         assert_eq!(query, Ok(Query::Disjunction {
             queries: vec![
-                Query::MatchTerm {
+                Query::Term {
                     field: foo_field,
                     term: Term::String("bar".to_string()),
                     scorer: TermScorer::default(),
                 },
-                Query::MatchTerm {
+                Query::Term {
                     field: foo_field,
                     term: Term::String("baz".to_string()),
                     scorer: TermScorer::default(),
@@ -195,12 +195,12 @@ mod tests {
 
         assert_eq!(query, Ok(Query::Disjunction {
             queries: vec![
-                Query::MatchTerm {
+                Query::Term {
                     field: foo_field,
                     term: Term::String("bar".to_string()),
                     scorer: TermScorer::default(),
                 },
-                Query::MatchTerm {
+                Query::Term {
                     field: foo_field,
                     term: Term::String("baz".to_string()),
                     scorer: TermScorer::default(),
@@ -223,7 +223,7 @@ mod tests {
         }
         ").unwrap()).and_then(|builder| Ok(builder.build(&QueryBuildContext::new(), &schema)));
 
-        assert_eq!(query, Ok(Query::MatchTerm {
+        assert_eq!(query, Ok(Query::Term {
             field: foo_field,
             term: Term::String("bar".to_string()),
             scorer: TermScorer::default_with_boost(2.0f64),
@@ -244,7 +244,7 @@ mod tests {
         }
         ").unwrap()).and_then(|builder| Ok(builder.build(&QueryBuildContext::new(), &schema)));
 
-        assert_eq!(query, Ok(Query::MatchTerm {
+        assert_eq!(query, Ok(Query::Term {
             field: foo_field,
             term: Term::String("bar".to_string()),
             scorer: TermScorer::default_with_boost(2.0f64),
@@ -267,12 +267,12 @@ mod tests {
 
         assert_eq!(query, Ok(Query::Conjunction {
             queries: vec![
-                Query::MatchTerm {
+                Query::Term {
                     field: foo_field,
                     term: Term::String("bar".to_string()),
                     scorer: TermScorer::default(),
                 },
-                Query::MatchTerm {
+                Query::Term {
                     field: foo_field,
                     term: Term::String("baz".to_string()),
                     scorer: TermScorer::default(),

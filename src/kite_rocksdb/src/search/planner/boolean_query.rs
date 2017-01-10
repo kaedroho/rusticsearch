@@ -364,13 +364,13 @@ fn plan_boolean_query_combinator<J: Fn(&mut BooleanQueryBuilder) -> ()> (index_r
 
 pub fn plan_boolean_query(index_reader: &RocksDBIndexReader, mut builder: &mut BooleanQueryBuilder, query: &Query) {
     match *query {
-        Query::MatchAll{..} => {
+        Query::All{..} => {
             builder.push_full();
         }
-        Query::MatchNone => {
+        Query::None => {
             builder.push_empty();
         }
-        Query::MatchTerm{field, ref term, ..} => {
+        Query::Term{field, ref term, ..} => {
             // Get term
             let term_bytes = term.to_bytes();
             let term_ref = match index_reader.store.term_dictionary.get(&term_bytes) {
@@ -384,7 +384,7 @@ pub fn plan_boolean_query(index_reader: &RocksDBIndexReader, mut builder: &mut B
 
             builder.push_term_directory(field, term_ref);
         }
-        Query::MatchMultiTerm{field, ref term_selector, ..} => {
+        Query::MultiTerm{field, ref term_selector, ..} => {
             // Get terms
             builder.push_empty();
             for term_ref in index_reader.store.term_dictionary.select(term_selector) {

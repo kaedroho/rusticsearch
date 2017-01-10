@@ -18,7 +18,7 @@ struct PrefixQueryBuilder {
 
 impl QueryBuilder for PrefixQueryBuilder {
     fn build(&self, _context: &QueryBuildContext, schema: &Schema) -> Query {
-        let mut query = Query::MatchMultiTerm {
+        let mut query = Query::MultiTerm {
             field: schema.get_field_by_name(&self.field).unwrap(),
             term_selector: TermSelector::Prefix(self.prefix.clone()),
             scorer: TermScorer::default(),
@@ -109,7 +109,7 @@ mod tests {
         }
         ").unwrap()).and_then(|builder| Ok(builder.build(&QueryBuildContext::new(), &schema)));
 
-        assert_eq!(query, Ok(Query::MatchMultiTerm {
+        assert_eq!(query, Ok(Query::MultiTerm {
             field: foo_field,
             term_selector: TermSelector::Prefix("bar".to_string()),
             scorer: TermScorer::default(),
@@ -127,7 +127,7 @@ mod tests {
         }
         ").unwrap()).and_then(|builder| Ok(builder.build(&QueryBuildContext::new(), &schema)));
 
-        assert_eq!(query, Ok(Query::MatchMultiTerm {
+        assert_eq!(query, Ok(Query::MultiTerm {
             field: foo_field,
             term_selector: TermSelector::Prefix("bar".to_string()),
             scorer: TermScorer::default(),
@@ -147,7 +147,7 @@ mod tests {
         }
         ").unwrap()).and_then(|builder| Ok(builder.build(&QueryBuildContext::new(), &schema)));
 
-        assert_eq!(query, Ok(Query::MatchMultiTerm {
+        assert_eq!(query, Ok(Query::MultiTerm {
             field: foo_field,
             term_selector: TermSelector::Prefix("bar".to_string()),
             scorer: TermScorer::default(),
@@ -168,7 +168,7 @@ mod tests {
         }
         ").unwrap()).and_then(|builder| Ok(builder.build(&QueryBuildContext::new(), &schema)));
 
-        assert_eq!(query, Ok(Query::MatchMultiTerm {
+        assert_eq!(query, Ok(Query::MultiTerm {
             field: foo_field,
             term_selector: TermSelector::Prefix("bar".to_string()),
             scorer: TermScorer::default_with_boost(2.0f64),
@@ -189,7 +189,7 @@ mod tests {
         }
         ").unwrap()).and_then(|builder| Ok(builder.build(&QueryBuildContext::new(), &schema)));
 
-        assert_eq!(query, Ok(Query::MatchMultiTerm {
+        assert_eq!(query, Ok(Query::MultiTerm {
             field: foo_field,
             term_selector: TermSelector::Prefix("bar".to_string()),
             scorer: TermScorer::default_with_boost(2.0f64),

@@ -13,7 +13,7 @@ struct MatchNoneQueryBuilder;
 
 impl QueryBuilder for MatchNoneQueryBuilder {
     fn build(&self, _context: &QueryBuildContext, _schema: &Schema) -> Query {
-        Query::MatchNone
+        Query::None
     }
 }
 
@@ -52,7 +52,7 @@ mod tests {
         }
         ").unwrap()).and_then(|builder| Ok(builder.build(&QueryBuildContext::new(), &schema)));
 
-        assert_eq!(query, Ok(Query::MatchNone))
+        assert_eq!(query, Ok(Query::None))
     }
 
     #[test]

@@ -16,7 +16,7 @@ struct MatchAllQueryBuilder {
 
 impl QueryBuilder for MatchAllQueryBuilder {
     fn build(&self, _context: &QueryBuildContext, _schema: &Schema) -> Query {
-        let mut query = Query::new_match_all();
+        let mut query = Query::new_all();
 
         // Add boost
         query.boost(self.boost);
@@ -67,7 +67,7 @@ mod tests {
         }
         ").unwrap()).and_then(|builder| Ok(builder.build(&QueryBuildContext::new(), &schema)));
 
-        assert_eq!(query, Ok(Query::MatchAll {score: 1.0f64}))
+        assert_eq!(query, Ok(Query::All {score: 1.0f64}))
     }
 
     #[test]
@@ -80,7 +80,7 @@ mod tests {
         }
         ").unwrap()).and_then(|builder| Ok(builder.build(&QueryBuildContext::new(), &schema)));
 
-        assert_eq!(query, Ok(Query::MatchAll {score: 2.0f64}))
+        assert_eq!(query, Ok(Query::All {score: 2.0f64}))
     }
 
     #[test]
@@ -93,7 +93,7 @@ mod tests {
         }
         ").unwrap()).and_then(|builder| Ok(builder.build(&QueryBuildContext::new(), &schema)));
 
-        assert_eq!(query, Ok(Query::MatchAll {score: 2.0f64}))
+        assert_eq!(query, Ok(Query::All {score: 2.0f64}))
     }
 
     #[test]
