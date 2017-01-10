@@ -43,13 +43,13 @@ fn plan_score_function_combinator(index_reader: &RocksDBIndexReader, mut score_f
 
 pub fn plan_score_function(index_reader: &RocksDBIndexReader, mut score_function: &mut Vec<ScoreFunctionOp>, query: &Query) {
     match *query {
-        Query::MatchAll{ref score} => {
+        Query::All{ref score} => {
             score_function.push(ScoreFunctionOp::Literal(*score));
         }
-        Query::MatchNone => {
+        Query::None => {
             score_function.push(ScoreFunctionOp::Literal(0.0f64));
         }
-        Query::MatchTerm{field, ref term, ref scorer} => {
+        Query::Term{field, ref term, ref scorer} => {
             // Get term
             let term_bytes = term.to_bytes();
             let term_ref = match index_reader.store.term_dictionary.get(&term_bytes) {
@@ -63,7 +63,7 @@ pub fn plan_score_function(index_reader: &RocksDBIndexReader, mut score_function
 
             score_function.push(ScoreFunctionOp::TermScorer(field, term_ref, scorer.clone()));
         }
-        Query::MatchMultiTerm{field, ref term_selector, ref scorer} => {
+        Query::MultiTerm{field, ref term_selector, ref scorer} => {
             // Get terms
             let mut total_terms = 0;
             for term_ref in index_reader.store.term_dictionary.select(term_selector) {

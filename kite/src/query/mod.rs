@@ -13,16 +13,16 @@ use query::term_scorer::TermScorer;
 
 #[derive(Debug, PartialEq)]
 pub enum Query {
-    MatchAll {
+    All {
         score: f64,
     },
-    MatchNone,
-    MatchTerm {
+    None,
+    Term {
         field: FieldRef,
         term: Term,
         scorer: TermScorer,
     },
-    MatchMultiTerm {
+    MultiTerm {
         field: FieldRef,
         term_selector: TermSelector,
         scorer: TermScorer,
@@ -48,15 +48,15 @@ pub enum Query {
 
 
 impl Query {
-    pub fn new_match_all() -> Query {
-        Query::MatchAll {
+    pub fn new_all() -> Query {
+        Query::All {
             score: 1.0f64,
         }
     }
 
     pub fn new_conjunction(queries: Vec<Query>) -> Query {
         match queries.len() {
-            0 => Query::MatchNone,
+            0 => Query::None,
             1 => {
                 // Single query, unpack it from queries array and return it
                 for query in queries {
@@ -75,7 +75,7 @@ impl Query {
 
     pub fn new_disjunction(queries: Vec<Query>) -> Query {
         match queries.len() {
-            0 => Query::MatchNone,
+            0 => Query::None,
             1 => {
                 // Single query, unpack it from queries array and return it
                 for query in queries {
@@ -94,7 +94,7 @@ impl Query {
 
     pub fn new_disjunction_max(queries: Vec<Query>) -> Query {
         match queries.len() {
-            0 => Query::MatchNone,
+            0 => Query::None,
             1 => {
                 // Single query, unpack it from queries array and return it
                 for query in queries {
@@ -118,14 +118,14 @@ impl Query {
         }
 
         match *self {
-            Query::MatchAll{ref mut score} => {
+            Query::All{ref mut score} => {
                 *score *= add_boost;
             },
-            Query::MatchNone => (),
-            Query::MatchTerm{ref mut scorer, ..} => {
+            Query::None => (),
+            Query::Term{ref mut scorer, ..} => {
                 scorer.boost *= add_boost;
             }
-            Query::MatchMultiTerm{ref mut scorer, ..} => {
+            Query::MultiTerm{ref mut scorer, ..} => {
                 scorer.boost *= add_boost;
             }
             Query::Conjunction{ref mut queries} => {
@@ -154,9 +154,9 @@ impl Query {
 
     pub fn matches(&self, doc: &Document) -> bool {
         match *self {
-            Query::MatchAll{..} => true,
-            Query::MatchNone => false,
-            Query::MatchTerm{ref field, ref term, ..} => {
+            Query::All{..} => true,
+            Query::None => false,
+            Query::Term{ref field, ref term, ..} => {
                 if let Some(field_value) = doc.indexed_fields.get(field) {
                     for field_token in field_value.iter() {
                         if &field_token.term == term {
@@ -167,7 +167,7 @@ impl Query {
 
                 false
             }
-            Query::MatchMultiTerm{ref field, ref term_selector, ..} => {
+            Query::MultiTerm{ref field, ref term_selector, ..} => {
                 if let Some(field_value) = doc.indexed_fields.get(field) {
                     for field_token in field_value.iter() {
                         if term_selector.matches(&field_token.term) {
@@ -216,9 +216,9 @@ impl Query {
 
     pub fn rank<'a, R: IndexReader<'a>>(&self, index_reader: &'a R, doc: &Document) -> Option<f64> {
         match *self {
-            Query::MatchAll{score} => Some(score),
-            Query::MatchNone => None,
-            Query::MatchTerm{ref field, ref term, ref scorer} => {
+            Query::All{score} => Some(score),
+            Query::None => None,
+            Query::Term{ref field, ref term, ref scorer} => {
                 if let Some(field_value) = doc.indexed_fields.get(field) {
                     let mut term_freq: u32 = 0;
                     for field_token in field_value.iter() {
@@ -234,7 +234,7 @@ impl Query {
 
                 None
             }
-            Query::MatchMultiTerm{ref field, ref term_selector, ref scorer} => {
+            Query::MultiTerm{ref field, ref term_selector, ref scorer} => {
                 if let Some(field_value) = doc.indexed_fields.get(field) {
                     let mut term_frequencies = HashMap::new();
                     for field_token in field_value.iter() {
