@@ -269,13 +269,13 @@ mod tests {
             key: "test_doc".to_string(),
             indexed_fields: hashmap! {
                 title_field => vec![
-                    Token { term: Term::String("hello".to_string()), position: 1 },
-                    Token { term: Term::String("world".to_string()), position: 2 },
+                    Token { term: Term::from_string("hello".to_string()), position: 1 },
+                    Token { term: Term::from_string("world".to_string()), position: 2 },
                 ],
                 body_field => vec![
-                    Token { term: Term::String("lorem".to_string()), position: 1 },
-                    Token { term: Term::String("ipsum".to_string()), position: 2 },
-                    Token { term: Term::String("dolar".to_string()), position: 3 },
+                    Token { term: Term::from_string("lorem".to_string()), position: 1 },
+                    Token { term: Term::from_string("ipsum".to_string()), position: 2 },
+                    Token { term: Term::from_string("dolar".to_string()), position: 3 },
                 ],
             },
             stored_fields: hashmap! {}
@@ -285,13 +285,13 @@ mod tests {
             key: "test_doc".to_string(),
             indexed_fields: hashmap! {
                 title_field => vec![
-                    Token { term: Term::String("howdy".to_string()), position: 1 },
-                    Token { term: Term::String("partner".to_string()), position: 2 },
+                    Token { term: Term::from_string("howdy".to_string()), position: 1 },
+                    Token { term: Term::from_string("partner".to_string()), position: 2 },
                 ],
                 body_field => vec![
-                    Token { term: Term::String("lorem".to_string()), position: 1 },
-                    Token { term: Term::String("ipsum".to_string()), position: 2 },
-                    Token { term: Term::String("dolar".to_string()), position: 3 },
+                    Token { term: Term::from_string("lorem".to_string()), position: 1 },
+                    Token { term: Term::from_string("ipsum".to_string()), position: 2 },
+                    Token { term: Term::from_string("dolar".to_string()), position: 3 },
                 ],
             },
             stored_fields: hashmap! {}
@@ -322,6 +322,6 @@ mod tests {
         let reader = store.reader();
         let title_field = reader.schema().get_field_by_name("title").unwrap();
 
-        assert_eq!(reader.iter_docs_with_term(&Term::String("hello".to_string()).to_bytes(), &title_field).unwrap().count(), 1);
+        assert_eq!(reader.iter_docs_with_term(&Term::from_string("hello".to_string()).to_bytes(), &title_field).unwrap().count(), 1);
     }
 }

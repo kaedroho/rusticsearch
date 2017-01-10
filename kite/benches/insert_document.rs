@@ -23,7 +23,7 @@ fn bench_insert_document(b: &mut Bencher) {
     let mut tokens = Vec::new();
     for t in 0..5000 {
         tokens.push(Token {
-            term: Term::String(t.to_string()),
+            term: Term::from_string(t.to_string()),
             position: t
         });
     }
