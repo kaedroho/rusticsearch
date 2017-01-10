@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use kite::{Document, TermRef};
+use kite::{Document, Term, TermRef};
 use kite::schema::FieldRef;
 use byteorder::{BigEndian, WriteBytesExt};
 
@@ -10,7 +10,7 @@ use key_builder::KeyBuilder;
 #[derive(Debug)]
 pub struct SegmentBuilder {
     current_doc: u16,
-    pub term_dictionary: HashMap<Vec<u8>, TermRef>,
+    pub term_dictionary: HashMap<Term, TermRef>,
     current_term_ref: u32,
     pub term_directories: HashMap<(FieldRef, TermRef), Vec<u16>>,
     pub statistics: HashMap<Vec<u8>, i64>,
@@ -37,6 +37,19 @@ impl SegmentBuilder {
         }
     }
 
+    fn get_term_ref(&mut self, term: &Term) -> TermRef {
+        if let Some(term_ref) = self.term_dictionary.get(term) {
+            return *term_ref;
+        }
+
+        // Add the term to the dictionary
+        let term_ref = TermRef::new(self.current_term_ref);
+        self.current_term_ref += 1;
+        self.term_dictionary.insert(term.clone(), term_ref);
+
+        term_ref
+    }
+
     // TODO: Need to translate field names to field refs and terms to term refs
     pub fn add_document(&mut self, doc: &Document) -> Result<u16, DocumentInsertError> {
         // Get document ord
@@ -53,21 +66,14 @@ impl SegmentBuilder {
                 field_token_count += 1;
 
                 // Get term ref
-                let term_bytes = token.term.as_bytes().to_vec();
-                let mut current_term_ref = self.current_term_ref;
-                let term_ref = self.term_dictionary.entry(term_bytes).or_insert_with(|| {
-                    let term_ref = TermRef::new(current_term_ref);
-                    current_term_ref += 1;
-                    term_ref
-                });
-                self.current_term_ref = current_term_ref;
+                let term_ref = self.get_term_ref(&token.term);
 
                 // Term frequency
-                let mut term_frequency = term_frequencies.entry(*term_ref).or_insert(0);
+                let mut term_frequency = term_frequencies.entry(term_ref).or_insert(0);
                 *term_frequency += 1;
 
                 // Write directory list
-                self.term_directories.entry((*field, *term_ref)).or_insert_with(Vec::new).push(doc_id);
+                self.term_directories.entry((*field, term_ref)).or_insert_with(Vec::new).push(doc_id);
             }
 
             // Term frequencies

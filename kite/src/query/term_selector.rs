@@ -15,12 +15,4 @@ impl TermSelector {
             }
         }
     }
-
-    pub fn matches_bytes(&self, term: &Vec<u8>) -> bool {
-        match *self {
-            TermSelector::Prefix(ref prefix) => {
-                term.starts_with(prefix.as_bytes())
-            }
-        }
-    }
 }

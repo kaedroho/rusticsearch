@@ -4,7 +4,7 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 use std::collections::BTreeMap;
 
 use rocksdb::{self, DB};
-use kite::TermRef;
+use kite::{Term, TermRef};
 use kite::query::term_selector::TermSelector;
 
 use key_builder::KeyBuilder;
@@ -19,7 +19,7 @@ use key_builder::KeyBuilder;
 /// (aka. TermRef). It is entirely held in memory and persisted to the disk.
 pub struct TermDictionaryManager {
     next_term_ref: AtomicUsize,
-    terms: RwLock<BTreeMap<Vec<u8>, TermRef>>,
+    terms: RwLock<BTreeMap<Term, TermRef>>,
     write_lock: Mutex<i32>,
 }
 
@@ -59,7 +59,7 @@ impl TermDictionaryManager {
             }
 
             let term_ref = TermRef::new(str::from_utf8(&iter.value().unwrap()).unwrap().parse::<u32>().unwrap());
-            terms.insert(k[1..].to_vec(), term_ref);
+            terms.insert(Term::from_bytes(&k[1..]), term_ref);
         }
 
         Ok(TermDictionaryManager {
@@ -70,15 +70,15 @@ impl TermDictionaryManager {
     }
 
     /// Retrieves the TermRef for the given term
-    pub fn get(&self, term_bytes: &Vec<u8>) -> Option<TermRef> {
-        self.terms.read().unwrap().get(term_bytes).cloned()
+    pub fn get(&self, term: &Term) -> Option<TermRef> {
+        self.terms.read().unwrap().get(term).cloned()
     }
 
     /// Iterates over terms in the dictionary which match the selector
     pub fn select(&self, term_selector: &TermSelector) -> Vec<TermRef> {
         self.terms.read().unwrap().iter()
             .filter(|&(term, _term_ref)| {
-                term_selector.matches_bytes(term)
+                term_selector.matches(term)
             })
             .map(|(_term, term_ref)| *term_ref)
             .collect()
@@ -86,8 +86,8 @@ impl TermDictionaryManager {
 
     /// Retrieves the TermRef for the given term, adding the term to the
     /// dictionary if it doesn't exist
-    pub fn get_or_create(&self, db: &DB, term: Vec<u8>) -> Result<TermRef, rocksdb::Error> {
-        if let Some(term_ref) = self.get(&term) {
+    pub fn get_or_create(&self, db: &DB, term: &Term) -> Result<TermRef, rocksdb::Error> {
+        if let Some(term_ref) = self.get(term) {
             return Ok(term_ref);
         }
 
@@ -109,16 +109,16 @@ impl TermDictionaryManager {
         // It's possible that another thread has written the term to the dictionary
         // since we checked earlier. If this is the case, We should forget about
         // writing our TermRef and use the one that has been inserted already.
-        if let Some(term_ref) = self.terms.read().unwrap().get(&term) {
+        if let Some(term_ref) = self.terms.read().unwrap().get(term) {
             return Ok(*term_ref);
         }
 
         // Write it to the on-disk term dictionary
-        let kb = KeyBuilder::term_dict_mapping(&term);
+        let kb = KeyBuilder::term_dict_mapping(term.as_bytes());
         try!(db.put(kb.key(), next_term_ref.to_string().as_bytes()));
 
         // Write it to the term dictionary
-        self.terms.write().unwrap().insert(term, term_ref);;
+        self.terms.write().unwrap().insert(term.clone(), term_ref);;
 
         Ok(term_ref)
     }
