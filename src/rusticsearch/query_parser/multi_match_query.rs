@@ -42,7 +42,7 @@ impl QueryBuilder for MultiMatchQueryBuilder {
                     token_stream.collect::<Vec<Token>>()
                 }
                 None => {
-                    vec![Token {term: Term::String(self.query.clone()), position: 1}]
+                    vec![Token {term: Term::from_string(self.query.clone()), position: 1}]
                 }
             };
 
@@ -165,12 +165,12 @@ mod tests {
             queries: vec![
                 Query::Term {
                     field: bar_field,
-                    term: Term::String("foo".to_string()),
+                    term: Term::from_string("foo".to_string()),
                     scorer: TermScorer::default(),
                 },
                 Query::Term {
                     field:baz_field,
-                    term: Term::String("foo".to_string()),
+                    term: Term::from_string("foo".to_string()),
                     scorer: TermScorer::default(),
                 }
             ],
@@ -196,12 +196,12 @@ mod tests {
                     queries: vec![
                         Query::Term {
                             field: bar_field,
-                            term: Term::String("hello".to_string()),
+                            term: Term::from_string("hello".to_string()),
                             scorer: TermScorer::default(),
                         },
                         Query::Term {
                             field: bar_field,
-                            term: Term::String("world".to_string()),
+                            term: Term::from_string("world".to_string()),
                             scorer: TermScorer::default(),
                         }
                     ],
@@ -210,12 +210,12 @@ mod tests {
                     queries: vec![
                         Query::Term {
                             field: baz_field,
-                            term: Term::String("hello".to_string()),
+                            term: Term::from_string("hello".to_string()),
                             scorer: TermScorer::default(),
                         },
                         Query::Term {
                             field: baz_field,
-                            term: Term::String("world".to_string()),
+                            term: Term::from_string("world".to_string()),
                             scorer: TermScorer::default(),
                         }
                     ],
@@ -242,12 +242,12 @@ mod tests {
             queries: vec![
                 Query::Term {
                     field: bar_field,
-                    term: Term::String("foo".to_string()),
+                    term: Term::from_string("foo".to_string()),
                     scorer: TermScorer::default_with_boost(2.0f64),
                 },
                 Query::Term {
                     field: baz_field,
-                    term: Term::String("foo".to_string()),
+                    term: Term::from_string("foo".to_string()),
                     scorer: TermScorer::default_with_boost(2.0f64),
                 }
             ],
@@ -272,12 +272,12 @@ mod tests {
             queries: vec![
                 Query::Term {
                     field: bar_field,
-                    term: Term::String("foo".to_string()),
+                    term: Term::from_string("foo".to_string()),
                     scorer: TermScorer::default_with_boost(2.0f64),
                 },
                 Query::Term {
                     field: baz_field,
-                    term: Term::String("foo".to_string()),
+                    term: Term::from_string("foo".to_string()),
                     scorer: TermScorer::default_with_boost(2.0f64),
                 }
             ],
@@ -301,12 +301,12 @@ mod tests {
             queries: vec![
                 Query::Term {
                     field: bar_field,
-                    term: Term::String("foo".to_string()),
+                    term: Term::from_string("foo".to_string()),
                     scorer: TermScorer::default_with_boost(2.0f64),
                 },
                 Query::Term {
                     field: baz_field,
-                    term: Term::String("foo".to_string()),
+                    term: Term::from_string("foo".to_string()),
                     scorer: TermScorer::default(),
                 }
             ],
@@ -331,12 +331,12 @@ mod tests {
             queries: vec![
                 Query::Term {
                     field: bar_field,
-                    term: Term::String("foo".to_string()),
+                    term: Term::from_string("foo".to_string()),
                     scorer: TermScorer::default_with_boost(4.0f64),
                 },
                 Query::Term {
                     field: baz_field,
-                    term: Term::String("foo".to_string()),
+                    term: Term::from_string("foo".to_string()),
                     scorer: TermScorer::default_with_boost(2.0f64),
                 }
             ],
@@ -363,12 +363,12 @@ mod tests {
                     queries: vec![
                         Query::Term {
                             field: baz_field,
-                            term: Term::String("foo".to_string()),
+                            term: Term::from_string("foo".to_string()),
                             scorer: TermScorer::default(),
                         },
                         Query::Term {
                             field: baz_field,
-                            term: Term::String("bar".to_string()),
+                            term: Term::from_string("bar".to_string()),
                             scorer: TermScorer::default(),
                         }
                     ],
@@ -377,12 +377,12 @@ mod tests {
                     queries: vec![
                         Query::Term {
                             field: quux_field,
-                            term: Term::String("foo".to_string()),
+                            term: Term::from_string("foo".to_string()),
                             scorer: TermScorer::default(),
                         },
                         Query::Term {
                             field: quux_field,
-                            term: Term::String("bar".to_string()),
+                            term: Term::from_string("bar".to_string()),
                             scorer: TermScorer::default(),
                         }
                     ],

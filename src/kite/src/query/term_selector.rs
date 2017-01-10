@@ -11,11 +11,7 @@ impl TermSelector {
     pub fn matches(&self, term: &Term) -> bool {
         match *self {
             TermSelector::Prefix(ref prefix) => {
-                if let Term::String(ref term) = *term {
-                    return term.starts_with(prefix);
-                }
-
-                false
+                return term.to_bytes().starts_with(prefix.as_bytes());
             }
         }
     }

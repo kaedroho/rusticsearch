@@ -3,6 +3,8 @@
 //! For example, "Ĥéllø" is converted to "Hello" but non-latin scripts such as
 //! arabic or hiragana are not changed.
 
+use std::str;
+
 use kite::{Term, Token};
 
 use analysis::lucene_asciifold::fold_to_ascii;
@@ -29,9 +31,9 @@ impl<'a> Iterator for ASCIIFoldingFilter<'a> {
         match self.tokens.next() {
             Some(token) => {
                 Some(Token {
-                    term: match token.term {
-                        Term::String(ref string) => {
-                            Term::String(fold_to_ascii(string))
+                    term: match str::from_utf8(&token.term.to_bytes()) {
+                        Ok(ref string) => {
+                            Term::from_string(fold_to_ascii(string))
                         }
                         _ => token.term,
                     },
@@ -53,30 +55,30 @@ mod tests {
     #[test]
     fn test_simple() {
         let mut tokens: Vec<Token> = vec![
-            Token { term: Term::String("Ĥéllø".to_string()), position: 1 },
+            Token { term: Term::from_string("Ĥéllø".to_string()), position: 1 },
         ];
 
         let token_filter = ASCIIFoldingFilter::new(Box::new(tokens.drain((..))));
         let tokens = token_filter.collect::<Vec<Token>>();
 
         assert_eq!(tokens, vec![
-            Token { term: Term::String("Hello".to_string()), position: 1 }
+            Token { term: Term::from_string("Hello".to_string()), position: 1 }
         ]);
     }
 
     #[test]
     fn test_hiragana_not_changed() {
         let mut tokens: Vec<Token> = vec![
-            Token { term: Term::String("こんにちは".to_string()), position: 1 },
-            Token { term: Term::String("ハチ公".to_string()), position: 2 },
+            Token { term: Term::from_string("こんにちは".to_string()), position: 1 },
+            Token { term: Term::from_string("ハチ公".to_string()), position: 2 },
         ];
 
         let token_filter = ASCIIFoldingFilter::new(Box::new(tokens.drain((..))));
         let tokens = token_filter.collect::<Vec<Token>>();
 
         assert_eq!(tokens, vec![
-            Token { term: Term::String("こんにちは".to_string()), position: 1 },
-            Token { term: Term::String("ハチ公".to_string()), position: 2 },
+            Token { term: Term::from_string("こんにちは".to_string()), position: 1 },
+            Token { term: Term::from_string("ハチ公".to_string()), position: 2 },
         ]);
     }
 }

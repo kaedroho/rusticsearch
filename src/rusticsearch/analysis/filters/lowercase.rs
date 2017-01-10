@@ -1,5 +1,7 @@
 //! Converts each token into lowercase
 
+use std::str;
+
 use kite::{Term, Token};
 
 
@@ -24,10 +26,10 @@ impl<'a> Iterator for LowercaseFilter<'a> {
         match self.tokens.next() {
             Some(token) => {
                 Some(Token {
-                    term: match token.term {
-                        Term::String(string) => {
+                    term: match str::from_utf8(&token.term.to_bytes()) {
+                        Ok(string) => {
                             // TODO: Can this be done in place?
-                            Term::String(string.to_lowercase())
+                            Term::from_string(string.to_lowercase())
                         }
                         _ => token.term,
                     },
@@ -49,34 +51,34 @@ mod tests {
     #[test]
     fn test_lowercase_filter() {
         let mut tokens: Vec<Token> = vec![
-            Token { term: Term::String("Hulk".to_string()), position: 1 },
-            Token { term: Term::String("SMASH".to_string()), position: 2 }
+            Token { term: Term::from_string("Hulk".to_string()), position: 1 },
+            Token { term: Term::from_string("SMASH".to_string()), position: 2 }
         ];
 
         let token_filter = LowercaseFilter::new(Box::new(tokens.drain((..))));
         let tokens = token_filter.collect::<Vec<Token>>();
 
         assert_eq!(tokens, vec![
-            Token { term: Term::String("hulk".to_string()), position: 1 },
-            Token { term: Term::String("smash".to_string()), position: 2 }
+            Token { term: Term::from_string("hulk".to_string()), position: 1 },
+            Token { term: Term::from_string("smash".to_string()), position: 2 }
         ]);
     }
 
     #[test]
     fn test_lowercase_filter_cjk() {
         let mut tokens: Vec<Token> = vec![
-            Token { term: Term::String("こんにちは".to_string()), position: 1 },
-            Token { term: Term::String("ハチ公".to_string()), position: 2 },
-            Token { term: Term::String("Test".to_string()), position: 3 }
+            Token { term: Term::from_string("こんにちは".to_string()), position: 1 },
+            Token { term: Term::from_string("ハチ公".to_string()), position: 2 },
+            Token { term: Term::from_string("Test".to_string()), position: 3 }
         ];
 
         let token_filter = LowercaseFilter::new(Box::new(tokens.drain((..))));
         let tokens = token_filter.collect::<Vec<Token>>();
 
         assert_eq!(tokens, vec![
-            Token { term: Term::String("こんにちは".to_string()), position: 1 },
-            Token { term: Term::String("ハチ公".to_string()), position: 2 },
-            Token { term: Term::String("test".to_string()), position: 3 }
+            Token { term: Term::from_string("こんにちは".to_string()), position: 1 },
+            Token { term: Term::from_string("ハチ公".to_string()), position: 2 },
+            Token { term: Term::from_string("test".to_string()), position: 3 }
         ]);
     }
 }

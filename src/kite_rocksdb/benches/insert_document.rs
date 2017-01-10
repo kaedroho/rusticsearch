@@ -32,7 +32,7 @@ fn bench_insert_single_document(b: &mut Bencher) {
     let mut tokens = Vec::new();
     for t in 0..500 {
         tokens.push(Token {
-            term: Term::String(t.to_string()),
+            term: Term::from_string(t.to_string()),
             position: t
         });
     }
@@ -45,7 +45,7 @@ fn bench_insert_single_document(b: &mut Bencher) {
             key: i.to_string(),
             indexed_fields: hashmap! {
                 body_field => tokens.clone(),
-                title_field => vec![Token { term: Term::String(i.to_string()), position: 1}],
+                title_field => vec![Token { term: Term::from_string(i.to_string()), position: 1}],
             },
             stored_fields: hashmap! {
                 id_field => FieldValue::Integer(i),
@@ -67,7 +67,7 @@ fn bench_insert_documents_parallel(b: &mut Bencher) {
     let mut tokens = Vec::new();
     for t in 0..500 {
         tokens.push(Token {
-            term: Term::String(t.to_string()),
+            term: Term::from_string(t.to_string()),
             position: t
         });
     }
@@ -78,7 +78,7 @@ fn bench_insert_documents_parallel(b: &mut Bencher) {
             key: (i + 1).to_string(),
             indexed_fields: hashmap! {
                 body_field => tokens.clone(),
-                title_field => vec![Token { term: Term::String((i + 1).to_string()), position: 1}],
+                title_field => vec![Token { term: Term::from_string((i + 1).to_string()), position: 1}],
             },
             stored_fields: hashmap! {
                 id_field => FieldValue::Integer(i),

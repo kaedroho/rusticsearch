@@ -134,7 +134,7 @@ impl FieldMapping {
                             }
                             None => {
                                 vec![
-                                    Token {term: Term::String(string.to_string()), position: 1}
+                                    Token {term: Term::from_string(string.to_string()), position: 1}
                                 ]
                             }
                         };
@@ -183,12 +183,12 @@ impl FieldMapping {
             }
             FieldType::Integer => {
                 match value {
-                    Json::U64(num) => Some(vec![Token{term: Term::Integer(num as i64), position: 1}]),  // FIXME
-                    Json::I64(num) => Some(vec![Token{term: Term::Integer(num), position: 1}]),
+                    Json::U64(num) => Some(vec![Token{term: Term::from_integer(num as i64), position: 1}]),  // FIXME
+                    Json::I64(num) => Some(vec![Token{term: Term::from_integer(num), position: 1}]),
                     _ => None,
                 }
             }
-            FieldType::Boolean => Some(vec![Token{term: Term::Boolean(parse_boolean(&value)), position: 1}]),
+            FieldType::Boolean => Some(vec![Token{term: Term::from_boolean(parse_boolean(&value)), position: 1}]),
             FieldType::Date => {
                 match value {
                     Json::String(string) => {
@@ -200,7 +200,7 @@ impl FieldMapping {
                             }
                         };
 
-                        Some(vec![Token{term: Term::DateTime(date_parsed), position: 1}])
+                        Some(vec![Token{term: Term::from_datetime(&date_parsed), position: 1}])
                     }
                     Json::U64(_) => {
                         // TODO needs to be interpreted as milliseconds since epoch
