@@ -37,6 +37,10 @@ impl Term {
         }
     }
 
+    pub fn from_bytes(bytes: &[u8]) -> Term {
+        Term(bytes.to_vec())
+    }
+
     pub fn from_string(string: &str) -> Term {
         let mut bytes = Vec::with_capacity(string.len());
 

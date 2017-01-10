@@ -250,7 +250,7 @@ impl RocksDBIndexStore {
         // Writes new terms to disk and generates mapping between the builder's term dictionary and the real one
         let mut term_dictionary_map: HashMap<TermRef, TermRef> = HashMap::new();
         for (term, current_term_ref) in builder.term_dictionary.iter() {
-            let new_term_ref = try!(self.term_dictionary.get_or_create(&self.db, term.clone()));
+            let new_term_ref = try!(self.term_dictionary.get_or_create(&self.db, term));
             term_dictionary_map.insert(*current_term_ref, new_term_ref);
         }
 
