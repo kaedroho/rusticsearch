@@ -104,7 +104,7 @@ impl<'a> IndexStore<'a> for MemoryIndexStore {
                 for token in tokens.iter() {
                     field.num_tokens += 1;
 
-                    let term_bytes = token.term.to_bytes();
+                    let term_bytes = token.term.as_bytes().to_vec();
                     let mut term = field.terms.entry(term_bytes).or_insert_with(|| MemoryIndexStoreFieldTerm::new());
                     term.docs.insert(doc_id);
                 }
@@ -322,6 +322,6 @@ mod tests {
         let reader = store.reader();
         let title_field = reader.schema().get_field_by_name("title").unwrap();
 
-        assert_eq!(reader.iter_docs_with_term(&Term::from_string("hello").to_bytes(), &title_field).unwrap().count(), 1);
+        assert_eq!(reader.iter_docs_with_term(&Term::from_string("hello").as_bytes().to_vec(), &title_field).unwrap().count(), 1);
     }
 }

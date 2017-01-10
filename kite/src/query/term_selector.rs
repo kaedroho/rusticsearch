@@ -11,7 +11,7 @@ impl TermSelector {
     pub fn matches(&self, term: &Term) -> bool {
         match *self {
             TermSelector::Prefix(ref prefix) => {
-                return term.to_bytes().starts_with(prefix.as_bytes());
+                return term.as_bytes().starts_with(prefix.as_bytes());
             }
         }
     }

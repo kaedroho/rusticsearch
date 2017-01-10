@@ -70,8 +70,8 @@ impl Term {
         Term(bytes)
     }
 
-    pub fn to_bytes(&self) -> Vec<u8> {
-        self.0.clone()
+    pub fn as_bytes(&self) -> &[u8] {
+        &self.0
     }
 }
 
@@ -85,21 +85,21 @@ mod tests {
     fn test_string_to_bytes() {
         let term = Term::from_string("foo");
 
-        assert_eq!(term.to_bytes(), vec![102, 111, 111])
+        assert_eq!(term.as_bytes().to_vec(), vec![102, 111, 111])
     }
 
     #[test]
     fn test_hiragana_string_to_bytes() {
         let term = Term::from_string("こんにちは");
 
-        assert_eq!(term.to_bytes(), vec![227, 129, 147, 227, 130, 147, 227, 129, 171, 227, 129, 161, 227, 129, 175])
+        assert_eq!(term.as_bytes().to_vec(), vec![227, 129, 147, 227, 130, 147, 227, 129, 171, 227, 129, 161, 227, 129, 175])
     }
 
     #[test]
     fn test_blank_string_to_bytes() {
         let term = Term::from_string("");
 
-        assert_eq!(term.to_bytes(), vec![])
+        assert_eq!(term.as_bytes().to_vec(), vec![])
     }
 
     #[test]
@@ -107,7 +107,7 @@ mod tests {
         let term = Term::from_boolean(true);
 
         // 116 = 't' in ASCII
-        assert_eq!(term.to_bytes(), vec![116])
+        assert_eq!(term.as_bytes().to_vec(), vec![116])
     }
 
     #[test]
@@ -115,21 +115,21 @@ mod tests {
         let term = Term::from_boolean(false);
 
         // 102 = 'f' in ASCII
-        assert_eq!(term.to_bytes(), vec![102])
+        assert_eq!(term.as_bytes().to_vec(), vec![102])
     }
 
     #[test]
     fn test_integer_to_bytes() {
         let term = Term::from_integer(123);
 
-        assert_eq!(term.to_bytes(), vec![0, 0, 0, 0, 0, 0, 0, 123])
+        assert_eq!(term.as_bytes().to_vec(), vec![0, 0, 0, 0, 0, 0, 0, 123])
     }
 
     #[test]
     fn test_negative_integer_to_bytes() {
         let term = Term::from_integer(-123);
 
-        assert_eq!(term.to_bytes(), vec![255, 255, 255, 255, 255, 255, 255, 133])
+        assert_eq!(term.as_bytes().to_vec(), vec![255, 255, 255, 255, 255, 255, 255, 133])
     }
 
     #[test]
@@ -137,7 +137,7 @@ mod tests {
         let date = "2016-07-23T16:15:00+01:00".parse::<DateTime<UTC>>().unwrap();
         let term = Term::from_datetime(&date);
 
-        assert_eq!(term.to_bytes(), vec![0, 5, 56, 79, 3, 191, 101, 0])
+        assert_eq!(term.as_bytes().to_vec(), vec![0, 5, 56, 79, 3, 191, 101, 0])
     }
 
     #[test]
@@ -147,7 +147,7 @@ mod tests {
         let term = Term::from_datetime(&date);
 
         // This is exactly 123123 higher than the result of "test_datetime_to_bytes"
-        assert_eq!(term.to_bytes(), vec![0, 5, 56, 79, 3, 193, 69, 243])
+        assert_eq!(term.as_bytes().to_vec(), vec![0, 5, 56, 79, 3, 193, 69, 243])
     }
 
     #[test]
@@ -156,6 +156,6 @@ mod tests {
         let term = Term::from_datetime(&date);
 
         // This is exactly 3_600_000_000 lower than the result of "test_datetime_to_bytes"
-        assert_eq!(term.to_bytes(), vec![0, 5, 56, 78, 45, 43, 193, 0])
+        assert_eq!(term.as_bytes().to_vec(), vec![0, 5, 56, 78, 45, 43, 193, 0])
     }
 }

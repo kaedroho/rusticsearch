@@ -53,7 +53,7 @@ impl SegmentBuilder {
                 field_token_count += 1;
 
                 // Get term ref
-                let term_bytes = token.term.to_bytes();
+                let term_bytes = token.term.as_bytes().to_vec();
                 let mut current_term_ref = self.current_term_ref;
                 let term_ref = self.term_dictionary.entry(term_bytes).or_insert_with(|| {
                     let term_ref = TermRef::new(current_term_ref);
