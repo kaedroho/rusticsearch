@@ -57,6 +57,7 @@ fn main() {
                 {
                     let indices = system.indices.read().unwrap();
                     for index in indices.values() {
+                        // TODO: Catch panic
                         index.run_maintenance_task().unwrap();
                     }
                 }
