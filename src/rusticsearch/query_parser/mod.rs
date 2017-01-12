@@ -19,12 +19,12 @@ use rustc_serialize::json::Json;
 use kite::Query;
 use kite::schema::Schema;
 
-use mapping::MappingRegistry;
+use index::metadata::IndexMetaData;
 
 
 #[derive(Debug, Clone)]
 pub struct QueryBuildContext<'a> {
-    pub mappings: Option<&'a MappingRegistry>,
+    pub index_metadata: Option<&'a IndexMetaData>,
     score_required: bool,
 }
 
@@ -32,14 +32,14 @@ pub struct QueryBuildContext<'a> {
 impl<'a> QueryBuildContext<'a> {
     pub fn new() -> QueryBuildContext<'a> {
         QueryBuildContext {
-            mappings: None,
+            index_metadata: None,
             score_required: true
         }
     }
 
     #[inline]
-    pub fn set_mappings(mut self, mappings: &'a MappingRegistry) -> QueryBuildContext<'a> {
-        self.mappings = Some(mappings);
+    pub fn set_index_metadata(mut self, index_metadata: &'a IndexMetaData) -> QueryBuildContext<'a> {
+        self.index_metadata = Some(index_metadata);
         self
     }
 

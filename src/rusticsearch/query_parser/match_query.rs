@@ -22,9 +22,9 @@ struct MatchQueryBuilder {
 impl QueryBuilder for MatchQueryBuilder {
     fn build(&self, context: &QueryBuildContext, schema: &Schema) -> Query {
         // Get search options for field
-        let field_search_options = match context.mappings {
-            Some(mappings) => {
-                match mappings.get_field(&self.field) {
+        let field_search_options = match context.index_metadata {
+            Some(index_metadata) => {
+                match index_metadata.mappings.get_field(&self.field) {
                     Some(field_mapping) => field_mapping.get_search_options(),
                     None => FieldSearchOptions::default(),  // TODO: error?
                 }

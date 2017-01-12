@@ -38,7 +38,7 @@ pub fn view_count(req: &mut Request) -> IronResult<Response> {
             match query {
                 Ok(query) => {
                     let mut collector = TotalCountCollector::new();
-                    index_reader.search(&mut collector, &query.build(&QueryBuildContext::new().set_mappings(&index_metadata.mappings).no_score(), &index_reader.schema())).unwrap();
+                    index_reader.search(&mut collector, &query.build(&QueryBuildContext::new().set_index_metadata(&index_metadata).no_score(), &index_reader.schema())).unwrap();
                     collector.get_total_count()
                 }
                 Err(_) => {
@@ -123,7 +123,7 @@ pub fn view_search(req: &mut Request) -> IronResult<Response> {
 
                     // Do the search
                     let mut collector = TopScoreCollector::new(from + size);
-                    index_reader.search(&mut collector, &query.build(&QueryBuildContext::new().set_mappings(&index_metadata.mappings), &index_reader.schema())).unwrap();
+                    index_reader.search(&mut collector, &query.build(&QueryBuildContext::new().set_index_metadata(&index_metadata), &index_reader.schema())).unwrap();
 
                     // TODO: {"took":5,"timed_out":false,"_shards":{"total":5,"successful":5,"failed":0},"hits":{"total":4,"max_score":1.0,"hits":[{"_index":"wagtail","_type":"searchtests_searchtest_searchtests_searchtestchild","_id":"searchtests_searchtest:5380","_score":1.0,"fields":{"pk":["5380"]}},{"_index":"wagtail","_type":"searchtests_searchtest","_id":"searchtests_searchtest:5379","_score":1.0,"fields":{"pk":["5379"]}}]}}
                     Ok(json_response(status::Ok,
