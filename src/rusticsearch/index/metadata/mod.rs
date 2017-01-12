@@ -11,7 +11,7 @@ pub struct IndexMetaData {
 }
 
 
-impl Default for  IndexMetaData {
+impl Default for IndexMetaData {
     fn default() -> IndexMetaData {
         IndexMetaData {
             analyzers: AnalyzerRegistry::new(),

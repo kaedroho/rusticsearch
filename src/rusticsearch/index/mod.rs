@@ -2,9 +2,10 @@ pub mod maintenance;
 pub mod registry;
 pub mod metadata;
 
+use std::sync::RwLock;
+
 use kite_rocksdb::RocksDBIndexStore;
 use uuid::Uuid;
-use std::sync::RwLock;
 
 use index::metadata::IndexMetaData;
 
