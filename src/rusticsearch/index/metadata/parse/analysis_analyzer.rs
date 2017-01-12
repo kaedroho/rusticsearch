@@ -1,7 +1,7 @@
 use rustc_serialize::json::Json;
 
 use analysis::AnalyzerSpec;
-use analysis::registry::AnalyzerRegistry;
+use index::metadata::analysis::AnalyzerRegistry;
 
 
 #[derive(Debug, PartialEq)]

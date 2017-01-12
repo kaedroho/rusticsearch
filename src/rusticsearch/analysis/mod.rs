@@ -13,7 +13,6 @@ pub mod ngram_generator;
 pub mod lucene_asciifold;
 pub mod tokenizers;
 pub mod filters;
-pub mod registry;
 
 use kite::token::Token;
 

@@ -1,7 +1,9 @@
+pub mod analysis;
+pub mod mapping;
 pub mod parse;
 
-use analysis::registry::AnalyzerRegistry;
-use mapping::MappingRegistry;
+use index::metadata::analysis::AnalyzerRegistry;
+use index::metadata::mapping::MappingRegistry;
 
 
 #[derive(Debug)]

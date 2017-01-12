@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
-use analysis::registry::AnalyzerRegistry;
 use mapping::{Mapping, FieldMapping, FieldType, get_standard_analyzer};
+use index::metadata::analysis::AnalyzerRegistry;
 
 
 #[derive(Debug, PartialEq)]
@@ -131,11 +131,11 @@ impl MappingBuilder {
 
 #[cfg(test)]
 mod tests {
-    use analysis::registry::AnalyzerRegistry;
     use analysis::AnalyzerSpec;
     use analysis::tokenizers::TokenizerSpec;
     use analysis::filters::FilterSpec;
     use mapping::{Mapping, FieldMapping, FieldType, get_standard_analyzer};
+    use index::metadata::analysis::AnalyzerRegistry;
 
     use super::{MappingBuilder, FieldMappingBuilder};
 
