@@ -1,7 +1,6 @@
 pub mod maintenance;
 pub mod registry;
 pub mod metadata;
-pub mod metadata_parser;
 
 use kite_rocksdb::RocksDBIndexStore;
 use uuid::Uuid;

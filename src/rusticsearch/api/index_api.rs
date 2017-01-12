@@ -7,7 +7,7 @@ use uuid::Uuid;
 
 use index::Index;
 use index::metadata::IndexMetaData;
-use index::metadata_parser::parse as parse_index_metadata;
+use index::metadata::parse::parse as parse_index_metadata;
 
 use api::persistent;
 use api::iron::prelude::*;

@@ -1,3 +1,5 @@
+pub mod parse;
+
 use analysis::registry::AnalyzerRegistry;
 use mapping::MappingRegistry;
 
