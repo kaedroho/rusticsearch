@@ -47,7 +47,7 @@ pub fn view_put_mapping(req: &mut Request) -> IronResult<Response> {
         }
     };
     let mut index_metadata = index.metadata.write().unwrap();
-    let mut mapping = mapping_builder.build(&index_metadata.analyzers);
+    let mut mapping = mapping_builder.build(&index_metadata);
     debug!("{:#?}", mapping);
     let is_updating = index_metadata.mappings.contains_key(*mapping_name);
 

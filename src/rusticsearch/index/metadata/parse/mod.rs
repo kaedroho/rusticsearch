@@ -53,7 +53,7 @@ pub fn parse(metadata: &mut IndexMetaData, data: Json) -> Result<(), IndexMetaDa
                         Err(e) => return Err(IndexMetaDataParseError::TokenizerParseError(name.to_string(), e)),
                     };
 
-                    metadata.analyzers.insert_tokenizer(name.clone(), tokenizer);
+                    metadata.insert_tokenizer(name.clone(), tokenizer);
                 }
             }
 
@@ -70,7 +70,7 @@ pub fn parse(metadata: &mut IndexMetaData, data: Json) -> Result<(), IndexMetaDa
                         Err(e) => return Err(IndexMetaDataParseError::FilterParseError(name.to_string(), e)),
                     };
 
-                    metadata.analyzers.insert_filter(name.clone(), filter);
+                    metadata.insert_filter(name.clone(), filter);
                 }
             }
 
@@ -82,12 +82,12 @@ pub fn parse(metadata: &mut IndexMetaData, data: Json) -> Result<(), IndexMetaDa
                 };
 
                 for (name, data) in analyzer_data {
-                    let analyzer = match parse_analyzer(data, &metadata.analyzers) {
+                    let analyzer = match parse_analyzer(data, &metadata) {
                         Ok(analyzer) => analyzer,
                         Err(e) => return Err(IndexMetaDataParseError::AnalyzerParseError(name.to_string(), e)),
                     };
 
-                    metadata.analyzers.insert_analyzer(name.clone(), analyzer);
+                    metadata.insert_analyzer(name.clone(), analyzer);
                 }
             }
         }
@@ -118,23 +118,23 @@ mod tests {
         {}
         ").unwrap()).expect("parse() returned an error");
 
-        assert_eq!(metadata.analyzers.tokenizers().len(), 1);
-        assert_eq!(metadata.analyzers.filters().len(), 2);
-        assert_eq!(metadata.analyzers.analyzers().len(), 1);
+        assert_eq!(metadata.tokenizers().len(), 1);
+        assert_eq!(metadata.filters().len(), 2);
+        assert_eq!(metadata.analyzers().len(), 1);
 
         // Check builtin tokenizers
-        let standard_tokenizer = metadata.analyzers.tokenizers().get("standard").expect("'standard' tokenizer wasn't created");
+        let standard_tokenizer = metadata.tokenizers().get("standard").expect("'standard' tokenizer wasn't created");
         assert_eq!(*standard_tokenizer, TokenizerSpec::Standard);
 
         // Check builtin filters
-        let lowercase_filter = metadata.analyzers.filters().get("lowercase").expect("'lowercase' filter wasn't created");
+        let lowercase_filter = metadata.filters().get("lowercase").expect("'lowercase' filter wasn't created");
         assert_eq!(*lowercase_filter, FilterSpec::Lowercase);
 
-        let asciifolding_filter = metadata.analyzers.filters().get("asciifolding").expect("'asciifolding' filter wasn't created");
+        let asciifolding_filter = metadata.filters().get("asciifolding").expect("'asciifolding' filter wasn't created");
         assert_eq!(*asciifolding_filter, FilterSpec::ASCIIFolding);
 
         // Check builtin analyzers
-        let standard_analyzer = metadata.analyzers.analyzers().get("standard").expect("'standard' analyzer wasn't created");
+        let standard_analyzer = metadata.analyzers().get("standard").expect("'standard' analyzer wasn't created");
         assert_eq!(*standard_analyzer, AnalyzerSpec {
             tokenizer: TokenizerSpec::Standard,
             filters: vec![
@@ -204,33 +204,33 @@ mod tests {
         }
         ").unwrap()).expect("parse() returned an error");
 
-        assert_eq!(metadata.analyzers.tokenizers().len(), 5);
-        assert_eq!(metadata.analyzers.filters().len(), 6);
-        assert_eq!(metadata.analyzers.analyzers().len(), 1);
+        assert_eq!(metadata.tokenizers().len(), 5);
+        assert_eq!(metadata.filters().len(), 6);
+        assert_eq!(metadata.analyzers().len(), 1);
 
         // Check tokenizers
-        let ngram_tokenizer = metadata.analyzers.tokenizers().get("ngram_tokenizer").expect("'ngram_tokenizer' wasn't created");
+        let ngram_tokenizer = metadata.tokenizers().get("ngram_tokenizer").expect("'ngram_tokenizer' wasn't created");
         assert_eq!(*ngram_tokenizer, TokenizerSpec::NGram {
             min_size: 3,
             max_size: 15,
             edge: Edge::Neither,
         });
 
-        let edgengram_tokenizer = metadata.analyzers.tokenizers().get("edgengram_tokenizer").expect("'edgengram_tokenizer' wasn't created");
+        let edgengram_tokenizer = metadata.tokenizers().get("edgengram_tokenizer").expect("'edgengram_tokenizer' wasn't created");
         assert_eq!(*edgengram_tokenizer, TokenizerSpec::NGram {
             min_size: 2,
             max_size: 15,
             edge: Edge::Left,
         });
 
-        let edgengram_tokenizer_side_front = metadata.analyzers.tokenizers().get("edgengram_tokenizer_side_front").expect("'edgengram_tokenizer_side_front' wasn't created");
+        let edgengram_tokenizer_side_front = metadata.tokenizers().get("edgengram_tokenizer_side_front").expect("'edgengram_tokenizer_side_front' wasn't created");
         assert_eq!(*edgengram_tokenizer_side_front, TokenizerSpec::NGram {
             min_size: 2,
             max_size: 15,
             edge: Edge::Left,
         });
 
-        let edgengram_tokenizer_side_back = metadata.analyzers.tokenizers().get("edgengram_tokenizer_side_back").expect("'edgengram_tokenizer_side_back' wasn't created");
+        let edgengram_tokenizer_side_back = metadata.tokenizers().get("edgengram_tokenizer_side_back").expect("'edgengram_tokenizer_side_back' wasn't created");
         assert_eq!(*edgengram_tokenizer_side_back, TokenizerSpec::NGram {
             min_size: 2,
             max_size: 15,
@@ -238,28 +238,28 @@ mod tests {
         });
 
         // Check filters
-        let ngram_filter = metadata.analyzers.filters().get("ngram_filter").expect("'ngram_filter' wasn't created");
+        let ngram_filter = metadata.filters().get("ngram_filter").expect("'ngram_filter' wasn't created");
         assert_eq!(*ngram_filter, FilterSpec::NGram {
             min_size: 3,
             max_size: 15,
             edge: Edge::Neither,
         });
 
-        let edgengram_filter = metadata.analyzers.filters().get("edgengram_filter").expect("'edgengram_filter' wasn't created");
+        let edgengram_filter = metadata.filters().get("edgengram_filter").expect("'edgengram_filter' wasn't created");
         assert_eq!(*edgengram_filter, FilterSpec::NGram {
             min_size: 2,
             max_size: 15,
             edge: Edge::Left,
         });
 
-        let edgengram_filter_side_front = metadata.analyzers.filters().get("edgengram_filter_side_front").expect("'edgengram_filter_side_front' wasn't created");
+        let edgengram_filter_side_front = metadata.filters().get("edgengram_filter_side_front").expect("'edgengram_filter_side_front' wasn't created");
         assert_eq!(*edgengram_filter_side_front, FilterSpec::NGram {
             min_size: 2,
             max_size: 15,
             edge: Edge::Left,
         });
 
-        let edgengram_filter_side_back = metadata.analyzers.filters().get("edgengram_filter_side_back").expect("'edgengram_filter_side_back' wasn't created");
+        let edgengram_filter_side_back = metadata.filters().get("edgengram_filter_side_back").expect("'edgengram_filter_side_back' wasn't created");
         assert_eq!(*edgengram_filter_side_back, FilterSpec::NGram {
             min_size: 2,
             max_size: 15,

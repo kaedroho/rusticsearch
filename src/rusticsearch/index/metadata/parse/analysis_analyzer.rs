@@ -1,7 +1,7 @@
 use rustc_serialize::json::Json;
 
 use analysis::AnalyzerSpec;
-use index::metadata::analysis::AnalyzerRegistry;
+use index::metadata::IndexMetaData;
 
 
 #[derive(Debug, PartialEq)]
@@ -16,7 +16,7 @@ pub enum AnalyzerParseError {
 }
 
 
-pub fn parse(json: &Json, analyzers: &AnalyzerRegistry) -> Result<AnalyzerSpec, AnalyzerParseError> {
+pub fn parse(json: &Json, index_metadata: &IndexMetaData) -> Result<AnalyzerSpec, AnalyzerParseError> {
     let data = try!(json.as_object().ok_or(AnalyzerParseError::ExpectedObject));
 
     // Get type
@@ -36,7 +36,7 @@ pub fn parse(json: &Json, analyzers: &AnalyzerRegistry) -> Result<AnalyzerSpec, 
                 None => return Err(AnalyzerParseError::ExpectedKey("tokenizer".to_string())),
             };
 
-            let tokenizer_spec = match analyzers.tokenizers().get(tokenizer_name) {
+            let tokenizer_spec = match index_metadata.tokenizers().get(tokenizer_name) {
                 Some(tokenizer_spec) => tokenizer_spec,
                 None => return Err(AnalyzerParseError::UnrecognisedTokenizer(tokenizer_name.to_string())),
             };
@@ -55,7 +55,7 @@ pub fn parse(json: &Json, analyzers: &AnalyzerRegistry) -> Result<AnalyzerSpec, 
                             // Get filter
                             match filter_name_json.as_string() {
                                 Some(filter_name) => {
-                                    let filter_spec = match analyzers.filters().get(filter_name) {
+                                    let filter_spec = match index_metadata.filters().get(filter_name) {
                                         Some(filter_spec) => filter_spec,
                                         None => return Err(AnalyzerParseError::UnrecognisedFilter(filter_name.to_string())),
                                     };
