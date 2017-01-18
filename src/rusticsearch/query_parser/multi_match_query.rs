@@ -27,7 +27,7 @@ impl QueryBuilder for MultiMatchQueryBuilder {
             // Get search options for field
             let field_search_options = match context.index_metadata {
                 Some(index_metadata) => {
-                    match index_metadata.mappings.get_field(&field_name) {
+                    match index_metadata.get_field_mapping(&field_name) {
                         Some(field_mapping) => field_mapping.get_search_options(),
                         None => FieldSearchOptions::default(),  // TODO: error?
                     }
