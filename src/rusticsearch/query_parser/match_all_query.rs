@@ -1,6 +1,6 @@
 //! Parses "match_all" queries
 
-use rustc_serialize::json::Json;
+use serde_json::Value as Json;
 use kite::Query;
 use kite::schema::Schema;
 
@@ -49,7 +49,7 @@ pub fn parse(json: &Json) -> Result<Box<QueryBuilder>, QueryParseError> {
 
 #[cfg(test)]
 mod tests {
-    use rustc_serialize::json::Json;
+    use serde_json;
 
     use kite::Query;
     use kite::schema::Schema;
@@ -62,7 +62,7 @@ mod tests {
     fn test_match_all_query() {
         let schema = Schema::new();
 
-        let query = parse(&Json::from_str("
+        let query = parse(&serde_json::from_str("
         {
         }
         ").unwrap()).and_then(|builder| Ok(builder.build(&QueryBuildContext::new(), &schema)));
@@ -74,7 +74,7 @@ mod tests {
     fn test_with_boost() {
         let schema = Schema::new();
 
-        let query = parse( &Json::from_str("
+        let query = parse( &serde_json::from_str("
         {
             \"boost\": 2.0
         }
@@ -87,7 +87,7 @@ mod tests {
     fn test_with_boost_integer() {
         let schema = Schema::new();
 
-        let query = parse(&Json::from_str("
+        let query = parse(&serde_json::from_str("
         {
             \"boost\": 2
         }
@@ -99,7 +99,7 @@ mod tests {
     #[test]
     fn test_gives_error_for_incorrect_type() {
         // Array
-        let query = parse(&Json::from_str("
+        let query = parse(&serde_json::from_str("
         [
             \"foo\"
         ]
@@ -108,14 +108,14 @@ mod tests {
         assert_eq!(query.err(), Some(QueryParseError::ExpectedObject));
 
         // Integer
-        let query = parse(&Json::from_str("
+        let query = parse(&serde_json::from_str("
         123
         ").unwrap());
 
         assert_eq!(query.err(), Some(QueryParseError::ExpectedObject));
 
         // Float
-        let query = parse(&Json::from_str("
+        let query = parse(&serde_json::from_str("
         123.1234
         ").unwrap());
 
@@ -125,7 +125,7 @@ mod tests {
     #[test]
     fn test_gives_error_for_incorrect_boost_type() {
         // String
-        let query = parse(&Json::from_str("
+        let query = parse(&serde_json::from_str("
         {
             \"boost\": \"2\"
         }
@@ -134,7 +134,7 @@ mod tests {
         assert_eq!(query.err(), Some(QueryParseError::ExpectedFloat));
 
         // Array
-        let query = parse(&Json::from_str("
+        let query = parse(&serde_json::from_str("
         {
             \"boost\": [2]
         }
@@ -143,7 +143,7 @@ mod tests {
         assert_eq!(query.err(), Some(QueryParseError::ExpectedFloat));
 
         // Object
-        let query = parse(&Json::from_str("
+        let query = parse(&serde_json::from_str("
         {
             \"boost\": {
                 \"value\": 2
@@ -156,7 +156,7 @@ mod tests {
 
     #[test]
     fn test_gives_error_for_unrecognised_key() {
-        let query = parse(&Json::from_str("
+        let query = parse(&serde_json::from_str("
         {
             \"hello\": \"world\"
         }

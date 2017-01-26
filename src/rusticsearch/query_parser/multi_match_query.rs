@@ -1,6 +1,6 @@
 //! Parses "multi_match" queries
 
-use rustc_serialize::json::Json;
+use serde_json::Value as Json;
 use kite::{Term, Token, Query, TermScorer};
 use kite::schema::Schema;
 
@@ -139,7 +139,7 @@ pub fn parse(json: &Json) -> Result<Box<QueryBuilder>, QueryParseError> {
 
 #[cfg(test)]
 mod tests {
-    use rustc_serialize::json::Json;
+    use serde_json;
 
     use kite::{Term, Query, TermScorer};
     use kite::schema::{Schema, FieldType, FIELD_INDEXED};
@@ -154,7 +154,7 @@ mod tests {
         let bar_field = schema.add_field("bar".to_string(), FieldType::Text, FIELD_INDEXED).unwrap();
         let baz_field = schema.add_field("baz".to_string(), FieldType::Text, FIELD_INDEXED).unwrap();
 
-        let query = parse(&Json::from_str("
+        let query = parse(&serde_json::from_str("
         {
             \"query\": \"foo\",
             \"fields\": [\"bar\", \"baz\"]
@@ -183,7 +183,7 @@ mod tests {
         let bar_field = schema.add_field("bar".to_string(), FieldType::Text, FIELD_INDEXED).unwrap();
         let baz_field = schema.add_field("baz".to_string(), FieldType::Text, FIELD_INDEXED).unwrap();
 
-        let query = parse(&Json::from_str("
+        let query = parse(&serde_json::from_str("
         {
             \"query\": \"hello world\",
             \"fields\": [\"bar\", \"baz\"]
@@ -230,7 +230,7 @@ mod tests {
         let bar_field = schema.add_field("bar".to_string(), FieldType::Text, FIELD_INDEXED).unwrap();
         let baz_field = schema.add_field("baz".to_string(), FieldType::Text, FIELD_INDEXED).unwrap();
 
-        let query = parse(&Json::from_str("
+        let query = parse(&serde_json::from_str("
         {
             \"query\": \"foo\",
             \"fields\": [\"bar\", \"baz\"],
@@ -260,7 +260,7 @@ mod tests {
         let bar_field = schema.add_field("bar".to_string(), FieldType::Text, FIELD_INDEXED).unwrap();
         let baz_field = schema.add_field("baz".to_string(), FieldType::Text, FIELD_INDEXED).unwrap();
 
-        let query = parse(&Json::from_str("
+        let query = parse(&serde_json::from_str("
         {
             \"query\": \"foo\",
             \"fields\": [\"bar\", \"baz\"],
@@ -290,7 +290,7 @@ mod tests {
         let bar_field = schema.add_field("bar".to_string(), FieldType::Text, FIELD_INDEXED).unwrap();
         let baz_field = schema.add_field("baz".to_string(), FieldType::Text, FIELD_INDEXED).unwrap();
 
-        let query = parse(&Json::from_str("
+        let query = parse(&serde_json::from_str("
         {
             \"query\": \"foo\",
             \"fields\": [\"bar^2\", \"baz^1.0\"]
@@ -319,7 +319,7 @@ mod tests {
         let bar_field = schema.add_field("bar".to_string(), FieldType::Text, FIELD_INDEXED).unwrap();
         let baz_field = schema.add_field("baz".to_string(), FieldType::Text, FIELD_INDEXED).unwrap();
 
-        let query = parse(&Json::from_str("
+        let query = parse(&serde_json::from_str("
         {
             \"query\": \"foo\",
             \"fields\": [\"bar^2\", \"baz^1.0\"],
@@ -349,7 +349,7 @@ mod tests {
         let baz_field = schema.add_field("baz".to_string(), FieldType::Text, FIELD_INDEXED).unwrap();
         let quux_field = schema.add_field("quux".to_string(), FieldType::Text, FIELD_INDEXED).unwrap();
 
-        let query = parse(&Json::from_str("
+        let query = parse(&serde_json::from_str("
         {
             \"query\": \"foo bar\",
             \"fields\": [\"baz\", \"quux\"],
@@ -394,14 +394,14 @@ mod tests {
     #[test]
     fn test_gives_error_for_incorrect_type() {
         // String
-        let query = parse(&Json::from_str("
+        let query = parse(&serde_json::from_str("
         \"foo\"
         ").unwrap());
 
         assert_eq!(query.err(), Some(QueryParseError::ExpectedObject));
 
         // Array
-        let query = parse(&Json::from_str("
+        let query = parse(&serde_json::from_str("
         [
             \"foo\"
         ]
@@ -410,14 +410,14 @@ mod tests {
         assert_eq!(query.err(), Some(QueryParseError::ExpectedObject));
 
         // Integer
-        let query = parse(&Json::from_str("
+        let query = parse(&serde_json::from_str("
         123
         ").unwrap());
 
         assert_eq!(query.err(), Some(QueryParseError::ExpectedObject));
 
         // Float
-        let query = parse(&Json::from_str("
+        let query = parse(&serde_json::from_str("
         123.1234
         ").unwrap());
 
@@ -427,7 +427,7 @@ mod tests {
     #[test]
     fn test_gives_error_for_incorrect_query_type() {
         // Object
-        let query = parse(&Json::from_str("
+        let query = parse(&serde_json::from_str("
         {
             \"query\": {
                 \"foo\": \"bar\"
@@ -439,7 +439,7 @@ mod tests {
         assert_eq!(query.err(), Some(QueryParseError::ExpectedString));
 
         // Array
-        let query = parse(&Json::from_str("
+        let query = parse(&serde_json::from_str("
         {
             \"query\": [\"foo\"],
             \"fields\": [\"bar\", \"baz\"]
@@ -449,7 +449,7 @@ mod tests {
         assert_eq!(query.err(), Some(QueryParseError::ExpectedString));
 
         // Integer
-        let query = parse(&Json::from_str("
+        let query = parse(&serde_json::from_str("
         {
             \"query\": 123,
             \"fields\": [\"bar\", \"baz\"]
@@ -459,7 +459,7 @@ mod tests {
         assert_eq!(query.err(), Some(QueryParseError::ExpectedString));
 
         // Float
-        let query = parse(&Json::from_str("
+        let query = parse(&serde_json::from_str("
         {
             \"query\": 123.456,
             \"fields\": [\"bar\", \"baz\"]
@@ -471,7 +471,7 @@ mod tests {
     #[test]
     fn test_gives_error_for_incorrect_fields_type() {
         // String
-        let query = parse(&Json::from_str("
+        let query = parse(&serde_json::from_str("
         {
             \"query\": \"foo\",
             \"fields\": \"bar\"
@@ -481,7 +481,7 @@ mod tests {
         assert_eq!(query.err(), Some(QueryParseError::ExpectedArray));
 
         // Object
-        let query = parse(&Json::from_str("
+        let query = parse(&serde_json::from_str("
         {
             \"query\": \"foo\",
             \"fields\": {
@@ -493,7 +493,7 @@ mod tests {
         assert_eq!(query.err(), Some(QueryParseError::ExpectedArray));
 
         // Integer
-        let query = parse(&Json::from_str("
+        let query = parse(&serde_json::from_str("
         {
             \"query\": \"foo\",
             \"fields\": 123
@@ -503,7 +503,7 @@ mod tests {
         assert_eq!(query.err(), Some(QueryParseError::ExpectedArray));
 
         // Float
-        let query = parse(&Json::from_str("
+        let query = parse(&serde_json::from_str("
         {
             \"query\": \"foo\",
             \"fields\": 123.456
@@ -516,7 +516,7 @@ mod tests {
     #[test]
     fn test_gives_error_for_incorrect_boost_type() {
         // String
-        let query = parse(&Json::from_str("
+        let query = parse(&serde_json::from_str("
         {
             \"query\": \"foo\",
             \"fields\": [\"bar\", \"baz\"],
@@ -527,7 +527,7 @@ mod tests {
         assert_eq!(query.err(), Some(QueryParseError::ExpectedFloat));
 
         // Array
-        let query = parse(&Json::from_str("
+        let query = parse(&serde_json::from_str("
         {
             \"query\": \"foo\",
             \"fields\": [\"bar\", \"baz\"],
@@ -538,7 +538,7 @@ mod tests {
         assert_eq!(query.err(), Some(QueryParseError::ExpectedFloat));
 
         // Object
-        let query = parse(&Json::from_str("
+        let query = parse(&serde_json::from_str("
         {
             \"query\": \"foo\",
             \"fields\": [\"bar\", \"baz\"],
@@ -553,7 +553,7 @@ mod tests {
 
     #[test]
     fn test_gives_error_for_missing_query() {
-        let query = parse(&Json::from_str("
+        let query = parse(&serde_json::from_str("
         {
             \"fields\": [\"bar\", \"baz\"]
         }
@@ -564,7 +564,7 @@ mod tests {
 
     #[test]
     fn test_gives_error_for_missing_fields() {
-        let query = parse(&Json::from_str("
+        let query = parse(&serde_json::from_str("
         {
             \"query\": \"foo\"
         }
@@ -575,7 +575,7 @@ mod tests {
 
     #[test]
     fn test_gives_error_for_extra_key() {
-        let query = parse(&Json::from_str("
+        let query = parse(&serde_json::from_str("
         {
             \"query\": \"foo\",
             \"fields\": [\"bar\", \"baz\"],

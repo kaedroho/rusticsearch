@@ -1,6 +1,6 @@
 //! Parses "match_none" queries
 
-use rustc_serialize::json::Json;
+use serde_json::Value as Json;
 use kite::Query;
 use kite::schema::Schema;
 
@@ -34,7 +34,7 @@ pub fn parse(json: &Json) -> Result<Box<QueryBuilder>, QueryParseError> {
 
 #[cfg(test)]
 mod tests {
-    use rustc_serialize::json::Json;
+    use serde_json;
 
     use kite::Query;
     use kite::schema::Schema;
@@ -47,7 +47,7 @@ mod tests {
     fn test_match_none_query() {
         let schema = Schema::new();
 
-        let query = parse(&Json::from_str("
+        let query = parse(&serde_json::from_str("
         {
         }
         ").unwrap()).and_then(|builder| Ok(builder.build(&QueryBuildContext::new(), &schema)));
@@ -58,7 +58,7 @@ mod tests {
     #[test]
     fn test_gives_error_for_incorrect_type() {
         // Array
-        let query = parse(&Json::from_str("
+        let query = parse(&serde_json::from_str("
         [
             \"foo\"
         ]
@@ -67,14 +67,14 @@ mod tests {
         assert_eq!(query.err(), Some(QueryParseError::ExpectedObject));
 
         // Integer
-        let query = parse(&Json::from_str("
+        let query = parse(&serde_json::from_str("
         123
         ").unwrap());
 
         assert_eq!(query.err(), Some(QueryParseError::ExpectedObject));
 
         // Float
-        let query = parse(&Json::from_str("
+        let query = parse(&serde_json::from_str("
         123.1234
         ").unwrap());
 
@@ -83,7 +83,7 @@ mod tests {
 
     #[test]
     fn test_gives_error_for_unrecognised_key() {
-        let query = parse(&Json::from_str("
+        let query = parse(&serde_json::from_str("
         {
             \"hello\": \"world\"
         }

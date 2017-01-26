@@ -2,6 +2,7 @@ use std::io::Read;
 use std::collections::BTreeMap;
 
 use rustc_serialize::json::{self, Json};
+use serde_json;
 use url::form_urlencoded;
 use kite::document::DocRef;
 use kite::query::Query;
@@ -29,7 +30,7 @@ pub fn view_count(req: &mut Request) -> IronResult<Response> {
     let index_reader = index.store.reader();
     let index_metadata = index.metadata.read().unwrap();
 
-    let count = match json_from_request_body!(req) {
+    let count = match serde_json_from_request_body!(req) {
         Some(query_json) => {
             // Parse query
             let query = parse_query(query_json.as_object().unwrap().get("query").unwrap());
@@ -73,7 +74,7 @@ pub fn view_search(req: &mut Request) -> IronResult<Response> {
     let index_reader = index.store.reader();
     let index_metadata = index.metadata.read().unwrap();
 
-    match json_from_request_body!(req) {
+    match serde_json_from_request_body!(req) {
         Some(query_json) => {
             // Parse query
             let query = parse_query(query_json.as_object().unwrap().get("query").unwrap());

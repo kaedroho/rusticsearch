@@ -1,11 +1,11 @@
 //! Parses "match" queries
 
-use rustc_serialize::json::Json;
+use serde_json::Value as Json;
 use kite::{Term, Query, TermScorer};
 use kite::schema::Schema;
 
 use query_parser::{QueryBuildContext, QueryParseError, QueryBuilder};
-
+use query_parser::utils::json_value_to_term;
 
 #[derive(Debug)]
 struct TermsQueryBuilder {
@@ -41,8 +41,8 @@ pub fn parse(json: &Json) -> Result<Box<QueryBuilder>, QueryParseError> {
     };
 
     // Get configuration
-    let terms: Vec<Term> = if let Json::Array(ref arr) = object[field_name] {
-        arr.iter().filter_map(|term| Term::from_json(&term)).collect()
+    let terms: Vec<Term> = if let &Json::Array(ref arr) = object.get(field_name).unwrap() {
+        arr.iter().filter_map(|term| json_value_to_term(&term)).collect()
     } else {
         return Err(QueryParseError::ExpectedArray);
     };
@@ -56,7 +56,7 @@ pub fn parse(json: &Json) -> Result<Box<QueryBuilder>, QueryParseError> {
 
 #[cfg(test)]
 mod tests {
-    use rustc_serialize::json::Json;
+    use serde_json;
 
     use kite::{Term, Query, TermScorer};
 
@@ -70,7 +70,7 @@ mod tests {
         let mut schema = Schema::new();
         let foo_field = schema.add_field("foo".to_string(), FieldType::Text, FIELD_INDEXED).unwrap();
 
-        let query = parse(&Json::from_str("
+        let query = parse(&serde_json::from_str("
         {
             \"foo\": [\"bar\", \"baz\"]
         }
@@ -95,7 +95,7 @@ mod tests {
     #[test]
     fn test_gives_error_for_incorrect_type() {
         // Array
-        let query = parse(&Json::from_str("
+        let query = parse(&serde_json::from_str("
         [
             \"foo\"
         ]
@@ -104,14 +104,14 @@ mod tests {
         assert_eq!(query.err(), Some(QueryParseError::ExpectedObject));
 
         // Integer
-        let query = parse(&Json::from_str("
+        let query = parse(&serde_json::from_str("
         123
         ").unwrap());
 
         assert_eq!(query.err(), Some(QueryParseError::ExpectedObject));
 
         // Float
-        let query = parse(&Json::from_str("
+        let query = parse(&serde_json::from_str("
         123.1234
         ").unwrap());
 
@@ -121,7 +121,7 @@ mod tests {
     #[test]
     fn test_gives_error_for_incorrect_query_type() {
         // Object
-        let query = parse(&Json::from_str("
+        let query = parse(&serde_json::from_str("
         {
             \"foo\": {
                 \"query\": [\"bar\", \"baz\"]
@@ -132,7 +132,7 @@ mod tests {
         assert_eq!(query.err(), Some(QueryParseError::ExpectedArray));
 
         // String
-        let query = parse(&Json::from_str("
+        let query = parse(&serde_json::from_str("
         {
             \"foo\": \"bar baz\"
         }
@@ -143,7 +143,7 @@ mod tests {
 
     #[test]
     fn test_gives_error_for_missing_query() {
-        let query = parse(&Json::from_str("
+        let query = parse(&serde_json::from_str("
         {
         }
         ").unwrap());
@@ -153,7 +153,7 @@ mod tests {
 
     #[test]
     fn test_gives_error_for_extra_key() {
-        let query = parse(&Json::from_str("
+        let query = parse(&serde_json::from_str("
         {
             \"foo\": [\"bar\", \"baz\"],
             \"hello\": \"world\"

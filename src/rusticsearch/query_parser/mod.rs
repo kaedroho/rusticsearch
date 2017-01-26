@@ -15,7 +15,7 @@ pub mod not_query;
 
 use std::fmt::Debug;
 
-use rustc_serialize::json::Json;
+use serde_json::Value as Json;
 use kite::Query;
 use kite::schema::Schema;
 

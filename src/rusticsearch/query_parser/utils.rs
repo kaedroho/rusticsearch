@@ -1,4 +1,5 @@
-use rustc_serialize::json::Json;
+use serde_json::Value as Json;
+use kite::term::Term;
 
 use query_parser::QueryParseError;
 
@@ -12,10 +13,13 @@ pub fn parse_string(json: &Json) -> Result<String, QueryParseError> {
 
 
 pub fn parse_float(json: &Json) -> Result<f64, QueryParseError> {
-    match *json {
-        Json::F64(val) => Ok(val),
-        Json::I64(val) => Ok(val as f64),
-        Json::U64(val) => Ok(val as f64),
+    match json {
+        &Json::Number(ref number) => {
+            match number.as_f64() {
+                Some(val) => Ok(val),
+                None => Err(QueryParseError::ExpectedFloat),
+            }
+        }
         _ => Err(QueryParseError::ExpectedFloat),
     }
 }
@@ -52,5 +56,22 @@ pub fn parse_field_and_boost(json: &Json) -> Result<(String, f64), QueryParseErr
         let field_name = split[0].to_owned();
         let boost: f64 = split[1].parse().unwrap_or(1.0f64);
         return Ok((field_name, boost));
+    }
+}
+
+
+pub fn json_value_to_term(json: &Json) -> Option<Term> {
+    match json {
+        &Json::String(ref string) => Some(Term::from_string(string)),
+        &Json::Bool(value) => Some(Term::from_boolean(value)),
+        &Json::Number(ref value) => {
+            match value.as_i64() {
+                Some(value) => Some(Term::from_integer(value)),
+                None => None,
+            }
+        }
+        &Json::Null => None,
+        &Json::Array(_) => None,
+        &Json::Object(_) => None,
     }
 }

@@ -1,6 +1,6 @@
 //! Parses "not" queries
 
-use rustc_serialize::json::Json;
+use serde_json::Value as Json;
 use kite::Query;
 use kite::schema::Schema;
 
@@ -32,7 +32,7 @@ pub fn parse(json: &Json) -> Result<Box<QueryBuilder>, QueryParseError> {
 
 #[cfg(test)]
 mod tests {
-    use rustc_serialize::json::Json;
+    use serde_json;
 
     use kite::{Term, Query, TermScorer};
     use kite::schema::{Schema, FieldType, FIELD_INDEXED};
@@ -46,7 +46,7 @@ mod tests {
         let mut schema = Schema::new();
         let test_field = schema.add_field("test".to_string(), FieldType::Text, FIELD_INDEXED).unwrap();
 
-        let query = parse(&&Json::from_str("
+        let query = parse(&&serde_json::from_str("
         {
             \"term\": {
                 \"test\":  \"foo\"
@@ -67,14 +67,14 @@ mod tests {
     #[test]
     fn test_gives_error_for_incorrect_type() {
         // String
-        let query = parse(&Json::from_str("
+        let query = parse(&serde_json::from_str("
         \"hello\"
         ").unwrap());
 
         assert_eq!(query.err(), Some(QueryParseError::ExpectedObject));
 
         // Array
-        let query = parse(&Json::from_str("
+        let query = parse(&serde_json::from_str("
         [
             \"foo\"
         ]
@@ -83,14 +83,14 @@ mod tests {
         assert_eq!(query.err(), Some(QueryParseError::ExpectedObject));
 
         // Integer
-        let query = parse(&Json::from_str("
+        let query = parse(&serde_json::from_str("
         123
         ").unwrap());
 
         assert_eq!(query.err(), Some(QueryParseError::ExpectedObject));
 
         // Float
-        let query = parse(&Json::from_str("
+        let query = parse(&serde_json::from_str("
         123.1234
         ").unwrap());
 
