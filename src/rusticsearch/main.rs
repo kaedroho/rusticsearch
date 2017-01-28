@@ -14,6 +14,7 @@ extern crate slog_term;
 extern crate maplit;
 extern crate unicode_segmentation;
 extern crate uuid;
+#[macro_use]
 extern crate serde_json;
 
 pub mod analysis;

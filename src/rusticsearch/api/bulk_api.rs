@@ -1,7 +1,7 @@
 use std::io::Read;
 use std::collections::HashMap;
 
-use rustc_serialize::json::{self, Json};
+use serde_json;
 
 use document::DocumentSource;
 
@@ -34,7 +34,7 @@ pub fn view_post_bulk(req: &mut Request) -> IronResult<Response> {
         }
 
         // Parse action line
-        let action_json = parse_json!(&action_line.unwrap());
+        let action_json = serde_parse_json!(&action_line.unwrap());
 
         // Check action
         // Action should be an object with only one key, the key name indicates the action and
@@ -47,14 +47,14 @@ pub fn view_post_bulk(req: &mut Request) -> IronResult<Response> {
                                        .as_object()
                                        .unwrap();
 
-        let doc_id = action_params.get("_id").unwrap().as_string().unwrap();
-        let doc_type = action_params.get("_type").unwrap().as_string().unwrap();
-        let doc_index = action_params.get("_index").unwrap().as_string().unwrap();
+        let doc_id = action_params.get("_id").unwrap().as_str().unwrap();
+        let doc_type = action_params.get("_type").unwrap().as_str().unwrap();
+        let doc_index = action_params.get("_index").unwrap().as_str().unwrap();
 
         match action_name.as_ref() {
             "index" => {
                 let doc_line = payload_lines.next();
-                let doc_json = parse_json!(&doc_line.unwrap());;
+                let doc_json = serde_parse_json!(&doc_line.unwrap());;
 
                 // Find index
                 let index = get_index_or_404!(indices, doc_index);
@@ -92,7 +92,8 @@ pub fn view_post_bulk(req: &mut Request) -> IronResult<Response> {
     }
 
     return Ok(json_response(status::Ok,
-                            format!("{{\"took\": {}, \"items\": {}}}",
-                                    items.len(),
-                                    json::encode(&items).unwrap())));
+                            format!("{}", json!({
+                                "took": items.len(),
+                                "items": items,
+                            }))));
 }

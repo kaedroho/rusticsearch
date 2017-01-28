@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use rustc_serialize::json::Json;
+use serde_json;
 use kite::Document;
 
 use mapping::Mapping;
@@ -9,7 +9,7 @@ use mapping::Mapping;
 #[derive(Debug)]
 pub struct DocumentSource {
     pub key: String,
-    pub data: Json,
+    pub data: serde_json::Value,
 }
 
 
@@ -20,7 +20,7 @@ impl DocumentSource {
         let mut all_field_strings: Vec<String> = Vec::new();
 
         for (field_name, field_value) in self.data.as_object().unwrap() {
-            if *field_value == Json::Null {
+            if *field_value == serde_json::Value::Null {
                 // Treat null like a missing field
                 continue;
             }
@@ -34,7 +34,7 @@ impl DocumentSource {
                             Some(value) => {
                                 // Copy the field's value into the _all field
                                 if field_mapping.is_in_all {
-                                    if let Json::String(ref string) = *field_value {
+                                    if let serde_json::Value::String(ref string) = *field_value {
                                         all_field_strings.push(string.clone());
                                     }
                                 }
@@ -74,7 +74,7 @@ impl DocumentSource {
         // Insert _all field
         match mapping.fields.get("_all") {
             Some(field_mapping) => {
-                let strings_json = Json::String(all_field_strings.join(" "));
+                let strings_json = serde_json::Value::String(all_field_strings.join(" "));
                 let value = field_mapping.process_value_for_index(strings_json.clone());
 
                 match value {

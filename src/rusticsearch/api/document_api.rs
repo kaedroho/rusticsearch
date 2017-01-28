@@ -1,7 +1,6 @@
 use std::io::Read;
-use std::collections::BTreeMap;
 
-use rustc_serialize::json::{self, Json};
+use serde_json;
 
 use document::DocumentSource;
 
@@ -44,13 +43,12 @@ pub fn view_get_doc(req: &mut Request) -> IronResult<Response> {
 
     // Build JSON document
     // TODO: This is probably completely wrong
-    let json_object = BTreeMap::new();
+    // let json_object = BTreeMap::new();
     // FIXME: for (field_name, field_value) in doc.fields.iter() {
     // FIXME:     json_object.insert(field_name.clone(), Json::Array(field_value.iter().map(|v| v.term.as_json()).collect::<Vec<_>>()));
     // FIXME: }
 
-    let json = Json::Object(json_object);
-    return Ok(json_response(status::Ok, json::encode(&json).unwrap()));
+    return Ok(json_response(status::Ok, format!("{}", json!({}))));
 }
 
 
@@ -77,7 +75,7 @@ pub fn view_put_doc(req: &mut Request) -> IronResult<Response> {
         };
 
         // Create document
-        if let Some(data) = json_from_request_body!(req) {
+        if let Some(data) = serde_json_from_request_body!(req) {
             let document_source = DocumentSource {
                 key: doc_key.to_string(),
                 data: data,

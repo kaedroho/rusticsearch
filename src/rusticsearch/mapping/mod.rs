@@ -3,7 +3,7 @@ pub mod parse;
 
 use std::collections::HashMap;
 
-use rustc_serialize::json::Json;
+use serde_json;
 use chrono::{DateTime, UTC};
 use kite::{Term, Token};
 use kite::document::FieldValue;
@@ -116,15 +116,15 @@ impl FieldMapping {
         }
     }
 
-    pub fn process_value_for_index(&self, value: Json) -> Option<Vec<Token>> {
-        if value == Json::Null {
+    pub fn process_value_for_index(&self, value: serde_json::Value) -> Option<Vec<Token>> {
+        if value == serde_json::Value::Null {
             return None;
         }
 
         match self.data_type {
             FieldType::String => {
                 match value {
-                    Json::String(string) => {
+                    serde_json::Value::String(string) => {
                         // Analyze string
                         let tokens = match self.index_analyzer() {
                             Some(index_analyzer) => {
@@ -139,18 +139,16 @@ impl FieldMapping {
                         };
                         Some(tokens)
                     }
-                    Json::I64(num) => self.process_value_for_index(Json::String(num.to_string())),
-                    Json::U64(num) => self.process_value_for_index(Json::String(num.to_string())),
-                    Json::F64(num) => self.process_value_for_index(Json::String(num.to_string())),
-                    Json::Array(array) => {
+                    serde_json::Value::Number(num) => self.process_value_for_index(serde_json::Value::String(num.to_string())),
+                    serde_json::Value::Array(array) => {
                         // Process each array item and merge tokens together
                         let mut tokens = Vec::new();
                         let mut last_token_position = 0;
 
                         for item in array {
                             match item {
-                                Json::String(string) => {
-                                    if let Some(mut next_tokens) = self.process_value_for_index(Json::String(string)) {
+                                serde_json::Value::String(string) => {
+                                    if let Some(mut next_tokens) = self.process_value_for_index(serde_json::Value::String(string)) {
                                         // Increment token positions so they don't overlap with previous values
                                         for token in next_tokens.iter_mut() {
                                             token.position += last_token_position;
@@ -168,7 +166,7 @@ impl FieldMapping {
                                         }
                                     }
                                 }
-                                Json::Null => {}
+                                serde_json::Value::Null => {}
                                 _ => {
                                     return None;
                                 }
@@ -182,15 +180,19 @@ impl FieldMapping {
             }
             FieldType::Integer => {
                 match value {
-                    Json::U64(num) => Some(vec![Token{term: Term::from_integer(num as i64), position: 1}]),  // FIXME
-                    Json::I64(num) => Some(vec![Token{term: Term::from_integer(num), position: 1}]),
+                    serde_json::Value::Number(num) => {
+                        match num.as_i64() {
+                            Some(num) => Some(vec![Token{term: Term::from_integer(num), position: 1}]),
+                            None => None
+                        }
+                    }
                     _ => None,
                 }
             }
             FieldType::Boolean => Some(vec![Token{term: Term::from_boolean(parse_boolean(&value)), position: 1}]),
             FieldType::Date => {
                 match value {
-                    Json::String(string) => {
+                    serde_json::Value::String(string) => {
                         let date_parsed = match string.parse::<DateTime<UTC>>() {
                             Ok(date_parsed) => date_parsed,
                             Err(_) => {
@@ -201,7 +203,7 @@ impl FieldMapping {
 
                         Some(vec![Token{term: Term::from_datetime(&date_parsed), position: 1}])
                     }
-                    Json::U64(_) => {
+                    serde_json::Value::Number(_) => {
                         // TODO needs to be interpreted as milliseconds since epoch
                         // This would really help: https://github.com/lifthrasiir/rust-chrono/issues/74
                         None
@@ -212,50 +214,52 @@ impl FieldMapping {
         }
     }
 
-    pub fn process_value_for_store(&self, value: Json) -> Option<FieldValue> {
-        if value == Json::Null {
+    pub fn process_value_for_store(&self, value: serde_json::Value) -> Option<FieldValue> {
+        if value == serde_json::Value::Null {
             return None;
         }
 
         match self.data_type {
             FieldType::String => {
                 match value {
-                    Json::String(string) => {
+                    serde_json::Value::String(string) => {
                         Some(FieldValue::String(string))
                     }
-                    Json::I64(num) => self.process_value_for_store(Json::String(num.to_string())),
-                    Json::U64(num) => self.process_value_for_store(Json::String(num.to_string())),
-                    Json::F64(num) => self.process_value_for_store(Json::String(num.to_string())),
-                    Json::Array(array) => {
+                    serde_json::Value::Number(num) => self.process_value_for_store(serde_json::Value::String(num.to_string())),
+                    serde_json::Value::Array(array) => {
                         // Pack any strings into a vec, ignore nulls. Quit if we see anything else
                         let mut strings = Vec::new();
 
                         for item in array {
                             match item {
-                                Json::String(string) => strings.push(string),
-                                Json::Null => {}
+                                serde_json::Value::String(string) => strings.push(string),
+                                serde_json::Value::Null => {}
                                 _ => {
                                     return None;
                                 }
                             }
                         }
 
-                        self.process_value_for_store(Json::String(strings.join(" ")))
+                        self.process_value_for_store(serde_json::Value::String(strings.join(" ")))
                     }
                     _ => None,
                 }
             }
             FieldType::Integer => {
                 match value {
-                    Json::U64(num) => Some(FieldValue::Integer(num as i64)),
-                    Json::I64(num) => Some(FieldValue::Integer(num)),
+                    serde_json::Value::Number(num) => {
+                        match num.as_i64() {
+                            Some(num) => Some(FieldValue::Integer(num)),
+                            None => None
+                        }
+                    }
                     _ => None,
                 }
             }
             FieldType::Boolean => Some(FieldValue::Boolean(parse_boolean(&value))),
             FieldType::Date => {
                 match value {
-                    Json::String(string) => {
+                    serde_json::Value::String(string) => {
                         let date_parsed = match string.parse::<DateTime<UTC>>() {
                             Ok(date_parsed) => date_parsed,
                             Err(_) => {
@@ -266,7 +270,7 @@ impl FieldMapping {
 
                         Some(FieldValue::DateTime(date_parsed))
                     }
-                    Json::U64(_) => {
+                    serde_json::Value::Number(_) => {
                         // TODO needs to be interpreted as milliseconds since epoch
                         // This would really help: https://github.com/lifthrasiir/rust-chrono/issues/74
                         None
@@ -285,10 +289,10 @@ pub struct Mapping {
 }
 
 
-fn parse_boolean(json: &Json) -> bool {
+fn parse_boolean(json: &serde_json::Value) -> bool {
     match *json {
-        Json::Boolean(val) => val,
-        Json::String(ref s) => {
+        serde_json::Value::Bool(val) => val,
+        serde_json::Value::String(ref s) => {
             match s.as_ref() {
                 "yes" => true,
                 "no" => false,
