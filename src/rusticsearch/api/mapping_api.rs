@@ -26,7 +26,7 @@ pub fn view_put_mapping(req: &mut Request) -> IronResult<Response> {
     let mut index = get_index_or_404_mut!(indices, *index_name);
 
     // Load data from body
-    let data = serde_json_from_request_body!(req);
+    let data = json_from_request_body!(req);
 
     let data = match data {
         Some(data) => data,

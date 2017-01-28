@@ -77,20 +77,6 @@ macro_rules! parse_json {
     ($string: expr) => {{
         use api::utils::json_response;
 
-        match Json::from_str($string) {
-            Ok(data) => data,
-            Err(_) => {
-                return Ok(json_response(status::BadRequest, "{\"message\": \"Couldn't parse JSON\"}"));
-            }
-        }
-    }}
-}
-
-
-macro_rules! serde_parse_json {
-    ($string: expr) => {{
-        use api::utils::json_response;
-
         let value: serde_json::Value = match serde_json::from_str($string) {
             Ok(data) => data,
             Err(_) => {
@@ -111,21 +97,6 @@ macro_rules! json_from_request_body {
 
         if !payload.is_empty() {
             Some(parse_json!(&payload))
-        } else {
-            None
-        }
-    }}
-}
-
-
-macro_rules! serde_json_from_request_body {
-    ($req: expr) => {{
-        // Read request body to a string
-        let mut payload = String::new();
-        $req.body.read_to_string(&mut payload).unwrap();
-
-        if !payload.is_empty() {
-            Some(serde_parse_json!(&payload))
         } else {
             None
         }

@@ -4,7 +4,6 @@ extern crate chrono;
 #[macro_use]
 extern crate router;
 extern crate url;
-extern crate rustc_serialize;
 #[macro_use]
 extern crate log;
 #[macro_use(o, b)]

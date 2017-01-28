@@ -34,7 +34,7 @@ pub fn view_post_bulk(req: &mut Request) -> IronResult<Response> {
         }
 
         // Parse action line
-        let action_json = serde_parse_json!(&action_line.unwrap());
+        let action_json = parse_json!(&action_line.unwrap());
 
         // Check action
         // Action should be an object with only one key, the key name indicates the action and
@@ -54,7 +54,7 @@ pub fn view_post_bulk(req: &mut Request) -> IronResult<Response> {
         match action_name.as_ref() {
             "index" => {
                 let doc_line = payload_lines.next();
-                let doc_json = serde_parse_json!(&doc_line.unwrap());;
+                let doc_json = parse_json!(&doc_line.unwrap());;
 
                 // Find index
                 let index = get_index_or_404!(indices, doc_index);

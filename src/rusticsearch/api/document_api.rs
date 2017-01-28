@@ -75,7 +75,7 @@ pub fn view_put_doc(req: &mut Request) -> IronResult<Response> {
         };
 
         // Create document
-        if let Some(data) = serde_json_from_request_body!(req) {
+        if let Some(data) = json_from_request_body!(req) {
             let document_source = DocumentSource {
                 key: doc_key.to_string(),
                 data: data,
