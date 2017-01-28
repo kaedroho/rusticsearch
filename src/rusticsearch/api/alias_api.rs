@@ -31,9 +31,9 @@ pub fn view_get_global_alias(req: &mut Request) -> IronResult<Response> {
     }
 
     if !found_aliases.is_empty() {
-        return Ok(json_response(status::Ok, format!("{}", json!(found_aliases))));
+        return Ok(json_response(status::Ok, json!(found_aliases)));
     } else {
-        return Ok(json_response(status::NotFound, "{}"));
+        return Ok(json_response(status::NotFound, json!({})));
     }
 }
 
@@ -44,7 +44,7 @@ pub fn view_get_alias_list(_req: &mut Request) -> IronResult<Response> {
 
     // TODO
 
-    return Ok(json_response(status::Ok, "{}"));
+    return Ok(json_response(status::Ok, json!({})));
 }
 
 pub fn view_get_alias(req: &mut Request) -> IronResult<Response> {
@@ -58,14 +58,14 @@ pub fn view_get_alias(req: &mut Request) -> IronResult<Response> {
     // Get index
     let index_ref = match indices.names.find_canonical(index_name) {
         Some(index_ref) => index_ref,
-        None => return Ok(json_response(status::NotFound, "{}")),
+        None => return Ok(json_response(status::NotFound, json!({}))),
     };
 
     // Find alias
     if indices.names.iter_index_aliases(index_ref).any(|name| &name == alias_name) {
-        return Ok(json_response(status::Ok, "{}"));
+        return Ok(json_response(status::Ok, json!({})));
     } else {
-        return Ok(json_response(status::NotFound, "{}"));
+        return Ok(json_response(status::NotFound, json!({})));
     }
 }
 
@@ -89,9 +89,9 @@ pub fn view_put_alias(req: &mut Request) -> IronResult<Response> {
         }
         Err(_) => {
             // TODO
-            return Ok(json_response(status::Ok, "{\"acknowledged\": false}"));
+            return Ok(json_response(status::Ok, json!({"acknowledged": false})));
         }
     }
 
-    Ok(json_response(status::Ok, "{\"acknowledged\": true}"))
+    Ok(json_response(status::Ok, json!({"acknowledged": true})))
 }

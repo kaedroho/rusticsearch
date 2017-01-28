@@ -57,7 +57,7 @@ pub fn view_count(req: &mut Request) -> IronResult<Response> {
         }
     };
 
-    return Ok(json_response(status::Ok, format!("{{\"count\": {}}}", count)));
+    return Ok(json_response(status::Ok, json!({"count": count})));
 }
 
 
@@ -148,11 +148,11 @@ pub fn view_search(req: &mut Request) -> IronResult<Response> {
 
                     // TODO: {"took":5,"timed_out":false,"_shards":{"total":5,"successful":5,"failed":0},"hits":{"total":4,"max_score":1.0,"hits":[{"_index":"wagtail","_type":"searchtests_searchtest_searchtests_searchtestchild","_id":"searchtests_searchtest:5380","_score":1.0,"fields":{"pk":["5380"]}},{"_index":"wagtail","_type":"searchtests_searchtest","_id":"searchtests_searchtest:5379","_score":1.0,"fields":{"pk":["5379"]}}]}}
                     Ok(json_response(status::Ok,
-                                     format!("{}", json!({
+                                     json!({
                                          "hits": {
                                              "total": hits.len(),
                                              "hits": hits
-                                        }}))))
+                                        }})))
                 }
                 Err(_) => {
                     // TODO: What specifically is bad about the Query?
@@ -163,6 +163,6 @@ pub fn view_search(req: &mut Request) -> IronResult<Response> {
                 }
             }
         }
-        None => Ok(json_response(status::BadRequest, "{\"message\": \"Missing query\"}")),
+        None => Ok(json_response(status::BadRequest, json!({"message": "Missing query"}))),
     }
 }

@@ -65,7 +65,7 @@ pub fn view_post_bulk(req: &mut Request) -> IronResult<Response> {
                     let mapping = match index_metadata.mappings.get(doc_type) {
                         Some(mapping) => mapping,
                         None => {
-                            return Ok(json_response(status::NotFound, "{\"message\": \"Mapping not found\"}"));
+                            return Ok(json_response(status::NotFound, json!({"message": "Mapping not found"})));
                         }
                     };
 
@@ -92,8 +92,8 @@ pub fn view_post_bulk(req: &mut Request) -> IronResult<Response> {
     }
 
     return Ok(json_response(status::Ok,
-                            format!("{}", json!({
+                            json!({
                                 "took": items.len(),
                                 "items": items,
-                            }))));
+                            })));
 }

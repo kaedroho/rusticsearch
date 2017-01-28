@@ -26,7 +26,7 @@ pub fn view_get_doc(req: &mut Request) -> IronResult<Response> {
 
     // Check that the mapping exists
     if !index_metadata.mappings.contains_key(*mapping_name) {
-        return Ok(json_response(status::NotFound, "{\"message\": \"Mapping not found\"}"));
+        return Ok(json_response(status::NotFound, json!({"message": "Mapping not found"})));
     }
 
     // Find document
@@ -48,7 +48,7 @@ pub fn view_get_doc(req: &mut Request) -> IronResult<Response> {
     // FIXME:     json_object.insert(field_name.clone(), Json::Array(field_value.iter().map(|v| v.term.as_json()).collect::<Vec<_>>()));
     // FIXME: }
 
-    return Ok(json_response(status::Ok, format!("{}", json!({}))));
+    return Ok(json_response(status::Ok, json!({})));
 }
 
 
@@ -70,7 +70,7 @@ pub fn view_put_doc(req: &mut Request) -> IronResult<Response> {
         let mapping = match index_metadata.mappings.get(*mapping_name) {
             Some(mapping) => mapping,
             None => {
-                return Ok(json_response(status::NotFound, "{\"message\": \"Mapping not found\"}"));
+                return Ok(json_response(status::NotFound, json!({"message": "Mapping not found"})));
             }
         };
 
@@ -82,14 +82,14 @@ pub fn view_put_doc(req: &mut Request) -> IronResult<Response> {
             };
             document_source.prepare(mapping)
         } else {
-            return Ok(json_response(status::NotFound, "{\"message\": \"No data\"}"));
+            return Ok(json_response(status::NotFound, json!({"message": "No data"})));
         }
     };
 
     index.store.insert_or_update_document(&doc).unwrap();
 
     // TODO: {"_index":"wagtail","_type":"searchtests_searchtest","_id":"searchtests_searchtest:5378","_version":1,"created":true}
-    return Ok(json_response(status::Ok, "{}"));
+    return Ok(json_response(status::Ok, json!({})));
 }
 
 
@@ -108,16 +108,16 @@ pub fn view_delete_doc(req: &mut Request) -> IronResult<Response> {
 
     // Check that the mapping exists
     if !index_metadata.mappings.contains_key(*mapping_name) {
-        return Ok(json_response(status::NotFound, "{\"message\": \"Mapping not found\"}"));
+        return Ok(json_response(status::NotFound, json!({"message": "Mapping not found"})));
     }
 
     // Make sure the document exists
     if !index.store.reader().contains_document_key(doc_key) {
-        return Ok(json_response(status::NotFound, "{\"message\": \"Document not found\"}"));
+        return Ok(json_response(status::NotFound, json!({"message": "Document not found"})));
     }
 
     // Delete document
     index.store.remove_document_by_key(doc_key).unwrap();
 
-    return Ok(json_response(status::Ok, "{}"));
+    return Ok(json_response(status::Ok, json!({})));
 }

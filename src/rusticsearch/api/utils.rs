@@ -1,6 +1,7 @@
+use serde_json;
+
 use api::iron::prelude::*;
 use api::iron::status;
-use api::iron::modifier::Modifier;
 
 
 macro_rules! get_system {
@@ -19,15 +20,15 @@ macro_rules! read_path_parameter {
 }
 
 
-pub fn json_response<T: Modifier<Response>>(status: status::Status, content: T) -> Response {
-    let mut response = Response::with((status, content));
+pub fn json_response(status: status::Status, content: serde_json::Value) -> Response {
+    let mut response = Response::with((status, format!("{}", content)));
     response.headers.set_raw("Content-Type", vec![b"application/json".to_vec()]);
     response
 }
 
 
 pub fn index_not_found_response() -> Response {
-    json_response(status::NotFound, "{\"message\": \"Index not found\"}")
+    json_response(status::NotFound, json!({"message": "Index not found"}))
 }
 
 
@@ -80,7 +81,7 @@ macro_rules! parse_json {
         let value: serde_json::Value = match serde_json::from_str($string) {
             Ok(data) => data,
             Err(_) => {
-                return Ok(json_response(status::BadRequest, "{\"message\": \"Couldn't parse JSON\"}"));
+                return Ok(json_response(status::BadRequest, json!({"message": "Couldn't parse JSON"})));
             }
         };
 

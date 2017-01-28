@@ -27,7 +27,7 @@ pub fn view_get_index(req: &mut Request) -> IronResult<Response> {
     get_index_or_404!(indices, *index_name);
 
     // TODO
-    return Ok(json_response(status::Ok, "{}"));
+    return Ok(json_response(status::Ok, json!({})));
 }
 
 
@@ -55,7 +55,7 @@ pub fn view_put_index(req: &mut Request) -> IronResult<Response> {
                 Some(Ok(())) | None => {}
                 Some(Err(_)) => {
                     // TODO: better error
-                    return Ok(json_response(status::BadRequest, "{\"message\": \"Couldn't parse index settings\"}"));
+                    return Ok(json_response(status::BadRequest, json!({"message": "Couldn't parse index settings"})));
                 }
             }
 
@@ -78,7 +78,7 @@ pub fn view_put_index(req: &mut Request) -> IronResult<Response> {
         }
     }
 
-    return Ok(json_response(status::Ok, "{\"acknowledged\": true}"));
+    return Ok(json_response(status::Ok, json!({"acknowledged": true})));
 }
 
 
@@ -134,7 +134,7 @@ pub fn view_delete_index(req: &mut Request) -> IronResult<Response> {
         }
     }
 
-    return Ok(json_response(status::Ok, "{\"acknowledged\": true}"));
+    return Ok(json_response(status::Ok, json!({"acknowledged": true})));
 }
 
 
@@ -147,5 +147,5 @@ pub fn view_post_refresh_index(_req: &mut Request) -> IronResult<Response> {
     // let mut indices = system.indices.write().unwrap();
 
     // TODO: {"_shards":{"total":10,"successful":5,"failed":0}}
-    return Ok(json_response(status::Ok, "{\"acknowledged\": true}"));
+    return Ok(json_response(status::Ok, json!({"acknowledged": true})));
 }

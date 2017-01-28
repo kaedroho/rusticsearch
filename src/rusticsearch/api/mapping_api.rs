@@ -32,7 +32,7 @@ pub fn view_put_mapping(req: &mut Request) -> IronResult<Response> {
         Some(data) => data,
         None => {
             // TODO: Better error
-            return Ok(json_response(status::BadRequest, "{\"acknowledged\": false}"));
+            return Ok(json_response(status::BadRequest, json!({"acknowledged": false})));
         }
     };
 
@@ -43,7 +43,7 @@ pub fn view_put_mapping(req: &mut Request) -> IronResult<Response> {
         Ok(mapping_builder) => mapping_builder,
         Err(_) => {
             // TODO: Better error
-            return Ok(json_response(status::BadRequest, "{\"acknowledged\": false}"));
+            return Ok(json_response(status::BadRequest, json!({"acknowledged": false})));
         }
     };
     let mut index_metadata = index.metadata.write().unwrap();
@@ -85,7 +85,7 @@ pub fn view_put_mapping(req: &mut Request) -> IronResult<Response> {
                 } else {
                     // Conflict!
                     // TODO: Better error
-                    return Ok(json_response(status::BadRequest, "{\"acknowledged\": false}"));
+                    return Ok(json_response(status::BadRequest, json!({"acknowledged": false})));
                 }
             }
 
@@ -123,5 +123,5 @@ pub fn view_put_mapping(req: &mut Request) -> IronResult<Response> {
         system.log.info("[api] created mapping", b!("index" => *index_name, "mapping" => *mapping_name));
     }
 
-    return Ok(json_response(status::Ok, "{\"acknowledged\": true}"));
+    return Ok(json_response(status::Ok, json!({"acknowledged": true})));
 }
