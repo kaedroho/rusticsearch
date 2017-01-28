@@ -1,7 +1,6 @@
 use std::io::Read;
 use std::collections::BTreeMap;
 
-use rustc_serialize::json::{self, Json};
 use serde_json;
 use url::form_urlencoded;
 use kite::document::DocRef;
@@ -126,34 +125,34 @@ pub fn view_search(req: &mut Request) -> IronResult<Response> {
                     let mut collector = TopScoreCollector::new(from + size);
                     index_reader.search(&mut collector, &query.build(&QueryBuildContext::new().set_index_metadata(&index_metadata), &index_reader.schema())).unwrap();
 
+                    // Convert hits into JSON
+                    let mut hits = Vec::new();
+                    for doc_match in collector.into_sorted_vec().iter().skip(from) {
+                        let mut field_values = BTreeMap::new();
+
+                        for &(ref field_name, field_ref) in fields.iter() {
+                            let value = match index_reader.read_stored_field(field_ref, DocRef::from_u64(doc_match.doc_id())) {
+                                Ok(Some(value)) => vec![value],
+                                Ok(None) => vec![],
+                                Err(_) => vec![],
+                            };
+
+                            field_values.insert(field_name.clone(), value);
+                        }
+
+                        hits.push(json!({
+                            "_score": doc_match.score().unwrap(),
+                            "fields": field_values,
+                        }));
+                    }
+
                     // TODO: {"took":5,"timed_out":false,"_shards":{"total":5,"successful":5,"failed":0},"hits":{"total":4,"max_score":1.0,"hits":[{"_index":"wagtail","_type":"searchtests_searchtest_searchtests_searchtestchild","_id":"searchtests_searchtest:5380","_score":1.0,"fields":{"pk":["5380"]}},{"_index":"wagtail","_type":"searchtests_searchtest","_id":"searchtests_searchtest:5379","_score":1.0,"fields":{"pk":["5379"]}}]}}
                     Ok(json_response(status::Ok,
-                                     format!("{{\"hits\": {{\"total\": {}, \"hits\": {}}}}}",
-                                             0, // TODO
-                                             json::encode(&Json::Array(collector.into_sorted_vec().iter()
-                                                .skip(from)
-                                                .map(|doc_match| {
-                                                    let mut field_values = BTreeMap::new();
-
-                                                    for &(ref field_name, field_ref) in fields.iter() {
-                                                        let value = match index_reader.read_stored_field(field_ref, DocRef::from_u64(doc_match.doc_id())) {
-                                                            Ok(Some(value)) => {
-                                                                Json::Array(vec![value.as_json()])
-                                                            }
-                                                            Ok(None) => Json::Array(vec![]),
-                                                            Err(_) => Json::Array(vec![]),
-                                                        };
-
-                                                        field_values.insert(field_name.clone(), value);
-                                                    }
-
-                                                    let mut hit = BTreeMap::new();
-                                                    hit.insert("_score".to_owned(), Json::F64(doc_match.score().unwrap()));
-                                                    hit.insert("fields".to_owned(), Json::Object(field_values));
-                                                    Json::Object(hit)
-                                                })
-                                                .collect())
-                                            ).unwrap())))
+                                     format!("{}", json!({
+                                         "hits": {
+                                             "total": hits.len(),
+                                             "hits": hits
+                                        }}))))
                 }
                 Err(_) => {
                     // TODO: What specifically is bad about the Query?

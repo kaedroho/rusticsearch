@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+use serde;
 use rustc_serialize::json::Json;
 use chrono::{DateTime, UTC, Timelike};
 use byteorder::{WriteBytesExt, BigEndian};
@@ -87,6 +88,20 @@ impl FieldValue {
             FieldValue::Boolean(value) => Json::Boolean(value),
             FieldValue::Integer(value) => Json::I64(value),
             FieldValue::DateTime(value) => Json::String(value.to_rfc3339()),
+        }
+    }
+}
+
+
+impl serde::Serialize for FieldValue {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+        where S: serde::Serializer
+    {
+        match *self {
+            FieldValue::String(ref string) => serializer.serialize_str(string),
+            FieldValue::Boolean(value) => serializer.serialize_bool(value),
+            FieldValue::Integer(value) => serializer.serialize_i64(value),
+            FieldValue::DateTime(value) => serializer.serialize_str(&value.to_rfc3339()),
         }
     }
 }
