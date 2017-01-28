@@ -1,6 +1,6 @@
 use std::collections::{HashMap, BTreeSet};
 
-use rustc_serialize::json::Json;
+use serde_json;
 
 use mapping::FieldType;
 use mapping::build::{MappingBuilder, FieldMappingBuilder};
@@ -44,10 +44,10 @@ pub enum MappingParseError {
 }
 
 
-fn parse_boolean(json: &Json) -> Result<bool, FieldMappingParseError> {
+fn parse_boolean(json: &serde_json::Value) -> Result<bool, FieldMappingParseError> {
     match *json {
-        Json::Boolean(val) => Ok(val),
-        Json::String(ref s) => {
+        serde_json::Value::Bool(val) => Ok(val),
+        serde_json::Value::String(ref s) => {
             match s.as_ref() {
                 "yes" => Ok(true),
                 "no" => Ok(false),
@@ -59,11 +59,14 @@ fn parse_boolean(json: &Json) -> Result<bool, FieldMappingParseError> {
 }
 
 
-fn parse_float(json: &Json) -> Result<f64, FieldMappingParseError> {
+fn parse_float(json: &serde_json::Value) -> Result<f64, FieldMappingParseError> {
     match *json {
-        Json::F64(val) => Ok(val),
-        Json::I64(val) => Ok(val as f64),
-        Json::U64(val) => Ok(val as f64),
+        serde_json::Value::Number(ref num) => {
+            match num.as_f64() {
+                Some(num) => Ok(num),
+                None => Err(FieldMappingParseError::ExpectedNumber),
+            }
+        }
         _ => Err(FieldMappingParseError::ExpectedNumber)
     }
 }
@@ -80,7 +83,7 @@ fn parse_field_type(field_type_str: &str) -> Result<FieldType, FieldMappingParse
 }
 
 
-fn parse_field(json: &Json) -> Result<FieldMappingBuilder, FieldMappingParseError> {
+fn parse_field(json: &serde_json::Value) -> Result<FieldMappingBuilder, FieldMappingParseError> {
     let field_object = try!(json.as_object().ok_or(FieldMappingParseError::ExpectedObject));
     let mut mapping_builder = FieldMappingBuilder::default();
 
@@ -104,7 +107,7 @@ fn parse_field(json: &Json) -> Result<FieldMappingBuilder, FieldMappingParseErro
 
     // Field type
     let field_type_json = try!(field_object.get("type").ok_or(FieldMappingParseError::ExpectedKey("type".to_string())));
-    let field_type_str = try!(field_type_json.as_string().ok_or(FieldMappingParseError::ExpectedString));
+    let field_type_str = try!(field_type_json.as_str().ok_or(FieldMappingParseError::ExpectedString));
     mapping_builder.field_type = try!(parse_field_type(field_type_str));
 
     // Non-string fields cannot be analyzed
@@ -114,7 +117,7 @@ fn parse_field(json: &Json) -> Result<FieldMappingBuilder, FieldMappingParseErro
 
     // "index" setting
     if let Some(index_json) = field_object.get("index") {
-        let index_str = try!(index_json.as_string().ok_or(FieldMappingParseError::ExpectedString));
+        let index_str = try!(index_json.as_str().ok_or(FieldMappingParseError::ExpectedString));
 
         match index_str {
             "no" => {
@@ -147,7 +150,7 @@ fn parse_field(json: &Json) -> Result<FieldMappingBuilder, FieldMappingParseErro
 
     // Analyzers
     if let Some(analyzer_json) = field_object.get("analyzer") {
-        let analyzer_str = try!(analyzer_json.as_string().ok_or(FieldMappingParseError::ExpectedString));
+        let analyzer_str = try!(analyzer_json.as_str().ok_or(FieldMappingParseError::ExpectedString));
         mapping_builder.base_analyzer = Some(analyzer_str.to_string());
 
         if mapping_builder.field_type != FieldType::String {
@@ -160,7 +163,7 @@ fn parse_field(json: &Json) -> Result<FieldMappingBuilder, FieldMappingParseErro
     }
 
     if let Some(index_analyzer_json) = field_object.get("index_analyzer") {
-        let index_analyzer_str = try!(index_analyzer_json.as_string().ok_or(FieldMappingParseError::ExpectedString));
+        let index_analyzer_str = try!(index_analyzer_json.as_str().ok_or(FieldMappingParseError::ExpectedString));
         mapping_builder.index_analyzer = Some(index_analyzer_str.to_string());
 
         if mapping_builder.field_type != FieldType::String {
@@ -173,7 +176,7 @@ fn parse_field(json: &Json) -> Result<FieldMappingBuilder, FieldMappingParseErro
     }
 
     if let Some(search_analyzer_json) = field_object.get("search_analyzer") {
-        let search_analyzer_str = try!(search_analyzer_json.as_string().ok_or(FieldMappingParseError::ExpectedString));
+        let search_analyzer_str = try!(search_analyzer_json.as_str().ok_or(FieldMappingParseError::ExpectedString));
         mapping_builder.search_analyzer = Some(search_analyzer_str.to_string());
 
         if mapping_builder.field_type != FieldType::String {
@@ -209,7 +212,7 @@ fn parse_field(json: &Json) -> Result<FieldMappingBuilder, FieldMappingParseErro
 }
 
 
-pub fn parse(json: &Json) -> Result<MappingBuilder, MappingParseError> {
+pub fn parse(json: &serde_json::Value) -> Result<MappingBuilder, MappingParseError> {
     let mapping_object = try!(json.as_object().ok_or(MappingParseError::ExpectedObject));
 
     // Check for unrecognised keys
@@ -247,7 +250,7 @@ pub fn parse(json: &Json) -> Result<MappingBuilder, MappingParseError> {
 
 #[cfg(test)]
 mod tests {
-    use rustc_serialize::json::Json;
+    use serde_json;
 
     use mapping::FieldType;
     use mapping::build::{FieldMappingBuilder, MappingBuilder};
@@ -256,7 +259,7 @@ mod tests {
 
     #[test]
     fn test_parse() {
-        let mapping = parse(&Json::from_str("
+        let mapping = parse(&serde_json::from_str("
         {
             \"properties\": {
                 \"myfield\": {
@@ -278,7 +281,7 @@ mod tests {
 
     #[test]
     fn test_parse_field_error() {
-        let mapping = parse(&Json::from_str("
+        let mapping = parse(&serde_json::from_str("
         {
             \"properties\": {
                 \"myfield\": {
@@ -292,7 +295,7 @@ mod tests {
 
     #[test]
     fn test_parse_empty() {
-        let mapping = parse(&Json::from_str("
+        let mapping = parse(&serde_json::from_str("
         {}
         ").unwrap());
 
@@ -302,21 +305,21 @@ mod tests {
     #[test]
     fn test_parse_bad_type() {
         // Array
-        let mapping = parse(&Json::from_str("
+        let mapping = parse(&serde_json::from_str("
         [\"foo\"]
         ").unwrap());
 
         assert_eq!(mapping, Err(MappingParseError::ExpectedObject));
 
         // String
-        let mapping = parse(&Json::from_str("
+        let mapping = parse(&serde_json::from_str("
         \"foo\"
         ").unwrap());
 
         assert_eq!(mapping, Err(MappingParseError::ExpectedObject));
 
         // Number
-        let mapping = parse(&Json::from_str("
+        let mapping = parse(&serde_json::from_str("
         123
         ").unwrap());
 
@@ -325,7 +328,7 @@ mod tests {
 
     #[test]
     fn test_parse_empty_properties() {
-        let mapping = parse(&Json::from_str("
+        let mapping = parse(&serde_json::from_str("
         {
             \"properties\": {}
         }
@@ -338,7 +341,7 @@ mod tests {
 
     #[test]
     fn test_parse_unrecognised_key() {
-        let mapping = parse(&Json::from_str("
+        let mapping = parse(&serde_json::from_str("
         {
             \"properties\": {},
             \"foo\": \"bar\",
@@ -352,7 +355,7 @@ mod tests {
     #[test]
     fn test_parse_bad_type_properties() {
         // Array
-        let mapping = parse(&Json::from_str("
+        let mapping = parse(&serde_json::from_str("
         {
             \"properties\": [\"foo\"]
         }
@@ -361,7 +364,7 @@ mod tests {
         assert_eq!(mapping, Err(MappingParseError::ExpectedObject));
 
         // String
-        let mapping = parse(&Json::from_str("
+        let mapping = parse(&serde_json::from_str("
         {
             \"properties\": \"foo\"
         }
@@ -370,7 +373,7 @@ mod tests {
         assert_eq!(mapping, Err(MappingParseError::ExpectedObject));
 
         // Number
-        let mapping = parse(&Json::from_str("
+        let mapping = parse(&serde_json::from_str("
         {
             \"properties\": 123
         }
@@ -382,7 +385,7 @@ mod tests {
     #[test]
     fn test_parse_field_types() {
         // String
-        let mapping = parse_field(&Json::from_str("
+        let mapping = parse_field(&serde_json::from_str("
         {
             \"type\": \"string\"
         }
@@ -395,7 +398,7 @@ mod tests {
         }));
 
         // Integer
-        let mapping = parse_field(&Json::from_str("
+        let mapping = parse_field(&serde_json::from_str("
         {
             \"type\": \"integer\"
         }
@@ -408,7 +411,7 @@ mod tests {
         }));
 
         // Boolean
-        let mapping = parse_field(&Json::from_str("
+        let mapping = parse_field(&serde_json::from_str("
         {
             \"type\": \"boolean\"
         }
@@ -421,7 +424,7 @@ mod tests {
         }));
 
         // Date
-        let mapping = parse_field(&Json::from_str("
+        let mapping = parse_field(&serde_json::from_str("
         {
             \"type\": \"date\"
         }
@@ -436,7 +439,7 @@ mod tests {
 
     #[test]
     fn test_parse_field_no_type() {
-        let mapping = parse_field(&Json::from_str("
+        let mapping = parse_field(&serde_json::from_str("
         {
         }
         ").unwrap());
@@ -446,7 +449,7 @@ mod tests {
 
     #[test]
     fn test_parse_field_unrecognised_type() {
-        let mapping = parse_field(&Json::from_str("
+        let mapping = parse_field(&serde_json::from_str("
         {
             \"type\": \"foo\"
         }
@@ -457,7 +460,7 @@ mod tests {
 
     #[test]
     fn test_parse_field_type_not_string() {
-        let mapping = parse_field(&Json::from_str("
+        let mapping = parse_field(&serde_json::from_str("
         {
             \"type\": 123
         }
@@ -468,7 +471,7 @@ mod tests {
 
     #[test]
     fn test_parse_field_unrecognised_key() {
-        let mapping = parse_field(&Json::from_str("
+        let mapping = parse_field(&serde_json::from_str("
         {
             \"type\": \"string\",
             \"foo\": \"bar\",
@@ -481,7 +484,7 @@ mod tests {
 
     #[test]
     fn test_parse_index_default() {
-        let mapping = parse_field(&Json::from_str("
+        let mapping = parse_field(&serde_json::from_str("
         {
             \"type\": \"string\"
         }
@@ -497,7 +500,7 @@ mod tests {
 
     #[test]
     fn test_parse_index_no() {
-        let mapping = parse_field(&Json::from_str("
+        let mapping = parse_field(&serde_json::from_str("
         {
             \"type\": \"string\",
             \"index\": \"no\"
@@ -514,7 +517,7 @@ mod tests {
 
     #[test]
     fn test_parse_index_not_analyzed() {
-        let mapping = parse_field(&Json::from_str("
+        let mapping = parse_field(&serde_json::from_str("
         {
             \"type\": \"string\",
             \"index\": \"not_analyzed\"
@@ -531,7 +534,7 @@ mod tests {
 
     #[test]
     fn test_parse_index_analyzed() {
-        let mapping = parse_field(&Json::from_str("
+        let mapping = parse_field(&serde_json::from_str("
         {
             \"type\": \"string\",
             \"index\": \"analyzed\"
@@ -548,7 +551,7 @@ mod tests {
 
     #[test]
     fn test_parse_index_analyzed_on_non_string_type() {
-        let mapping = parse_field(&Json::from_str("
+        let mapping = parse_field(&serde_json::from_str("
         {
             \"type\": \"integer\",
             \"index\": \"analyzed\"
@@ -560,7 +563,7 @@ mod tests {
 
     #[test]
     fn test_parse_index_unrecognised_value() {
-        let mapping = parse_field(&Json::from_str("
+        let mapping = parse_field(&serde_json::from_str("
         {
             \"type\": \"string\",
             \"index\": \"foo\"
@@ -572,7 +575,7 @@ mod tests {
 
     #[test]
     fn test_parse_store_default() {
-        let mapping = parse_field(&Json::from_str("
+        let mapping = parse_field(&serde_json::from_str("
         {
             \"type\": \"string\"
         }
@@ -587,7 +590,7 @@ mod tests {
 
     #[test]
     fn test_parse_store_yes() {
-        let mapping = parse_field(&Json::from_str("
+        let mapping = parse_field(&serde_json::from_str("
         {
             \"type\": \"string\",
             \"store\": \"yes\"
@@ -603,7 +606,7 @@ mod tests {
 
     #[test]
     fn test_parse_store_true() {
-        let mapping = parse_field(&Json::from_str("
+        let mapping = parse_field(&serde_json::from_str("
         {
             \"type\": \"string\",
             \"store\": true
@@ -619,7 +622,7 @@ mod tests {
 
     #[test]
     fn test_parse_store_non_boolean() {
-        let mapping = parse_field(&Json::from_str("
+        let mapping = parse_field(&serde_json::from_str("
         {
             \"type\": \"string\",
             \"store\": \"foo\"
@@ -631,7 +634,7 @@ mod tests {
 
     #[test]
     fn test_parse_analyzer_default() {
-        let mapping = parse_field(&Json::from_str("
+        let mapping = parse_field(&serde_json::from_str("
         {
             \"type\": \"string\"
         }
@@ -648,7 +651,7 @@ mod tests {
 
     #[test]
     fn test_parse_analyzer() {
-        let mapping = parse_field(&Json::from_str("
+        let mapping = parse_field(&serde_json::from_str("
         {
             \"type\": \"string\",
             \"analyzer\": \"foo\"
@@ -666,7 +669,7 @@ mod tests {
 
     #[test]
     fn test_parse_index_analyzer() {
-        let mapping = parse_field(&Json::from_str("
+        let mapping = parse_field(&serde_json::from_str("
         {
             \"type\": \"string\",
             \"index_analyzer\": \"foo\"
@@ -684,7 +687,7 @@ mod tests {
 
     #[test]
     fn test_parse_search_analyzer() {
-        let mapping = parse_field(&Json::from_str("
+        let mapping = parse_field(&serde_json::from_str("
         {
             \"type\": \"string\",
             \"search_analyzer\": \"foo\"
@@ -702,7 +705,7 @@ mod tests {
 
     #[test]
     fn test_parse_analyzer_on_integer_field() {
-        let mapping = parse_field(&Json::from_str("
+        let mapping = parse_field(&serde_json::from_str("
         {
             \"type\": \"integer\",
             \"analyzer\": \"foo\"
@@ -714,7 +717,7 @@ mod tests {
 
     #[test]
     fn test_parse_analyzer_on_non_analyzed_field() {
-        let mapping = parse_field(&Json::from_str("
+        let mapping = parse_field(&serde_json::from_str("
         {
             \"type\": \"string\",
             \"index\": \"not_analyzed\",
@@ -727,7 +730,7 @@ mod tests {
 
     #[test]
     fn test_parse_boost_default() {
-        let mapping = parse_field(&Json::from_str("
+        let mapping = parse_field(&serde_json::from_str("
         {
             \"type\": \"string\"
         }
@@ -742,7 +745,7 @@ mod tests {
 
     #[test]
     fn test_parse_boost_float() {
-        let mapping = parse_field(&Json::from_str("
+        let mapping = parse_field(&serde_json::from_str("
         {
             \"type\": \"string\",
             \"boost\": 2.0
@@ -758,7 +761,7 @@ mod tests {
 
     #[test]
     fn test_parse_boost_integer() {
-        let mapping = parse_field(&Json::from_str("
+        let mapping = parse_field(&serde_json::from_str("
         {
             \"type\": \"string\",
             \"boost\": 2
@@ -774,7 +777,7 @@ mod tests {
 
     #[test]
     fn test_parse_boost_non_indexed_field() {
-        let mapping = parse_field(&Json::from_str("
+        let mapping = parse_field(&serde_json::from_str("
         {
             \"type\": \"string\",
             \"index\": \"no\",
@@ -787,7 +790,7 @@ mod tests {
 
     #[test]
     fn test_parse_boost_negative() {
-        let mapping = parse_field(&Json::from_str("
+        let mapping = parse_field(&serde_json::from_str("
         {
             \"type\": \"string\",
             \"boost\": -2.0
@@ -799,7 +802,7 @@ mod tests {
 
     #[test]
     fn test_include_in_all_default() {
-        let mapping = parse_field(&Json::from_str("
+        let mapping = parse_field(&serde_json::from_str("
         {
             \"type\": \"string\"
         }
@@ -814,7 +817,7 @@ mod tests {
 
     #[test]
     fn test_include_in_all_no() {
-        let mapping = parse_field(&Json::from_str("
+        let mapping = parse_field(&serde_json::from_str("
         {
             \"type\": \"string\",
             \"include_in_all\": \"no\"
@@ -830,7 +833,7 @@ mod tests {
 
     #[test]
     fn test_include_in_all_false() {
-        let mapping = parse_field(&Json::from_str("
+        let mapping = parse_field(&serde_json::from_str("
         {
             \"type\": \"string\",
             \"include_in_all\": false
@@ -846,7 +849,7 @@ mod tests {
 
     #[test]
     fn test_include_in_all_non_string_type() {
-        let mapping = parse_field(&Json::from_str("
+        let mapping = parse_field(&serde_json::from_str("
         {
             \"type\": \"integer\",
             \"include_in_all\": \"yes\"

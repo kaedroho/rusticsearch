@@ -1,8 +1,8 @@
 use std::io::Read;
 use std::collections::HashMap;
 
+use serde_json;
 use kite::schema::{FieldType, FieldFlags, FIELD_INDEXED, FIELD_STORED};
-use rustc_serialize::json::Json;
 
 use mapping;
 use mapping::parse::parse as parse_mapping;
@@ -26,7 +26,7 @@ pub fn view_put_mapping(req: &mut Request) -> IronResult<Response> {
     let mut index = get_index_or_404_mut!(indices, *index_name);
 
     // Load data from body
-    let data = json_from_request_body!(req);
+    let data = serde_json_from_request_body!(req);
 
     let data = match data {
         Some(data) => data,
