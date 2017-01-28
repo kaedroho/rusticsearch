@@ -1,7 +1,5 @@
 use std::collections::HashMap;
 
-use rustc_serialize::json;
-
 use api::persistent;
 use api::iron::prelude::*;
 use api::iron::status;
@@ -33,7 +31,7 @@ pub fn view_get_global_alias(req: &mut Request) -> IronResult<Response> {
     }
 
     if !found_aliases.is_empty() {
-        return Ok(json_response(status::Ok, json::encode(&found_aliases).unwrap()));
+        return Ok(json_response(status::Ok, format!("{}", json!(found_aliases))));
     } else {
         return Ok(json_response(status::NotFound, "{}"));
     }
