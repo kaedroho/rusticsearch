@@ -17,18 +17,19 @@ use api::iron::prelude::*;
 use api::iron::status;
 use api::iron::typemap::Key;
 use api::router::Router;
+use api::utils::json_response;
 
 use system::System;
 use VERSION;
 
 
 fn view_home(_: &mut Request) -> IronResult<Response> {
-    Ok(Response::with((status::Ok, format!("{{
-  \"cluster_name\" : \"rusticsearch\",
-  \"version\" : {{
-    \"number\" : \"{}\",
-  }}
-}}", VERSION))))
+    Ok(json_response(status::Ok, json!({
+        "cluster_name": "rusticsearch",
+        "version": {
+            "number": VERSION
+        }
+    })))
 }
 
 
