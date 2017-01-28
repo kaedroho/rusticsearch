@@ -1,4 +1,4 @@
-use rustc_serialize::json::Json;
+use serde_json;
 
 use analysis::AnalyzerSpec;
 use index::metadata::IndexMetaData;
@@ -16,19 +16,19 @@ pub enum AnalyzerParseError {
 }
 
 
-pub fn parse(json: &Json, index_metadata: &IndexMetaData) -> Result<AnalyzerSpec, AnalyzerParseError> {
+pub fn parse(json: &serde_json::Value, index_metadata: &IndexMetaData) -> Result<AnalyzerSpec, AnalyzerParseError> {
     let data = try!(json.as_object().ok_or(AnalyzerParseError::ExpectedObject));
 
     // Get type
     let analyzer_type_json = try!(data.get("type").ok_or(AnalyzerParseError::ExpectedKey("type".to_string())));
-    let analyzer_type = try!(analyzer_type_json.as_string().ok_or(AnalyzerParseError::ExpectedString));
+    let analyzer_type = try!(analyzer_type_json.as_str().ok_or(AnalyzerParseError::ExpectedString));
 
     match analyzer_type {
         "custom" => {
             // Get tokenizer
             let tokenizer_name = match data.get("tokenizer") {
                 Some(tokenizer_json) => {
-                    match tokenizer_json.as_string() {
+                    match tokenizer_json.as_str() {
                         Some(tokenizer) => tokenizer,
                         None => return Err(AnalyzerParseError::ExpectedString),
                     }
@@ -53,7 +53,7 @@ pub fn parse(json: &Json, index_metadata: &IndexMetaData) -> Result<AnalyzerSpec
                     Some(filter_names) => {
                         for filter_name_json in filter_names.iter() {
                             // Get filter
-                            match filter_name_json.as_string() {
+                            match filter_name_json.as_str() {
                                 Some(filter_name) => {
                                     let filter_spec = match index_metadata.filters().get(filter_name) {
                                         Some(filter_spec) => filter_spec,

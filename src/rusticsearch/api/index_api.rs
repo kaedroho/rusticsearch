@@ -1,7 +1,7 @@
 use std::fs;
 use std::io::Read;
 
-use rustc_serialize::json::Json;
+use serde_json;
 use kite_rocksdb::RocksDBIndexStore;
 use uuid::Uuid;
 
@@ -51,7 +51,7 @@ pub fn view_put_index(req: &mut Request) -> IronResult<Response> {
         None => {
             // Load metadata
             let mut metadata = IndexMetaData::default();
-            match json_from_request_body!(req).map(|data| parse_index_metadata(&mut metadata, data)) {
+            match serde_json_from_request_body!(req).map(|data| parse_index_metadata(&mut metadata, data)) {
                 Some(Ok(())) | None => {}
                 Some(Err(_)) => {
                     // TODO: better error

@@ -2,7 +2,7 @@ pub mod analysis_tokenizer;
 pub mod analysis_filter;
 pub mod analysis_analyzer;
 
-use rustc_serialize::json::Json;
+use serde_json;
 
 use index::metadata::IndexMetaData;
 
@@ -20,7 +20,7 @@ pub enum IndexMetaDataParseError {
 }
 
 
-pub fn parse(metadata: &mut IndexMetaData, data: Json) -> Result<(), IndexMetaDataParseError> {
+pub fn parse(metadata: &mut IndexMetaData, data: serde_json::Value) -> Result<(), IndexMetaDataParseError> {
     let data = match data.as_object() {
         Some(object) => object,
         None => {
@@ -99,7 +99,7 @@ pub fn parse(metadata: &mut IndexMetaData, data: Json) -> Result<(), IndexMetaDa
 
 #[cfg(test)]
 mod tests {
-    use rustc_serialize::json::Json;
+    use serde_json;
 
     use analysis::ngram_generator::Edge;
     use analysis::tokenizers::TokenizerSpec;
@@ -114,7 +114,7 @@ mod tests {
     #[test]
     fn test_default() {
         let mut metadata = IndexMetaData::default();
-        parse(&mut metadata, Json::from_str("
+        parse(&mut metadata, serde_json::from_str("
         {}
         ").unwrap()).expect("parse() returned an error");
 
@@ -147,7 +147,7 @@ mod tests {
     #[test]
     fn test_custom_analyser() {
         let mut metadata = IndexMetaData::default();
-        parse(&mut metadata, Json::from_str("
+        parse(&mut metadata, serde_json::from_str("
         {
             \"settings\": {
                 \"analysis\": {
@@ -270,7 +270,7 @@ mod tests {
     #[test]
     fn test_custom_analyser_bad_tokenizer_type() {
         let mut metadata = IndexMetaData::default();
-        let error = parse(&mut metadata, Json::from_str("
+        let error = parse(&mut metadata, serde_json::from_str("
         {
             \"settings\": {
                 \"analysis\": {
@@ -290,7 +290,7 @@ mod tests {
     #[test]
     fn test_custom_analyser_bad_filter_type() {
         let mut metadata = IndexMetaData::default();
-        let error = parse(&mut metadata, Json::from_str("
+        let error = parse(&mut metadata, serde_json::from_str("
         {
             \"settings\": {
                 \"analysis\": {

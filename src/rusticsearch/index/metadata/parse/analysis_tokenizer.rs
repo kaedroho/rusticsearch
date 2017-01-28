@@ -1,4 +1,4 @@
-use rustc_serialize::json::Json;
+use serde_json;
 
 use analysis::ngram_generator::Edge;
 use analysis::tokenizers::TokenizerSpec;
@@ -15,12 +15,12 @@ pub enum TokenizerParseError {
 }
 
 
-pub fn parse(json: &Json) -> Result<TokenizerSpec, TokenizerParseError> {
+pub fn parse(json: &serde_json::Value) -> Result<TokenizerSpec, TokenizerParseError> {
     let data = try!(json.as_object().ok_or(TokenizerParseError::ExpectedObject));
 
     // Get type
     let tokenizer_type_json = try!(data.get("type").ok_or(TokenizerParseError::ExpectedKey("type".to_string())));
-    let tokenizer_type = try!(tokenizer_type_json.as_string().ok_or(TokenizerParseError::ExpectedString));
+    let tokenizer_type = try!(tokenizer_type_json.as_str().ok_or(TokenizerParseError::ExpectedString));
 
     match tokenizer_type {
         "standard" => {
@@ -76,7 +76,7 @@ pub fn parse(json: &Json) -> Result<TokenizerSpec, TokenizerParseError> {
 
             let edge = match data.get("side") {
                 Some(side_json) => {
-                    match side_json.as_string() {
+                    match side_json.as_str() {
                         Some(side_string) => {
                             let side_string_lower = side_string.to_lowercase();
                             match side_string_lower.as_ref() {

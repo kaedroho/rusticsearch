@@ -1,4 +1,4 @@
-use rustc_serialize::json::Json;
+use serde_json;
 
 use analysis::ngram_generator::Edge;
 use analysis::filters::FilterSpec;
@@ -15,12 +15,12 @@ pub enum FilterParseError {
 }
 
 
-pub fn parse(json: &Json) -> Result<FilterSpec, FilterParseError> {
+pub fn parse(json: &serde_json::Value) -> Result<FilterSpec, FilterParseError> {
     let data = try!(json.as_object().ok_or(FilterParseError::ExpectedObject));
 
     // Get type
     let filter_type_json = try!(data.get("type").ok_or(FilterParseError::ExpectedKey("type".to_string())));
-    let filter_type = try!(filter_type_json.as_string().ok_or(FilterParseError::ExpectedString));
+    let filter_type = try!(filter_type_json.as_str().ok_or(FilterParseError::ExpectedString));
 
     match filter_type {
         "asciifolding" => {
@@ -79,7 +79,7 @@ pub fn parse(json: &Json) -> Result<FilterSpec, FilterParseError> {
 
             let edge = match data.get("side") {
                 Some(side_json) => {
-                    match side_json.as_string() {
+                    match side_json.as_str() {
                         Some(side_string) => {
                             let side_string_lower = side_string.to_lowercase();
                             match side_string_lower.as_ref() {
