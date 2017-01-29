@@ -1,6 +1,8 @@
 pub mod standard;
 pub mod ngram;
 
+use serde_json;
+use serde_json::value::ToJson;
 use kite::token::Token;
 
 use analysis::ngram_generator::Edge;
@@ -47,6 +49,46 @@ impl TokenizerSpec {
             }
             TokenizerSpec::NGram{min_size, max_size, edge} => {
                 Box::new(NGramTokenizer::new(input, min_size, max_size, edge))
+            }
+        }
+    }
+}
+
+
+impl ToJson for TokenizerSpec {
+    fn to_json(&self) -> Result<serde_json::Value, serde_json::Error> {
+        match *self {
+            TokenizerSpec::Standard => {
+                Ok(json!({
+                    "type": "standard",
+                }))
+            }
+            TokenizerSpec::NGram{min_size, max_size, edge} => {
+                match edge {
+                    Edge::Left => {
+                        Ok(json!({
+                            "type": "edgeNGram",
+                            "side": "front",
+                            "min_gram": min_size,
+                            "max_gram": max_size,
+                        }))
+                    }
+                    Edge::Right => {
+                        Ok(json!({
+                            "type": "edgeNGram",
+                            "side": "back",
+                            "min_gram": min_size,
+                            "max_gram": max_size,
+                        }))
+                    }
+                    Edge::Neither => {
+                        Ok(json!({
+                            "type": "ngram",
+                            "min_gram": min_size,
+                            "max_gram": max_size,
+                        }))
+                    }
+                }
             }
         }
     }

@@ -2,6 +2,8 @@ pub mod lowercase;
 pub mod ngram;
 pub mod asciifolding;
 
+use serde_json;
+use serde_json::value::ToJson;
 use kite::Token;
 
 use analysis::ngram_generator::Edge;
@@ -58,6 +60,51 @@ impl FilterSpec {
             }
             FilterSpec::ASCIIFolding => {
                 Box::new(ASCIIFoldingFilter::new(input))
+            }
+        }
+    }
+}
+
+
+impl ToJson for FilterSpec {
+    fn to_json(&self) -> Result<serde_json::Value, serde_json::Error> {
+        match *self {
+            FilterSpec::Lowercase => {
+                Ok(json!({
+                    "type": "lowercase",
+                }))
+            }
+            FilterSpec::NGram{min_size, max_size, edge} => {
+                match edge {
+                    Edge::Left => {
+                        Ok(json!({
+                            "type": "edgeNGram",
+                            "side": "front",
+                            "min_gram": min_size,
+                            "max_gram": max_size,
+                        }))
+                    }
+                    Edge::Right => {
+                        Ok(json!({
+                            "type": "edgeNGram",
+                            "side": "back",
+                            "min_gram": min_size,
+                            "max_gram": max_size,
+                        }))
+                    }
+                    Edge::Neither => {
+                        Ok(json!({
+                            "type": "ngram",
+                            "min_gram": min_size,
+                            "max_gram": max_size,
+                        }))
+                    }
+                }
+            }
+            FilterSpec::ASCIIFolding => {
+                Ok(json!({
+                    "type": "asciifolding",
+                }))
             }
         }
     }

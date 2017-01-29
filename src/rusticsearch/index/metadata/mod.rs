@@ -124,15 +124,31 @@ impl IndexMetaData {
 
 impl ToJson for IndexMetaData {
     fn to_json(&self) -> Result<serde_json::Value, serde_json::Error> {
-        let mut mappings_json = BTreeMap::new();
+        // Tokenizers
+        let mut tokenizers_json = BTreeMap::new();
+        for (name, tokenizer) in self.tokenizers.iter() {
+            tokenizers_json.insert(name.to_string(), try!(tokenizer.to_json()));
+        }
 
+        // Filters
+        let mut filters_json = BTreeMap::new();
+        for (name, filter) in self.filters.iter() {
+            filters_json.insert(name.to_string(), try!(filter.to_json()));
+        }
+
+        // Mappings
+        let mut mappings_json = BTreeMap::new();
         for (name, mapping) in self.mappings.iter() {
             mappings_json.insert(name.to_string(), try!(mapping.to_json()));
         }
 
         Ok(json!({
             "settings": {
-                "analysis": {},  // TODO
+                "analysis": {
+                    "tokenizers": tokenizers_json,
+                    "filters": filters_json,
+                    "analyzers": {},  // TODO
+                },
             },
             "mappings": mappings_json,
         }))
