@@ -11,6 +11,9 @@ mod index_api;
 mod mapping_api;
 mod bulk_api;
 
+#[cfg(test)]
+mod tests;
+
 use std::sync::Arc;
 
 use api::iron::prelude::*;

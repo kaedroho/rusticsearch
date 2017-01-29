@@ -28,6 +28,9 @@ slog-term = "0.6"
 uuid = { version = "0.3", features = ["v4"] }
 serde_json = "0.9"
 
+[dev-dependencies]
+reqwest = "0.3"
+
 [dependencies.kite]
 path = "src/kite"
 version = "0.0.2"
