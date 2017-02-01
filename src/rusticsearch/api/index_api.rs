@@ -2,6 +2,7 @@ use std::fs;
 use std::io::Read;
 
 use serde_json;
+use serde_json::value::ToJson;
 use kite_rocksdb::RocksDBIndexStore;
 use uuid::Uuid;
 
@@ -23,11 +24,23 @@ pub fn view_get_index(req: &mut Request) -> IronResult<Response> {
     // Lock index array
     let indices = system.indices.read().unwrap();
 
-    // Check index exists
-    get_index_or_404!(indices, *index_name);
+    // Get index
+    let index = get_index_or_404!(indices, *index_name);
 
-    // TODO
-    return Ok(json_response(status::Ok, json!({})));
+    // Serialise index metadata
+    let json = {
+        let index_metadata = index.metadata.read().unwrap();
+        match index_metadata.to_json() {
+            Ok(json) => json,
+            Err(_) => {
+                return Ok(json_response(status::InternalServerError, json!({
+                    "message": "unable to serialise index metadata"
+                })));
+            }
+        }
+    };
+
+    return Ok(json_response(status::Ok, json));
 }
 
 
