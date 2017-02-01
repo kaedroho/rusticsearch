@@ -5,6 +5,7 @@ pub mod analysis_analyzer;
 use serde_json;
 
 use index::metadata::IndexMetaData;
+use mapping::parse::{MappingParseError, parse as parse_mapping};
 
 use self::analysis_tokenizer::{TokenizerParseError, parse as parse_tokenizer};
 use self::analysis_filter::{FilterParseError, parse as parse_filter};
@@ -17,6 +18,7 @@ pub enum IndexMetaDataParseError {
     TokenizerParseError(String, TokenizerParseError),
     FilterParseError(String, FilterParseError),
     AnalyzerParseError(String, AnalyzerParseError),
+    MappingParseError(String, MappingParseError),
 }
 
 
@@ -93,6 +95,22 @@ pub fn parse(metadata: &mut IndexMetaData, data: serde_json::Value) -> Result<()
         }
     }
 
+    if let Some(mappings) = data.get("mappings") {
+        let mappings = match mappings.as_object() {
+            Some(object) => object,
+            None => return Err(IndexMetaDataParseError::ExpectedObject),
+        };
+
+        for (name, data) in mappings {
+            let mapping_builder = match parse_mapping(data) {
+                Ok(mapping) => mapping,
+                Err(e) => return Err(IndexMetaDataParseError::MappingParseError(name.to_string(), e)),
+            };
+            let mapping = mapping_builder.build(&metadata);
+            metadata.mappings.insert(name.clone(), mapping);
+        }
+    }
+
     Ok(())
 }
 
@@ -105,6 +123,7 @@ mod tests {
     use analysis::tokenizers::TokenizerSpec;
     use analysis::filters::FilterSpec;
     use analysis::AnalyzerSpec;
+    use mapping::parse::MappingParseError;
     use index::metadata::IndexMetaData;
 
     use super::{parse, IndexMetaDataParseError};
@@ -305,5 +324,37 @@ mod tests {
         ").unwrap()).err().expect("parse() was supposed to return an error, but didn't");
 
         assert_eq!(error, IndexMetaDataParseError::FilterParseError("bad_filter".to_string(), FilterParseError::UnrecognisedType("foo".to_string())));
+    }
+
+    #[test]
+    fn test_mapping() {
+        let mut metadata = IndexMetaData::default();
+        parse(&mut metadata, json!({
+            "mappings": {
+                "test_mapping": {
+                    "properties": {
+                        "test_field": {
+                            "type": "string",
+                        }
+                    }
+                }
+            }
+        })).expect("parse() returned an error");
+
+        assert_eq!(metadata.mappings.len(), 1);
+    }
+
+    #[test]
+    fn test_mapping_error() {
+        let mut metadata = IndexMetaData::default();
+        let error = parse(&mut metadata, json!({
+            "mappings": {
+                "test_mapping": {
+                    "foo": []
+                }
+            }
+        })).err().expect("parse() was supposed to return an error, but didn't");
+
+        assert_eq!(error, IndexMetaDataParseError::MappingParseError("test_mapping".to_string(), MappingParseError::UnrecognisedKeys(vec!["foo".to_string()])));
     }
 }
