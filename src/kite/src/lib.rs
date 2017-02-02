@@ -11,6 +11,7 @@ pub mod token;
 pub mod doc_id_set;
 pub mod schema;
 pub mod document;
+pub mod statistics;
 pub mod segment;
 pub mod similarity;
 pub mod query;
