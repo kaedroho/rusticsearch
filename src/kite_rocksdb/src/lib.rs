@@ -11,7 +11,6 @@ mod key_builder;
 mod segment;
 mod segment_manager;
 mod segment_ops;
-mod segment_stats;
 mod segment_builder;
 mod term_dictionary;
 mod document_index;
@@ -359,6 +358,10 @@ impl<'a> RocksDBIndexReader<'a> {
     pub fn contains_document_key(&self, doc_key: &str) -> bool {
         // TODO: use snapshot
         self.store.document_index.contains_document_key(&doc_key.as_bytes().iter().cloned().collect())
+    }
+
+    pub fn iter_segments(&'a self) -> segment_manager::ActiveSegmentsIterator<'a> {
+        self.store.segments.iter_active(self)
     }
 
     pub fn read_stored_field(&self, field_ref: FieldRef, doc_ref: DocRef) -> Result<Option<FieldValue>, StoredFieldReadError> {
