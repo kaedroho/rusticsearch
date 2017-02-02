@@ -1,7 +1,10 @@
+use std::str;
+
 use kite::segment::Segment;
 use kite::schema::FieldRef;
 use kite::term::TermRef;
 use kite::doc_id_set::DocIdSet;
+use kite::statistics::Statistics;
 use byteorder::{ByteOrder, BigEndian};
 
 use RocksDBIndexReader;
@@ -27,6 +30,40 @@ impl<'a> RocksDBSegment<'a> {
 impl<'a> Segment for RocksDBSegment<'a> {
     fn id(&self) -> u32 {
         self.id
+    }
+
+    // TODO: Make statistics a parameter
+    fn load_statistics(&self, stats: &mut Statistics) -> Result<(), String> {
+        /// Converts statistic key strings "s1/total_docs" into tuples of 1 i32 and a Vec<u8> (1, ['t', 'o', 't', ...])
+        fn parse_statistic_key(key: &[u8]) -> (u32, &[u8]) {
+            let mut parts_iter = key[1..].split(|b| *b == b'/');
+            let segment = str::from_utf8(parts_iter.next().unwrap()).unwrap().parse::<u32>().unwrap();
+            let statistic_name = parts_iter.next().unwrap();
+
+            (segment, statistic_name)
+        }
+
+        let kb = KeyBuilder::segment_stat_prefix(self.id);
+        let mut iter = self.reader.snapshot.iterator();
+        iter.seek(&kb.key());
+        while iter.next() {
+            let k = iter.key().unwrap();
+            if k[0] != b's' {
+                // No more statistics
+                break;
+            }
+
+            let (segment, statistic_name) = parse_statistic_key(&k);
+
+            if segment != self.id {
+                // Segment finished
+                break;
+            }
+
+            stats.increment_statistic(statistic_name, BigEndian::read_i64(&iter.value().unwrap()));
+        }
+
+        Ok(())
     }
 
     fn load_statistic(&self, stat_name: &[u8]) -> Result<Option<i64>, String> {

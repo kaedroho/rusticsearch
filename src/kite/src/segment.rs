@@ -2,9 +2,11 @@ use schema::FieldRef;
 use term::TermRef;
 use doc_id_set::DocIdSet;
 use document::DocRef;
+use statistics::Statistics;
 
 
 pub trait Segment {
+    fn load_statistics(&self, stats: &mut Statistics) -> Result<(), String>;
     fn load_statistic(&self, stat_name: &[u8]) -> Result<Option<i64>, String>;
     fn load_stored_field_value_raw(&self, doc_ord: u16, field_ref: FieldRef, value_type: &[u8]) -> Result<Option<Vec<u8>>, String>;
     fn load_term_directory(&self, field_ref: FieldRef, term_ref: TermRef) -> Result<Option<DocIdSet>, String>;
