@@ -1,3 +1,6 @@
+use statistics::Statistics;
+
+
 #[derive(Debug, Clone, PartialEq)]
 pub enum SimilarityModel {
     TfIdf,
@@ -7,31 +10,31 @@ pub enum SimilarityModel {
 
 /// tf(term_frequency) = log(term_frequency + 1.0) + 1.0
 #[inline]
-fn tf(term_frequency: u32) -> f64 {
+fn tf(term_frequency: i64) -> f64 {
     (term_frequency as f64 + 1.0f64).ln() + 1.0
 }
 
 
 /// idf(term_docs, total_docs) = log((total_docs + 1.0) / (term_docs + 1.0)) + 1.0
 #[inline]
-fn idf(term_docs: u64, total_docs: u64) -> f64 {
+fn idf(term_docs: i64, total_docs: i64) -> f64 {
     ((total_docs as f64 + 1.0) / (term_docs as f64 + 1.0)).ln() + 1.0
 }
 
 
 impl SimilarityModel {
-    pub fn score(&self, term_frequency: u32, length: f64, total_tokens: u64, total_docs: u64, total_docs_with_term: u64) -> f64 {
+    pub fn score(&self, term_frequency: i64, length: f64, total_docs_with_term: i64, stats: &Statistics) -> f64 {
         match *self {
             SimilarityModel::TfIdf => {
                 let tf = tf(term_frequency);
-                let idf = idf(total_docs_with_term, total_docs);
+                let idf = idf(total_docs_with_term, stats.total_docs);
 
                 tf * idf
             }
             SimilarityModel::Bm25{k1, b} => {
                 let tf = tf(term_frequency);
-                let idf = idf(total_docs_with_term, total_docs);
-                let average_length = (total_tokens as f64 + 1.0f64) / (total_docs as f64 + 1.0f64);
+                let idf = idf(total_docs_with_term, stats.total_docs);
+                let average_length = (stats.total_tokens as f64 + 1.0f64) / (stats.total_docs as f64 + 1.0f64);
 
                 idf * (k1 + 1.0) * (tf / (tf + (k1 * ((1.0 - b) + b * length.sqrt() / average_length.sqrt())) + 1.0f64))
             }

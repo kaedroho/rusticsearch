@@ -1,6 +1,8 @@
 pub mod boolean_query;
 pub mod score_function;
 
+use kite::schema::FieldRef;
+use kite::term::TermRef;
 use kite::Query;
 
 use RocksDBIndexReader;
@@ -50,4 +52,20 @@ pub fn plan_query(index_reader: &RocksDBIndexReader, query: &Query, score: bool)
     }
 
     plan
+}
+
+
+impl SearchPlan {
+    /// Returns a Vec of (FieldRef, TermRef) tuples of terms that affect the score
+    pub fn scored_field_terms(&self) -> Vec<(FieldRef, TermRef)> {
+        let mut terms = Vec::new();
+
+        for op in self.score_function.iter() {
+            if let &ScoreFunctionOp::TermScorer(ref field_ref, ref term_ref, ..) = op {
+                terms.push((field_ref.clone(), term_ref.clone()));
+            }
+        }
+
+        terms
+    }
 }

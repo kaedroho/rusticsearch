@@ -1,14 +1,18 @@
-mod statistics;
 mod planner;
 
+use std::collections::HashMap;
+
+use kite::schema::FieldRef;
+use kite::term::TermRef;
 use kite::doc_id_set::DocIdSet;
+use kite::statistics::Statistics;
 use kite::segment::Segment;
 use kite::query::Query;
 use kite::collectors::{Collector, DocumentMatch};
 use byteorder::{ByteOrder, BigEndian};
 
 use super::RocksDBIndexReader;
-use search::statistics::{StatisticsReader, RocksDBStatisticsReader};
+use key_builder::KeyBuilder;
 use search::planner::{SearchPlan, plan_query};
 use search::planner::boolean_query::BooleanQueryOp;
 use search::planner::score_function::{CombinatorScorer, ScoreFunctionOp};
@@ -72,7 +76,7 @@ fn run_boolean_query<S: Segment>(boolean_query: &Vec<BooleanQueryOp>, is_negated
 }
 
 
-fn score_doc<S: Segment, R: StatisticsReader>(doc_id: u16, score_function: &Vec<ScoreFunctionOp>, segment: &S, mut stats: &mut R) -> Result<f64, String> {
+fn score_doc<S: Segment>(doc_id: u16, score_function: &Vec<ScoreFunctionOp>, segment: &S, stats: &Statistics, term_doc_frequencies: &HashMap<(FieldRef, TermRef), i64>) -> Result<f64, String> {
     // Execute score function
     let mut stack = Vec::new();
     for op in score_function.iter() {
@@ -103,7 +107,10 @@ fn score_doc<S: Segment, R: StatisticsReader>(doc_id: u16, score_function: &Vec<
                                 None => 1,
                             };
 
-                            let score = scorer.similarity_model.score(term_frequency as u32, field_length, try!(stats.total_tokens(field_ref)) as u64, try!(stats.total_docs(field_ref)) as u64, try!(stats.term_document_frequency(field_ref, term_ref)) as u64);
+                            // Get term document frequency
+                            let term_doc_frequency = term_doc_frequencies.get(&(field_ref, term_ref)).cloned().unwrap_or(0);
+
+                            let score = scorer.similarity_model.score(term_frequency, field_length, term_doc_frequency, stats);
                             stack.push(score * scorer.boost);
                         } else {
                             stack.push(0.0f64);
@@ -151,12 +158,12 @@ fn score_doc<S: Segment, R: StatisticsReader>(doc_id: u16, score_function: &Vec<
 }
 
 
-fn search_segment<C: Collector, S: Segment, R: StatisticsReader>(collector: &mut C, plan: &SearchPlan, segment: &S, mut stats: &mut R) -> Result<(), String> {
+fn search_segment<C: Collector, S: Segment>(collector: &mut C, plan: &SearchPlan, segment: &S, stats: &Statistics, term_doc_frequencies: &HashMap<(FieldRef, TermRef), i64>) -> Result<(), String> {
     let matches = try!(run_boolean_query(&plan.boolean_query, plan.boolean_query_is_negated, segment));
 
     // Score documents and pass to collector
     for doc in matches.iter() {
-        let score = try!(score_doc(doc, &plan.score_function, segment, stats));
+        let score = try!(score_doc(doc, &plan.score_function, segment, stats, term_doc_frequencies));
 
         let doc_ref = segment.doc_ref(doc);
         let doc_match = DocumentMatch::new_scored(doc_ref.as_u64(), score);
@@ -172,12 +179,31 @@ impl<'a> RocksDBIndexReader<'a> {
         // Plan query
         let plan = plan_query(&self, query, collector.needs_score());
 
-        // Initialise statistics reader
-        let mut stats = RocksDBStatisticsReader::new(&self);
+        // Read statistics
+        let mut stats = Statistics::default();
+        for segment in self.store.segments.iter_active(&self) {
+            try!(segment.load_statistics(&mut stats));
+        }
+
+        // Read total document frequencies for terms that need to be scored
+        let mut term_doc_frequencies = HashMap::new();
+        for (field_ref, term_ref) in plan.scored_field_terms() {
+            let mut term_doc_freqency = 0i64;
+
+            for segment in self.store.segments.iter_active(&self) {
+                let stat_name = KeyBuilder::segment_stat_term_doc_frequency_stat_name(field_ref.ord(), term_ref.ord());
+
+                if let Some(val) = try!(segment.load_statistic(&stat_name)) {
+                    term_doc_freqency += val;
+                }
+            }
+
+            term_doc_frequencies.insert((field_ref.clone(), term_ref.clone()), term_doc_freqency);
+        }
 
         // Run query on each segment
         for segment in self.store.segments.iter_active(&self) {
-            try!(search_segment(collector, &plan, &segment, &mut stats));
+            try!(search_segment(collector, &plan, &segment, &stats, &term_doc_frequencies));
         }
 
         Ok(())
