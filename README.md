@@ -34,7 +34,7 @@ being worked on at the moment.
 
 ## Running it
 
-Rusticsearch can be compiled with the latest stable version of Rust (it may work with older versions as well). This can either be [downloaded from the Rust website](https://www.rust-lang.org/en-US/downloads.html) or you could use [rustup](https://github.com/rust-lang-nursery/rustup.rs) (beta).
+Rusticsearch can be compiled with the latest stable version of Rust (it may work with older versions as well). This can either be [downloaded from the Rust website](https://www.rust-lang.org/en-US/downloads.html) or you could use [rustup](https://github.com/rust-lang-nursery/rustup.rs).
 
 Once Rust is installed, clone the repo and run ``cargo run``:
 
