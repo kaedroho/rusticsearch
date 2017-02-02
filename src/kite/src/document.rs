@@ -1,7 +1,6 @@
 use std::collections::HashMap;
 
 use serde;
-use rustc_serialize::json::Json;
 use chrono::{DateTime, UTC, Timelike};
 use byteorder::{WriteBytesExt, BigEndian};
 
@@ -79,15 +78,6 @@ impl FieldValue {
                 bytes.write_i64::<BigEndian>(timestamp_with_micros).unwrap();
                 bytes
             }
-        }
-    }
-
-    pub fn as_json(&self) -> Json {
-        match *self {
-            FieldValue::String(ref string) => Json::String(string.clone()),
-            FieldValue::Boolean(value) => Json::Boolean(value),
-            FieldValue::Integer(value) => Json::I64(value),
-            FieldValue::DateTime(value) => Json::String(value.to_rfc3339()),
         }
     }
 }
