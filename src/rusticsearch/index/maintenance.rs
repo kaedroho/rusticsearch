@@ -15,7 +15,7 @@ impl Index {
             for segment in reader.iter_segments() {
                 let mut statistics = Statistics::default();
                 try!(segment.load_statistics(&mut statistics));
-                segments.push((segment.id(), statistics.get_statistic(b"total_docs").unwrap_or(0)));
+                segments.push((segment.id(), statistics.total_docs));
             }
         }
 
