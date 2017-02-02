@@ -32,6 +32,10 @@ being worked on at the moment.
  - [ ] Implement persistence for analyzers and aliases
  - [ ] Implement a method of configuring the server from an external configuration file
 
+### Elasticsearch compatibility
+
+See [Elasticsearch query DSL support] (https://github.com/kaedroho/rusticsearch/wiki/Elasticsearch-query-DSL-support).
+
 ## Running it
 
 Rusticsearch can be compiled with the latest stable version of Rust (it may work with older versions as well). This can either be [downloaded from the Rust website](https://www.rust-lang.org/en-US/downloads.html) or you could use [rustup](https://github.com/rust-lang-nursery/rustup.rs).
