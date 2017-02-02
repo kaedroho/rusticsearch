@@ -2,15 +2,12 @@
 
 A search server with an Elasticsearch-compatible REST API, written in [Rust](https://www.rust-lang.org)
 
-**NOTE:** Currently, under initial research and development, please refer to [the roadmap](https://github.com/kaedroho/rusticsearch/wiki/Initial-development-roadmap) to see progress.
-
 ## Project Goals
 
  - Decent performance with predictible resource usage
  - Focus on simplicity and stability over features
  - Elasticsearch compatibility (where it makes sense)
  - Simple to install and operate
- - Secure out of the box
 
 ## Personal Goals
 
@@ -20,11 +17,20 @@ A search server with an Elasticsearch-compatible REST API, written in [Rust](htt
 
 ## Status
 
-Rusticsearch is in its initial research/development phase. It currently supports basic indexing and retrieval
-but lacks persistence and many other things.
+Please consider this project pre-alpha quality. It currently only supports a subset of Elasticsearch's APIs
+which is probably not enough to run most applications.
+
+It currently supports indexing, both in bulk, and individually (However, the bulk indexer is quite slow at the moment),
+and searching using the BM25 similarity algorithm.
 
 See the [roadmap](https://github.com/kaedroho/rusticsearch/wiki/Initial-development-roadmap) for a list of things
 being worked on at the moment.
+
+### TODO before first alpha release
+
+ - [ ] Make bulk indexing API faster (It currently indexes each document individually, instead of batching)
+ - [ ] Implement persistence for analyzers and aliases
+ - [ ] Implement a method of configuring the server from an external configuration file
 
 ## Running it
 
