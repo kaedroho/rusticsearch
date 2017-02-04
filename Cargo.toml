@@ -31,7 +31,7 @@ atomicwrites = "0.1"
 
 [dependencies.kite]
 path = "src/kite"
-version = "0.0.2"
+version = "0.0.3"
 
 [dependencies.kite_rocksdb]
 path = "src/kite_rocksdb"
