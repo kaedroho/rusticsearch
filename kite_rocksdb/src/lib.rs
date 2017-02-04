@@ -1,8 +1,6 @@
 extern crate kite;
 extern crate rocksdb;
 extern crate rustc_serialize;
-#[macro_use]
-extern crate maplit;
 extern crate byteorder;
 extern crate chrono;
 
