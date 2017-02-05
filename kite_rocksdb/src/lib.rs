@@ -3,6 +3,9 @@ extern crate rocksdb;
 extern crate rustc_serialize;
 extern crate byteorder;
 extern crate chrono;
+#[cfg(test)]
+#[macro_use]
+extern crate maplit;
 
 mod key_builder;
 mod segment;
