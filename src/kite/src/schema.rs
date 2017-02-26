@@ -106,7 +106,7 @@ impl Decodable for FieldRef {
 }
 
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum AddFieldError {
     FieldAlreadyExists(String),
 }
