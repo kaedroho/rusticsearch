@@ -1,0 +1,21 @@
+language: rust
+
+rust:
+  - stable
+  - nightly
+
+dist: trusty
+sudo: true
+
+addons:
+  apt:
+    sources:
+      - ubuntu-toolchain-r-test
+    packages:
+      - gcc-5
+      - g++-5
+
+script:
+  - cargo test --manifest-path=src/kite/Cargo.toml
+  - cargo test --manifest-path=src/kite_rocksdb/Cargo.toml
+  - cargo test
