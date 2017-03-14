@@ -13,6 +13,8 @@ name = "rusticsearch"
 path = "src/rusticsearch/main.rs"
 
 [dependencies]
+kite = "0.1.0"
+kite_rocksdb = "0.1.0"
 iron = "0.4.0"
 router = "0.2.0"
 persistent = "0.2.0"
@@ -28,11 +30,3 @@ slog-term = "0.6"
 uuid = { version = "0.3", features = ["v4"] }
 serde_json = "0.9"
 atomicwrites = "0.1"
-
-[dependencies.kite]
-path = "src/kite"
-version = "0.0.3"
-
-[dependencies.kite_rocksdb]
-path = "src/kite_rocksdb"
-version = "0.0.1"
