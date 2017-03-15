@@ -32,6 +32,7 @@ impl Default for IndexMetaData {
 
         // Builtin tokenizers
         metadata.insert_tokenizer("standard".to_string(), TokenizerSpec::Standard);
+        metadata.insert_tokenizer("lowercase".to_string(), TokenizerSpec::Lowercase);
 
         // Builtin filters
         metadata.insert_filter("asciifolding".to_string(), FilterSpec::ASCIIFolding);

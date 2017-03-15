@@ -26,6 +26,9 @@ pub fn parse(json: &serde_json::Value) -> Result<TokenizerSpec, TokenizerParseEr
         "standard" => {
             Ok(TokenizerSpec::Standard)
         }
+        "lowercase" => {
+            Ok(TokenizerSpec::Lowercase)
+        }
         "nGram" | "ngram" => {
             let min_gram = match data.get("min_gram") {
                 Some(min_gram_json) => {
@@ -106,7 +109,6 @@ pub fn parse(json: &serde_json::Value) -> Result<TokenizerSpec, TokenizerParseEr
         // path_hierarchy/PathHierarchy
         // keyword
         // letter
-        // lowercase
         // whitespace
         // pattern
         // classic

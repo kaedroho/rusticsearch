@@ -6,6 +6,7 @@ use serde_json::value::ToJson;
 use kite::token::Token;
 
 use analysis::ngram_generator::Edge;
+use analysis::filters::lowercase::LowercaseFilter;
 use analysis::tokenizers::standard::StandardTokenizer;
 use analysis::tokenizers::ngram::NGramTokenizer;
 
@@ -33,6 +34,7 @@ use analysis::tokenizers::ngram::NGramTokenizer;
 #[derive(Debug, Clone, PartialEq)]
 pub enum TokenizerSpec {
     Standard,
+    Lowercase,
     NGram {
         min_size: usize,
         max_size: usize,
@@ -46,6 +48,9 @@ impl TokenizerSpec {
         match *self {
             TokenizerSpec::Standard => {
                 Box::new(StandardTokenizer::new(input))
+            }
+            TokenizerSpec::Lowercase => {
+                Box::new(LowercaseFilter::new(Box::new(StandardTokenizer::new(input))))
             }
             TokenizerSpec::NGram{min_size, max_size, edge} => {
                 Box::new(NGramTokenizer::new(input, min_size, max_size, edge))
@@ -61,6 +66,11 @@ impl ToJson for TokenizerSpec {
             TokenizerSpec::Standard => {
                 Ok(json!({
                     "type": "standard",
+                }))
+            }
+            TokenizerSpec::Lowercase => {
+                Ok(json!({
+                    "type": "lowercase",
                 }))
             }
             TokenizerSpec::NGram{min_size, max_size, edge} => {

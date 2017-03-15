@@ -137,13 +137,16 @@ mod tests {
         {}
         ").unwrap()).expect("parse() returned an error");
 
-        assert_eq!(metadata.tokenizers().len(), 1);
+        assert_eq!(metadata.tokenizers().len(), 2);
         assert_eq!(metadata.filters().len(), 2);
         assert_eq!(metadata.analyzers().len(), 1);
 
         // Check builtin tokenizers
         let standard_tokenizer = metadata.tokenizers().get("standard").expect("'standard' tokenizer wasn't created");
         assert_eq!(*standard_tokenizer, TokenizerSpec::Standard);
+
+        let lowercase_tokenizer = metadata.tokenizers().get("lowercase").expect("'lowercase' tokenizer wasn't created");
+        assert_eq!(*lowercase_tokenizer, TokenizerSpec::Lowercase);
 
         // Check builtin filters
         let lowercase_filter = metadata.filters().get("lowercase").expect("'lowercase' filter wasn't created");
@@ -223,7 +226,7 @@ mod tests {
         }
         ").unwrap()).expect("parse() returned an error");
 
-        assert_eq!(metadata.tokenizers().len(), 5);
+        assert_eq!(metadata.tokenizers().len(), 6);
         assert_eq!(metadata.filters().len(), 6);
         assert_eq!(metadata.analyzers().len(), 1);
 
