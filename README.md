@@ -34,7 +34,7 @@ being worked on at the moment.
 
 ### Elasticsearch compatibility
 
-See [Elasticsearch query DSL support] (https://github.com/kaedroho/rusticsearch/wiki/Elasticsearch-query-DSL-support).
+See [Elasticsearch query DSL support](https://github.com/kaedroho/rusticsearch/wiki/Elasticsearch-query-DSL-support).
 
 ## Running it
 
