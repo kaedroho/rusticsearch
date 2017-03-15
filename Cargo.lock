@@ -1,6 +1,6 @@
 [root]
 name = "rusticsearch"
-version = "0.0.1"
+version = "0.0.2"
 dependencies = [
  "atomicwrites 0.1.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "byteorder 0.5.3 (registry+https://github.com/rust-lang/crates.io-index)",
