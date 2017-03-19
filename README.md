@@ -4,16 +4,22 @@ Lightweight Elasticsearch compatible search server.
 
 ## Why?
 
-A good quality search engine is important for many websites and Elasticsearch provides that while also providing an easy to use RESTful API to make integrating it easier. But it does use a lot of memory which puts it out of the price range for many people.
+A good quality search engine is important for many websites and Elasticsearch provides that with a simple REST API for easy integration. The problem with Elasticsearch is it requires a minimum of 2GB of memory which makes it expensive to run.
 
-This project aims to build a new search engine that takes the powerful search and simple API from Elasticsearch but instead implement it in a language with more control over memory, making it cheaper to run.
+The aim of this project is to build new search server that takes the powerful search features and simple API of Elasticsearch, but implement it in a language with more control over memory usage. We aim to keep memory usage below 100MB (excluding cache) so it should be very cheap to run.
 
 ## Project Goals
 
  - Decent performance with predictible resource usage
  - Focus on simplicity and stability over features
- - Elasticsearch compatibility (where it makes sense)
+ - Elasticsearch compatibility
  - Simple to install and operate
+
+## Why Rust?
+
+Rust frees memory as it goes rather than leaving unused memory to be collected later by a "garbage collector" like Java. In Elasticsearch, this heap of garbage can waste gigabytes of memory that could otherwise be used as cache.
+
+[Rust](http://www.rustlang.org/) is a systems programing language from Mozilla that's designed for building fast, secure and reliable software.
 
 ## Status
 
