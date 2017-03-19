@@ -1,6 +1,12 @@
 # Rusticsearch
 
-A search server with an Elasticsearch-compatible REST API, written in [Rust](https://www.rust-lang.org)
+Lightweight Elasticsearch compatible search server.
+
+## Why?
+
+A good quality search engine is important for many websites and Elasticsearch provides that while also providing an easy to use RESTful API to make integrating it easier. But it does use a lot of memory which puts it out of the price range for many people.
+
+This project aims to build a new search engine that takes the powerful search and simple API from Elasticsearch but instead implement it in a language with more control over memory, making it cheaper to run.
 
 ## Project Goals
 
@@ -8,12 +14,6 @@ A search server with an Elasticsearch-compatible REST API, written in [Rust](htt
  - Focus on simplicity and stability over features
  - Elasticsearch compatibility (where it makes sense)
  - Simple to install and operate
-
-## Personal Goals
-
- - Build a reusable [search engine library](https://github.com/kitesearch/kite) for Rust, and contribute to other Rust projects
- - Improve my Rust skills
- - Learn about search engines
 
 ## Status
 
