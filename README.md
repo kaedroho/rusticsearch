@@ -4,7 +4,7 @@ Lightweight Elasticsearch compatible search server.
 
 ## Why?
 
-A good quality search engine is important for many websites and Elasticsearch provides that with a simple REST API for easy integration. The problem with Elasticsearch is it requires a minimum of 2GB of memory which makes it expensive to run.
+A good quality search engine is important for many websites and Elasticsearch provides that with an easy to use REST API. But the problem with Elasticsearch is that it requires a minimum of 2GB of memory, which makes it expensive to run.
 
 The aim of this project is to build new search server that takes the powerful search features and simple API of Elasticsearch, but implement it in a language with more control over memory usage. We aim to keep memory usage below 100MB (excluding cache) so it should be very cheap to run.
 
