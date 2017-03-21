@@ -36,7 +36,7 @@ use slog::Logger;
 use system::System;
 
 
-const VERSION: &'static str = "0.1a0";
+const VERSION: &'static str = env!("CARGO_PKG_VERSION");
 
 
 fn main() {
