@@ -157,39 +157,39 @@ impl FieldMapping {
         }
     }
 
-    pub fn process_value_for_index(&self, value: serde_json::Value) -> Option<Vec<Token>> {
-        if value == serde_json::Value::Null {
+    pub fn process_value_for_index(&self, value: &serde_json::Value) -> Option<Vec<Token>> {
+        if *value == serde_json::Value::Null {
             return None;
         }
 
         match self.data_type {
             FieldType::String => {
-                match value {
-                    serde_json::Value::String(string) => {
+                match *value {
+                    serde_json::Value::String(ref string) => {
                         // Analyze string
                         let tokens = match self.index_analyzer() {
                             Some(index_analyzer) => {
-                                let token_stream = index_analyzer.initialise(&string);
+                                let token_stream = index_analyzer.initialise(string);
                                 token_stream.collect::<Vec<Token>>()
                             }
                             None => {
                                 vec![
-                                    Token {term: Term::from_string(&string), position: 1}
+                                    Token {term: Term::from_string(string), position: 1}
                                 ]
                             }
                         };
                         Some(tokens)
                     }
-                    serde_json::Value::Number(num) => self.process_value_for_index(serde_json::Value::String(num.to_string())),
-                    serde_json::Value::Array(array) => {
+                    serde_json::Value::Number(ref num) => self.process_value_for_index(&serde_json::Value::String(num.to_string())),
+                    serde_json::Value::Array(ref array) => {
                         // Process each array item and merge tokens together
                         let mut tokens = Vec::new();
                         let mut last_token_position = 0;
 
                         for item in array {
-                            match item {
-                                serde_json::Value::String(string) => {
-                                    if let Some(mut next_tokens) = self.process_value_for_index(serde_json::Value::String(string)) {
+                            match *item {
+                                serde_json::Value::String(ref string) => {
+                                    if let Some(mut next_tokens) = self.process_value_for_index(&serde_json::Value::String(string.clone())) {
                                         // Increment token positions so they don't overlap with previous values
                                         for token in next_tokens.iter_mut() {
                                             token.position += last_token_position;
@@ -220,8 +220,8 @@ impl FieldMapping {
                 }
             }
             FieldType::Integer => {
-                match value {
-                    serde_json::Value::Number(num) => {
+                match *value {
+                    serde_json::Value::Number(ref num) => {
                         match num.as_i64() {
                             Some(num) => Some(vec![Token{term: Term::from_integer(num), position: 1}]),
                             None => None
@@ -232,8 +232,8 @@ impl FieldMapping {
             }
             FieldType::Boolean => Some(vec![Token{term: Term::from_boolean(parse_boolean(&value)), position: 1}]),
             FieldType::Date => {
-                match value {
-                    serde_json::Value::String(string) => {
+                match *value {
+                    serde_json::Value::String(ref string) => {
                         let date_parsed = match string.parse::<DateTime<UTC>>() {
                             Ok(date_parsed) => date_parsed,
                             Err(_) => {
@@ -255,25 +255,25 @@ impl FieldMapping {
         }
     }
 
-    pub fn process_value_for_store(&self, value: serde_json::Value) -> Option<FieldValue> {
-        if value == serde_json::Value::Null {
+    pub fn process_value_for_store(&self, value: &serde_json::Value) -> Option<FieldValue> {
+        if *value == serde_json::Value::Null {
             return None;
         }
 
         match self.data_type {
             FieldType::String => {
-                match value {
-                    serde_json::Value::String(string) => {
-                        Some(FieldValue::String(string))
+                match *value {
+                    serde_json::Value::String(ref string) => {
+                        Some(FieldValue::String(string.clone()))
                     }
-                    serde_json::Value::Number(num) => self.process_value_for_store(serde_json::Value::String(num.to_string())),
-                    serde_json::Value::Array(array) => {
+                    serde_json::Value::Number(ref num) => self.process_value_for_store(&serde_json::Value::String(num.to_string())),
+                    serde_json::Value::Array(ref array) => {
                         // Pack any strings into a vec, ignore nulls. Quit if we see anything else
                         let mut strings = Vec::new();
 
                         for item in array {
-                            match item {
-                                serde_json::Value::String(string) => strings.push(string),
+                            match *item {
+                                serde_json::Value::String(ref string) => strings.push(string.clone()),
                                 serde_json::Value::Null => {}
                                 _ => {
                                     return None;
@@ -281,14 +281,14 @@ impl FieldMapping {
                             }
                         }
 
-                        self.process_value_for_store(serde_json::Value::String(strings.join(" ")))
+                        self.process_value_for_store(&serde_json::Value::String(strings.join(" ")))
                     }
                     _ => None,
                 }
             }
             FieldType::Integer => {
-                match value {
-                    serde_json::Value::Number(num) => {
+                match *value {
+                    serde_json::Value::Number(ref num) => {
                         match num.as_i64() {
                             Some(num) => Some(FieldValue::Integer(num)),
                             None => None
@@ -299,8 +299,8 @@ impl FieldMapping {
             }
             FieldType::Boolean => Some(FieldValue::Boolean(parse_boolean(&value))),
             FieldType::Date => {
-                match value {
-                    serde_json::Value::String(string) => {
+                match *value {
+                    serde_json::Value::String(ref string) => {
                         let date_parsed = match string.parse::<DateTime<UTC>>() {
                             Ok(date_parsed) => date_parsed,
                             Err(_) => {

@@ -40,7 +40,7 @@ impl<'a> DocumentSource<'a> {
             match mapping.properties.get(field_name) {
                 Some(&MappingProperty::Field(ref field_mapping)) => {
                     if field_mapping.is_indexed {
-                        let value = field_mapping.process_value_for_index(field_value.clone());
+                        let value = field_mapping.process_value_for_index(field_value);
 
                         match value {
                             Some(value) => {
@@ -64,7 +64,7 @@ impl<'a> DocumentSource<'a> {
                     }
 
                     if field_mapping.is_stored {
-                        let value = field_mapping.process_value_for_store(field_value.clone());
+                        let value = field_mapping.process_value_for_store(field_value);
 
                         match value {
                             Some(value) => {
@@ -96,7 +96,7 @@ impl<'a> DocumentSource<'a> {
         if let Some(property) = mapping.properties.get("_all") {
             if let MappingProperty::Field(ref field_mapping) = *property {
                 let strings_json = serde_json::Value::String(all_field_strings.join(" "));
-                let value = field_mapping.process_value_for_index(strings_json.clone());
+                let value = field_mapping.process_value_for_index(&strings_json);
 
                 match value {
                     Some(value) => {
