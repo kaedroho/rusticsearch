@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use serde_json;
 use kite::Document;
 
-use mapping::{Mapping, MappingProperty};
+use mapping::{Mapping, MappingProperty, FieldValueError};
 
 
 #[derive(Debug)]
@@ -18,9 +18,10 @@ pub enum PrepareDocumentError {
     FieldDoesntExist {
         field_name: String,
     },
-    UnprocessableFieldValue {
+    FieldValueError {
         field_name: String,
         value: serde_json::Value,
+        error: FieldValueError,
     },
 }
 
@@ -43,7 +44,7 @@ impl<'a> DocumentSource<'a> {
                         let value = field_mapping.process_value_for_index(field_value);
 
                         match value {
-                            Some(value) => {
+                            Ok(Some(value)) => {
                                 // Copy the field's value into the _all field
                                 if field_mapping.is_in_all {
                                     if let serde_json::Value::String(ref string) = *field_value {
@@ -54,10 +55,12 @@ impl<'a> DocumentSource<'a> {
                                 // Insert the field
                                 indexed_fields.insert(field_mapping.index_ref.unwrap(), value);
                             }
-                            None => {
-                                return Err(PrepareDocumentError::UnprocessableFieldValue {
+                            Ok(None) => {}
+                            Err(error) => {
+                                return Err(PrepareDocumentError::FieldValueError {
                                     field_name: field_name.clone(),
                                     value: field_value.clone(),
+                                    error: error,
                                 });
                             }
                         }
@@ -67,14 +70,16 @@ impl<'a> DocumentSource<'a> {
                         let value = field_mapping.process_value_for_store(field_value);
 
                         match value {
-                            Some(value) => {
+                            Ok(Some(value)) => {
                                 // Insert the field
                                 stored_fields.insert(field_mapping.index_ref.unwrap(), value);
                             }
-                            None => {
-                                return Err(PrepareDocumentError::UnprocessableFieldValue {
+                            Ok(None) => {}
+                            Err(error) => {
+                                return Err(PrepareDocumentError::FieldValueError {
                                     field_name: field_name.clone(),
                                     value: field_value.clone(),
+                                    error: error,
                                 });
                             }
                         }
@@ -99,13 +104,15 @@ impl<'a> DocumentSource<'a> {
                 let value = field_mapping.process_value_for_index(&strings_json);
 
                 match value {
-                    Some(value) => {
+                    Ok(Some(value)) => {
                         indexed_fields.insert(field_mapping.index_ref.unwrap(), value);
                     }
-                    None => {
-                        return Err(PrepareDocumentError::UnprocessableFieldValue {
+                    Ok(None) => {}
+                    Err(error) => {
+                        return Err(PrepareDocumentError::FieldValueError {
                             field_name: "_all".to_string(),
                             value: strings_json.clone(),
+                            error: error,
                         });
                     }
                 }

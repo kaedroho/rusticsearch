@@ -76,6 +76,10 @@ impl Default for FieldSearchOptions {
 }
 
 
+#[derive(Debug)]
+pub struct FieldValueError;
+
+
 #[derive(Debug, PartialEq)]
 pub struct FieldMapping {
     pub data_type: FieldType,
@@ -157,9 +161,9 @@ impl FieldMapping {
         }
     }
 
-    pub fn process_value_for_index(&self, value: &serde_json::Value) -> Option<Vec<Token>> {
+    pub fn process_value_for_index(&self, value: &serde_json::Value) -> Result<Option<Vec<Token>>, FieldValueError> {
         if *value == serde_json::Value::Null {
-            return None;
+            return Ok(None);
         }
 
         match self.data_type {
@@ -178,7 +182,7 @@ impl FieldMapping {
                                 ]
                             }
                         };
-                        Some(tokens)
+                        Ok(Some(tokens))
                     }
                     serde_json::Value::Number(ref num) => self.process_value_for_index(&serde_json::Value::String(num.to_string())),
                     serde_json::Value::Array(ref array) => {
@@ -189,7 +193,7 @@ impl FieldMapping {
                         for item in array {
                             match *item {
                                 serde_json::Value::String(ref string) => {
-                                    if let Some(mut next_tokens) = self.process_value_for_index(&serde_json::Value::String(string.clone())) {
+                                    if let Some(mut next_tokens) = self.process_value_for_index(&serde_json::Value::String(string.clone()))? {
                                         // Increment token positions so they don't overlap with previous values
                                         for token in next_tokens.iter_mut() {
                                             token.position += last_token_position;
@@ -209,28 +213,28 @@ impl FieldMapping {
                                 }
                                 serde_json::Value::Null => {}
                                 _ => {
-                                    return None;
+                                    return Err(FieldValueError);
                                 }
                             }
                         }
 
-                        Some(tokens)
+                        Ok(Some(tokens))
                     }
-                    _ => None,
+                    _ => Err(FieldValueError),
                 }
             }
             FieldType::Integer => {
                 match *value {
                     serde_json::Value::Number(ref num) => {
                         match num.as_i64() {
-                            Some(num) => Some(vec![Token{term: Term::from_integer(num), position: 1}]),
-                            None => None
+                            Some(num) => Ok(Some(vec![Token{term: Term::from_integer(num), position: 1}])),
+                            None => Err(FieldValueError),
                         }
                     }
-                    _ => None,
+                    _ => Err(FieldValueError),
                 }
             }
-            FieldType::Boolean => Some(vec![Token{term: Term::from_boolean(parse_boolean(&value)), position: 1}]),
+            FieldType::Boolean => Ok(Some(vec![Token{term: Term::from_boolean(parse_boolean(&value)), position: 1}])),
             FieldType::Date => {
                 match *value {
                     serde_json::Value::String(ref string) => {
@@ -238,33 +242,33 @@ impl FieldMapping {
                             Ok(date_parsed) => date_parsed,
                             Err(_) => {
                                 // TODO: Handle this properly
-                                return None;
+                                return Err(FieldValueError);
                             }
                         };
 
-                        Some(vec![Token{term: Term::from_datetime(&date_parsed), position: 1}])
+                        Ok(Some(vec![Token{term: Term::from_datetime(&date_parsed), position: 1}]))
                     }
                     serde_json::Value::Number(_) => {
                         // TODO needs to be interpreted as milliseconds since epoch
                         // This would really help: https://github.com/lifthrasiir/rust-chrono/issues/74
-                        None
+                        Err(FieldValueError)
                     }
-                    _ => None
+                    _ => Err(FieldValueError),
                 }
             }
         }
     }
 
-    pub fn process_value_for_store(&self, value: &serde_json::Value) -> Option<FieldValue> {
+    pub fn process_value_for_store(&self, value: &serde_json::Value) -> Result<Option<FieldValue>, FieldValueError> {
         if *value == serde_json::Value::Null {
-            return None;
+            return Ok(None);
         }
 
         match self.data_type {
             FieldType::String => {
                 match *value {
                     serde_json::Value::String(ref string) => {
-                        Some(FieldValue::String(string.clone()))
+                        Ok(Some(FieldValue::String(string.clone())))
                     }
                     serde_json::Value::Number(ref num) => self.process_value_for_store(&serde_json::Value::String(num.to_string())),
                     serde_json::Value::Array(ref array) => {
@@ -276,28 +280,28 @@ impl FieldMapping {
                                 serde_json::Value::String(ref string) => strings.push(string.clone()),
                                 serde_json::Value::Null => {}
                                 _ => {
-                                    return None;
+                                    return Err(FieldValueError);
                                 }
                             }
                         }
 
                         self.process_value_for_store(&serde_json::Value::String(strings.join(" ")))
                     }
-                    _ => None,
+                    _ => Err(FieldValueError),
                 }
             }
             FieldType::Integer => {
                 match *value {
                     serde_json::Value::Number(ref num) => {
                         match num.as_i64() {
-                            Some(num) => Some(FieldValue::Integer(num)),
-                            None => None
+                            Some(num) => Ok(Some(FieldValue::Integer(num))),
+                            None => Err(FieldValueError)
                         }
                     }
-                    _ => None,
+                    _ => Err(FieldValueError),
                 }
             }
-            FieldType::Boolean => Some(FieldValue::Boolean(parse_boolean(&value))),
+            FieldType::Boolean => Ok(Some(FieldValue::Boolean(parse_boolean(&value)))),
             FieldType::Date => {
                 match *value {
                     serde_json::Value::String(ref string) => {
@@ -305,18 +309,18 @@ impl FieldMapping {
                             Ok(date_parsed) => date_parsed,
                             Err(_) => {
                                 // TODO: Handle this properly
-                                return None;
+                                return Err(FieldValueError);
                             }
                         };
 
-                        Some(FieldValue::DateTime(date_parsed))
+                        Ok(Some(FieldValue::DateTime(date_parsed)))
                     }
                     serde_json::Value::Number(_) => {
                         // TODO needs to be interpreted as milliseconds since epoch
                         // This would really help: https://github.com/lifthrasiir/rust-chrono/issues/74
-                        None
+                        Err(FieldValueError)
                     }
-                    _ => None
+                    _ => Err(FieldValueError)
                 }
             }
         }
