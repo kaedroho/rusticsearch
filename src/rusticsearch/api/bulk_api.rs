@@ -71,8 +71,8 @@ pub fn view_post_bulk(req: &mut Request) -> IronResult<Response> {
 
                     // Create document
                     let document_source = DocumentSource {
-                        key: doc_id.to_string(),
-                        data: doc_json,
+                        key: doc_id,
+                        data: doc_json.as_object().unwrap(),
                     };
                     document_source.prepare(mapping).unwrap()
                 };

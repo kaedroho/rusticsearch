@@ -77,8 +77,8 @@ pub fn view_put_doc(req: &mut Request) -> IronResult<Response> {
         // Create document
         if let Some(data) = json_from_request_body!(req) {
             let document_source = DocumentSource {
-                key: doc_key.to_string(),
-                data: data,
+                key: doc_key,
+                data: data.as_object().unwrap(),
             };
             document_source.prepare(mapping).unwrap()
         } else {

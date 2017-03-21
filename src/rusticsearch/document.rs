@@ -7,9 +7,9 @@ use mapping::{Mapping, MappingProperty};
 
 
 #[derive(Debug)]
-pub struct DocumentSource {
-    pub key: String,
-    pub data: serde_json::Value,
+pub struct DocumentSource<'a> {
+    pub key: &'a str,
+    pub data: &'a serde_json::Map<String, serde_json::Value>,
 }
 
 
@@ -25,13 +25,13 @@ pub enum PrepareDocumentError {
 }
 
 
-impl DocumentSource {
+impl<'a> DocumentSource<'a> {
     pub fn prepare(&self, mapping: &Mapping) -> Result<Document, PrepareDocumentError> {
         let mut indexed_fields = HashMap::new();
         let mut stored_fields = HashMap::new();
         let mut all_field_strings: Vec<String> = Vec::new();
 
-        for (field_name, field_value) in self.data.as_object().unwrap() {
+        for (field_name, field_value) in self.data {
             if *field_value == serde_json::Value::Null {
                 // Treat null like a missing field
                 continue;
@@ -113,7 +113,7 @@ impl DocumentSource {
         }
 
         Ok(Document {
-            key: self.key.clone(),
+            key: self.key.to_string(),
             indexed_fields: indexed_fields,
             stored_fields: stored_fields,
         })
