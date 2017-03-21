@@ -44,7 +44,7 @@ See [Elasticsearch query DSL support](https://github.com/kaedroho/rusticsearch/w
 
 ## Running it
 
-Rusticsearch can be compiled with Rust stable 1.15 or later. You can [downloaded from the Rust website](https://www.rust-lang.org/en-US/downloads.html) or you could use [rustup](https://github.com/rust-lang-nursery/rustup.rs).
+Rusticsearch can be compiled with Rust stable 1.15 or later. You can [download it from the Rust website](https://www.rust-lang.org/en-US/downloads.html) or you could use [rustup](https://github.com/rust-lang-nursery/rustup.rs).
 
 Once Rust is installed, clone the repo and run ``cargo run``:
 
