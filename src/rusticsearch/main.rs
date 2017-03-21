@@ -30,6 +30,7 @@ use std::path::Path;
 use std::sync::Arc;
 use std::thread;
 use std::time::Duration;
+use std::panic;
 
 use slog::Logger;
 
@@ -59,8 +60,14 @@ fn main() {
                 {
                     let indices = system.indices.read().unwrap();
                     for index in indices.values() {
-                        // TODO: Catch panic
-                        index.run_maintenance_task().unwrap();
+                        let result = panic::catch_unwind(|| {
+                            index.run_maintenance_task().unwrap();
+                        });
+
+                        if let Err(error) = result {
+                            system.log.error("[sys] maintenance task panicked", b!("index" => index.canonical_name(), "error" => format!("{:?}", error)));
+                        }
+
                     }
                 }
 
