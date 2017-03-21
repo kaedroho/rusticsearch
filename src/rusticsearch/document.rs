@@ -13,8 +13,20 @@ pub struct DocumentSource {
 }
 
 
+#[derive(Debug)]
+pub enum PrepareDocumentError {
+    FieldDoesntExist {
+        field_name: String,
+    },
+    UnprocessableFieldValue {
+        field_name: String,
+        value: serde_json::Value,
+    },
+}
+
+
 impl DocumentSource {
-    pub fn prepare(&self, mapping: &Mapping) -> Document {
+    pub fn prepare(&self, mapping: &Mapping) -> Result<Document, PrepareDocumentError> {
         let mut indexed_fields = HashMap::new();
         let mut stored_fields = HashMap::new();
         let mut all_field_strings: Vec<String> = Vec::new();
@@ -43,8 +55,10 @@ impl DocumentSource {
                                 indexed_fields.insert(field_mapping.index_ref.unwrap(), value);
                             }
                             None => {
-                                // TODO: Should probably be an error
-                                warn!("Unprocessable value: {}", field_value);
+                                return Err(PrepareDocumentError::UnprocessableFieldValue {
+                                    field_name: field_name.clone(),
+                                    value: field_value.clone(),
+                                });
                             }
                         }
                     }
@@ -58,8 +72,10 @@ impl DocumentSource {
                                 stored_fields.insert(field_mapping.index_ref.unwrap(), value);
                             }
                             None => {
-                                // TODO: Should probably be an error
-                                warn!("Unprocessable value: {}", field_value);
+                                return Err(PrepareDocumentError::UnprocessableFieldValue {
+                                    field_name: field_name.clone(),
+                                    value: field_value.clone(),
+                                });
                             }
                         }
                     }
@@ -69,38 +85,37 @@ impl DocumentSource {
                 }
                 None => {
                     // No mapping found
-                    // TODO: This should probably be an error
+                    return Err(PrepareDocumentError::FieldDoesntExist {
+                        field_name: field_name.clone(),
+                    });
                 }
             }
         }
 
         // Insert _all field
-        match mapping.properties.get("_all") {
-            Some(property) => {
-                if let MappingProperty::Field(ref field_mapping) = *property {
-                    let strings_json = serde_json::Value::String(all_field_strings.join(" "));
-                    let value = field_mapping.process_value_for_index(strings_json.clone());
+        if let Some(property) = mapping.properties.get("_all") {
+            if let MappingProperty::Field(ref field_mapping) = *property {
+                let strings_json = serde_json::Value::String(all_field_strings.join(" "));
+                let value = field_mapping.process_value_for_index(strings_json.clone());
 
-                    match value {
-                        Some(value) => {
-                            indexed_fields.insert(field_mapping.index_ref.unwrap(), value);
-                        }
-                        None => {
-                            // TODO: Should probably be an error
-                            warn!("Unprocessable value: {}", strings_json);
-                        }
+                match value {
+                    Some(value) => {
+                        indexed_fields.insert(field_mapping.index_ref.unwrap(), value);
+                    }
+                    None => {
+                        return Err(PrepareDocumentError::UnprocessableFieldValue {
+                            field_name: "_all".to_string(),
+                            value: strings_json.clone(),
+                        });
                     }
                 }
             }
-            None => {
-                // _all field disabled for this mapping
-            }
         }
 
-        Document {
+        Ok(Document {
             key: self.key.clone(),
             indexed_fields: indexed_fields,
             stored_fields: stored_fields,
-        }
+        })
     }
 }

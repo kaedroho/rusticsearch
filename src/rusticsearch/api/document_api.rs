@@ -80,7 +80,7 @@ pub fn view_put_doc(req: &mut Request) -> IronResult<Response> {
                 key: doc_key.to_string(),
                 data: data,
             };
-            document_source.prepare(mapping)
+            document_source.prepare(mapping).unwrap()
         } else {
             return Ok(json_response(status::NotFound, json!({"message": "No data"})));
         }

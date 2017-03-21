@@ -74,7 +74,7 @@ pub fn view_post_bulk(req: &mut Request) -> IronResult<Response> {
                         key: doc_id.to_string(),
                         data: doc_json,
                     };
-                    document_source.prepare(mapping)
+                    document_source.prepare(mapping).unwrap()
                 };
 
                 index.store.insert_or_update_document(&doc).unwrap();
