@@ -13,6 +13,9 @@ extern crate slog_term;
 extern crate maplit;
 extern crate unicode_segmentation;
 extern crate uuid;
+extern crate serde;
+#[macro_use]
+extern crate serde_derive;
 #[macro_use]
 extern crate serde_json;
 extern crate atomicwrites;

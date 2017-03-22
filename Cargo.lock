@@ -13,6 +13,8 @@ dependencies = [
  "persistent 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "roaring 0.4.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "router 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde 0.9.6 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde_derive 0.9.11 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_json 0.9.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "slog 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "slog-term 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)",

@@ -3,6 +3,7 @@ use std::collections::hash_map::Iter as HashMapIter;
 use std::ops::{Deref, DerefMut};
 
 use uuid::Uuid;
+use serde::{Serialize, Serializer};
 
 use index::Index;
 
@@ -18,7 +19,16 @@ impl IndexRef {
 }
 
 
-#[derive(Debug)]
+impl Serialize for IndexRef {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+        where S: Serializer
+    {
+        serializer.serialize_str(&self.0.to_string())
+    }
+}
+
+
+#[derive(Debug, Serialize)]
 enum Name {
     /// This is the canonical name of an index
     Canonical(IndexRef),
@@ -28,7 +38,7 @@ enum Name {
 }
 
 
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 pub struct NameRegistry {
     names: HashMap<String, Name>,
 }
