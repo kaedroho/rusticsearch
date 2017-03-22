@@ -88,6 +88,9 @@ pub fn view_put_index(req: &mut Request) -> IronResult<Response> {
             // Register canonical name
             indices.names.insert_canonical(index_name.clone().to_owned(), index_ref).unwrap();
 
+            // Save names file
+            indices.names.save(system.names_path()).unwrap();
+
             system.log.info("[api] created index", b!("index" => *index_name));
         }
     }
@@ -147,6 +150,9 @@ pub fn view_delete_index(req: &mut Request) -> IronResult<Response> {
             }
         }
     }
+
+    // Save names file
+    indices.names.save(system.names_path()).unwrap();
 
     return Ok(json_response(status::Ok, json!({"acknowledged": true})));
 }

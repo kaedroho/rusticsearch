@@ -1,6 +1,7 @@
 pub mod maintenance;
 pub mod registry;
 pub mod metadata;
+pub mod namefile;
 
 use std::sync::RwLock;
 use std::path::PathBuf;

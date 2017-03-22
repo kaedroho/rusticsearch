@@ -33,6 +33,12 @@ impl System {
         dir
     }
 
+    pub fn names_path(&self) -> PathBuf {
+        let mut dir = self.data_dir.clone();
+        dir.push("names.json");
+        dir
+    }
+
     fn load_index(&self, id: Uuid, name: String, path: &Path) -> Result<Index, String> {
         let store = try!(RocksDBIndexStore::open(path));
 
