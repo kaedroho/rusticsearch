@@ -1,21 +1,7 @@
 use std::collections::HashMap;
 use std::collections::hash_map::Iter as HashMapIter;
-use std::ops::{Deref, DerefMut};
 
-use uuid::Uuid;
-
-use index::Index;
-
-
-#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
-pub struct IndexRef(Uuid);
-
-
-impl IndexRef {
-    pub fn id(&self) -> &Uuid {
-        &self.0
-    }
-}
+use super::IndexRef;
 
 
 #[derive(Debug)]
@@ -35,6 +21,12 @@ pub struct NameRegistry {
 
 
 impl NameRegistry {
+    pub fn new() -> NameRegistry {
+        NameRegistry {
+            names: HashMap::new(),
+        }
+    }
+
     pub fn insert_canonical(&mut self, name: String, index_ref: IndexRef) -> Result<(), ()> {
         if let Some(_) = self.names.get(&name) {
             return Err(());
@@ -181,47 +173,5 @@ impl<'a> Iterator for IndexAliasesIterator<'a> {
                 None => return None
             }
         }
-    }
-}
-
-
-#[derive(Debug)]
-pub struct IndexRegistry {
-    indices: HashMap<IndexRef, Index>,
-    pub names: NameRegistry,
-}
-
-
-impl IndexRegistry {
-    pub fn new() -> IndexRegistry {
-        IndexRegistry {
-            indices: HashMap::new(),
-            names: NameRegistry {
-                names: HashMap::new(),
-            },
-        }
-    }
-
-    pub fn insert(&mut self, index: Index) -> IndexRef {
-        let index_ref = IndexRef(index.id().clone());
-        self.indices.insert(index_ref, index);
-
-        index_ref
-    }
-}
-
-
-impl Deref for IndexRegistry {
-    type Target = HashMap<IndexRef, Index>;
-
-    fn deref(&self) -> &HashMap<IndexRef, Index> {
-        &self.indices
-    }
-}
-
-
-impl DerefMut for IndexRegistry {
-    fn deref_mut(&mut self) -> &mut HashMap<IndexRef, Index> {
-        &mut self.indices
     }
 }

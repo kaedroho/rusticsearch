@@ -19,11 +19,11 @@ pub fn view_put_mapping(req: &mut Request) -> IronResult<Response> {
     let ref index_name = read_path_parameter!(req, "index").unwrap_or("");
     let ref mapping_name = read_path_parameter!(req, "mapping").unwrap_or("");
 
-    // Lock index array
-    let mut indices = system.indices.write().unwrap();
+    // Lock cluster metadata
+    let mut cluster_metadata = system.metadata.write().unwrap();
 
     // Get index
-    let mut index = get_index_or_404_mut!(indices, *index_name);
+    let mut index = get_index_or_404_mut!(cluster_metadata, *index_name);
 
     // Load data from body
     let data = json_from_request_body!(req);

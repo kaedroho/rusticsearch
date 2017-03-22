@@ -33,17 +33,17 @@ pub fn index_not_found_response() -> Response {
 
 
 macro_rules! get_index_or_404 {
-    ($indices: expr, $index_name: expr) => {{
+    ($cluster_metadata: expr, $index_name: expr) => {{
         use api::utils::index_not_found_response;
 
-        let index_ref = match $indices.names.find_canonical($index_name) {
+        let index_ref = match $cluster_metadata.names.find_canonical($index_name) {
             Some(index_ref) => index_ref,
             None => {
                 return Ok(index_not_found_response());
             }
         };
 
-        match $indices.get(&index_ref) {
+        match $cluster_metadata.indices.get(&index_ref) {
             Some(index) => index,
             None => {
                 return Ok(index_not_found_response());
@@ -54,17 +54,17 @@ macro_rules! get_index_or_404 {
 
 
 macro_rules! get_index_or_404_mut {
-    ($indices: expr, $index_name: expr) => {{
+    ($cluster_metadata: expr, $index_name: expr) => {{
         use api::utils::index_not_found_response;
 
-        let index_ref = match $indices.names.find_canonical($index_name) {
+        let index_ref = match $cluster_metadata.names.find_canonical($index_name) {
             Some(index_ref) => index_ref,
             None => {
                 return Ok(index_not_found_response());
             }
         };
 
-        match $indices.get_mut(&index_ref) {
+        match $cluster_metadata.indices.get_mut(&index_ref) {
             Some(index) => index,
             None => {
                 return Ok(index_not_found_response());

@@ -22,6 +22,7 @@ pub mod query_parser;
 pub mod mapping;
 pub mod document;
 pub mod index;
+pub mod cluster;
 pub mod system;
 mod api;
 mod logger;
@@ -58,8 +59,8 @@ fn main() {
         thread::spawn(move || {
             loop {
                 {
-                    let indices = system.indices.read().unwrap();
-                    for index in indices.values() {
+                    let cluster_metadata = system.metadata.read().unwrap();
+                    for index in cluster_metadata.indices.values() {
                         let result = panic::catch_unwind(|| {
                             index.run_maintenance_task().unwrap();
                         });

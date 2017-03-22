@@ -1,5 +1,4 @@
 pub mod maintenance;
-pub mod registry;
 pub mod metadata;
 
 use std::sync::RwLock;

@@ -17,11 +17,9 @@ pub fn view_get_doc(req: &mut Request) -> IronResult<Response> {
     let ref mapping_name = read_path_parameter!(req, "mapping").unwrap_or("");
     // let ref doc_key = read_path_parameter!(req, "doc").unwrap_or("");
 
-    // Lock index array
-    let indices = system.indices.read().unwrap();
-
     // Get index
-    let index = get_index_or_404!(indices, *index_name);
+    let cluster_metadata = system.metadata.read().unwrap();
+    let index = get_index_or_404!(cluster_metadata, *index_name);
     let index_metadata = index.metadata.read().unwrap();
 
     // Check that the mapping exists
@@ -58,11 +56,9 @@ pub fn view_put_doc(req: &mut Request) -> IronResult<Response> {
     let ref mapping_name = read_path_parameter!(req, "mapping").unwrap_or("");
     let ref doc_key = read_path_parameter!(req, "doc").unwrap_or("");
 
-    // Lock index array
-    let indices = system.indices.read().unwrap();
-
     // Get index
-    let index = get_index_or_404!(indices, *index_name);
+    let cluster_metadata = system.metadata.read().unwrap();
+    let index = get_index_or_404!(cluster_metadata, *index_name);
     let index_metadata = index.metadata.read().unwrap();
 
     let doc = {
@@ -99,11 +95,9 @@ pub fn view_delete_doc(req: &mut Request) -> IronResult<Response> {
     let ref mapping_name = read_path_parameter!(req, "mapping").unwrap_or("");
     let ref doc_key = read_path_parameter!(req, "doc").unwrap_or("");
 
-    // Lock index array
-    let indices = system.indices.read().unwrap();
-
     // Get index
-    let index = get_index_or_404!(indices, *index_name);
+    let cluster_metadata = system.metadata.read().unwrap();
+    let index = get_index_or_404!(cluster_metadata, *index_name);
     let index_metadata = index.metadata.read().unwrap();
 
     // Check that the mapping exists

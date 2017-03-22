@@ -21,11 +21,9 @@ pub fn view_count(req: &mut Request) -> IronResult<Response> {
     let ref system = get_system!(req);
     let ref index_name = read_path_parameter!(req, "index").unwrap_or("");
 
-    // Lock index array
-    let indices = system.indices.read().unwrap();
-
     // Get index
-    let index = get_index_or_404!(indices, *index_name);
+    let cluster_metadata = system.metadata.read().unwrap();
+    let index = get_index_or_404!(cluster_metadata, *index_name);
     let index_reader = index.store.reader();
     let index_metadata = index.metadata.read().unwrap();
 
@@ -65,11 +63,9 @@ pub fn view_search(req: &mut Request) -> IronResult<Response> {
     let ref system = get_system!(req);
     let ref index_name = read_path_parameter!(req, "index").unwrap_or("");
 
-    // Lock index array
-    let indices = system.indices.read().unwrap();
-
     // Get index
-    let index = get_index_or_404!(indices, *index_name);
+    let cluster_metadata = system.metadata.read().unwrap();
+    let index = get_index_or_404!(cluster_metadata, *index_name);
     let index_reader = index.store.reader();
     let index_metadata = index.metadata.read().unwrap();
 

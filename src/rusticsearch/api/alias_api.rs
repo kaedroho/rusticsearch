@@ -11,14 +11,14 @@ pub fn view_get_global_alias(req: &mut Request) -> IronResult<Response> {
     let ref system = get_system!(req);
     let ref alias_name = read_path_parameter!(req, "alias").unwrap_or("");
 
-    // Lock index array
-    let indices = system.indices.read().unwrap();
+    // Lock cluster metadata
+    let cluster_metadata = system.metadata.read().unwrap();
 
     // Find alias
     let mut found_aliases = HashMap::new();
 
-    for index_ref in indices.names.find(alias_name) {
-        let index = match indices.get(&index_ref) {
+    for index_ref in cluster_metadata.names.find(alias_name) {
+        let index = match cluster_metadata.indices.get(&index_ref) {
             Some(index) => index,
             None => continue,
         };
@@ -52,17 +52,17 @@ pub fn view_get_alias(req: &mut Request) -> IronResult<Response> {
     let ref index_name = read_path_parameter!(req, "index").unwrap_or("");
     let ref alias_name = read_path_parameter!(req, "alias").unwrap_or("");
 
-    // Lock index array
-    let indices = system.indices.read().unwrap();
+    // Lock cluster metadata
+    let cluster_metadata = system.metadata.read().unwrap();
 
     // Get index
-    let index_ref = match indices.names.find_canonical(index_name) {
+    let index_ref = match cluster_metadata.names.find_canonical(index_name) {
         Some(index_ref) => index_ref,
         None => return Ok(json_response(status::NotFound, json!({}))),
     };
 
     // Find alias
-    if indices.names.iter_index_aliases(index_ref).any(|name| &name == alias_name) {
+    if cluster_metadata.names.iter_index_aliases(index_ref).any(|name| &name == alias_name) {
         return Ok(json_response(status::Ok, json!({})));
     } else {
         return Ok(json_response(status::NotFound, json!({})));
@@ -75,12 +75,12 @@ pub fn view_put_alias(req: &mut Request) -> IronResult<Response> {
     let ref index_selector = read_path_parameter!(req, "index").unwrap_or("");
     let ref alias_name = read_path_parameter!(req, "alias").unwrap_or("");
 
-    // Lock index array
-    let mut indices = system.indices.write().unwrap();
+    // Lock cluster metadata
+    let mut cluster_metadata = system.metadata.write().unwrap();
 
     // Insert alias into names registry
-    let index_refs = indices.names.find(*index_selector);
-    match indices.names.insert_or_replace_alias(alias_name.to_string(), index_refs) {
+    let index_refs = cluster_metadata.names.find(*index_selector);
+    match cluster_metadata.names.insert_or_replace_alias(alias_name.to_string(), index_refs) {
         Ok(true) => {
             system.log.info("[api] created alias", b!("index" => *index_selector, "alias" => *alias_name));
         }

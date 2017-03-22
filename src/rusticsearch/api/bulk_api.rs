@@ -14,8 +14,8 @@ use api::utils::{json_response};
 pub fn view_post_bulk(req: &mut Request) -> IronResult<Response> {
     let ref system = get_system!(req);
 
-    // Lock index array
-    let indices = system.indices.read().unwrap();
+    // Lock cluster metedata
+    let cluster_metadata = system.metadata.read().unwrap();
 
     // Load data from body
     let mut payload = String::new();
@@ -57,7 +57,7 @@ pub fn view_post_bulk(req: &mut Request) -> IronResult<Response> {
                 let doc_json = parse_json!(&doc_line.unwrap());;
 
                 // Find index
-                let index = get_index_or_404!(indices, doc_index);
+                let index = get_index_or_404!(cluster_metadata, doc_index);
                 let index_metadata = index.metadata.read().unwrap();
 
                 let doc = {

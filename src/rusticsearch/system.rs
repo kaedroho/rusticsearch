@@ -7,14 +7,14 @@ use kite_rocksdb::RocksDBIndexStore;
 use uuid::Uuid;
 
 use index::Index;
-use index::registry::IndexRegistry;
 use index::metadata::IndexMetaData;
+use cluster::ClusterMetaData;
 
 
 pub struct System {
     pub log: Logger,
     data_dir: PathBuf,
-    pub indices: RwLock<IndexRegistry>,
+    pub metadata: RwLock<ClusterMetaData>,
 }
 
 
@@ -23,7 +23,7 @@ impl System {
         System {
             log: log,
             data_dir: data_dir,
-            indices: RwLock::new(IndexRegistry::new()),
+            metadata: RwLock::new(ClusterMetaData::new()),
         }
     }
 
@@ -55,9 +55,9 @@ impl System {
 
                         match self.load_index(Uuid::new_v4(), index_name.clone().to_owned(), path.as_path()) {
                             Ok(index) => {
-                                let mut indices_w = self.indices.write().unwrap();
-                                let index_ref = indices_w.insert(index);
-                                indices_w.names.insert_canonical(index_name.clone(), index_ref).unwrap();
+                                let mut cluster_metadata = self.metadata.write().unwrap();
+                                let index_ref = cluster_metadata.insert_index(index);
+                                cluster_metadata.names.insert_canonical(index_name.clone(), index_ref).unwrap();
 
                                 self.log.info("[sys] loaded index", b!("index" => index_name));
                             }

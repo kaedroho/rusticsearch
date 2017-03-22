@@ -21,11 +21,9 @@ pub fn view_get_index(req: &mut Request) -> IronResult<Response> {
     let ref system = get_system!(req);
     let ref index_name = read_path_parameter!(req, "index").unwrap_or("");
 
-    // Lock index array
-    let indices = system.indices.read().unwrap();
-
     // Get index
-    let index = get_index_or_404!(indices, *index_name);
+    let cluster_metadata = system.metadata.read().unwrap();
+    let index = get_index_or_404!(cluster_metadata, *index_name);
 
     // Serialise index metadata
     let json = {
@@ -48,11 +46,11 @@ pub fn view_put_index(req: &mut Request) -> IronResult<Response> {
     let ref system = get_system!(req);
     let ref index_name = read_path_parameter!(req, "index").unwrap_or("");
 
-    // Lock index array
-    let mut indices = system.indices.write().unwrap();
+    // Lock cluster metadata
+    let mut cluster_metadata = system.metadata.write().unwrap();
 
     // Find index
-    let index_ref = indices.names.find_canonical(&index_name);
+    let index_ref = cluster_metadata.names.find_canonical(&index_name);
 
     match index_ref {
         Some(_) => {
@@ -77,16 +75,16 @@ pub fn view_put_index(req: &mut Request) -> IronResult<Response> {
             indices_dir.push(index_name);
             let index = Index::new(Uuid::new_v4(), index_name.clone().to_owned(), metadata, RocksDBIndexStore::create(indices_dir).unwrap());
             index.metadata.read().unwrap().save(index.metadata_path()).unwrap();
-            let index_ref = indices.insert(index);
+            let index_ref = cluster_metadata.insert_index(index);
 
             // If there's an alias with the new indexes name, delete it.
-            let alias_deleted = indices.names.delete_alias_whole(index_name).unwrap();
+            let alias_deleted = cluster_metadata.names.delete_alias_whole(index_name).unwrap();
             if alias_deleted {
                  system.log.info("[api] deleted alias", b!("alias" => format!("{}", index_name), "reason" => "replaced by index"));
             }
 
             // Register canonical name
-            indices.names.insert_canonical(index_name.clone().to_owned(), index_ref).unwrap();
+            cluster_metadata.names.insert_canonical(index_name.clone().to_owned(), index_ref).unwrap();
 
             system.log.info("[api] created index", b!("index" => *index_name));
         }
@@ -100,17 +98,17 @@ pub fn view_delete_index(req: &mut Request) -> IronResult<Response> {
     let ref system = get_system!(req);
     let ref index_selector = read_path_parameter!(req, "index").unwrap_or("");
 
-    // Lock index array
-    let mut indices = system.indices.write().unwrap();
+    // Lock cluster metadata
+    let mut cluster_metadata = system.metadata.write().unwrap();
 
     // Make sure the index exists
-    get_index_or_404!(indices, *index_selector);
+    get_index_or_404!(cluster_metadata, *index_selector);
 
     // Remove indices
-    for index_ref in indices.names.find(*index_selector) {
+    for index_ref in cluster_metadata.names.find(*index_selector) {
         // Get the index name
         let index_name = {
-            if let Some(index) = indices.get(&index_ref) {
+            if let Some(index) = cluster_metadata.indices.get(&index_ref) {
                 index.canonical_name().to_string()
             } else {
                 // Index doesn't exist
@@ -119,10 +117,10 @@ pub fn view_delete_index(req: &mut Request) -> IronResult<Response> {
         };
 
         // Remove index from array
-        indices.remove(&index_ref);
+        cluster_metadata.indices.remove(&index_ref);
 
         // Delete canonical name
-        indices.names.delete_canonical(&index_name, index_ref).unwrap();
+        cluster_metadata.names.delete_canonical(&index_name, index_ref).unwrap();
 
         // Delete file
         let mut indices_dir = system.get_indices_dir();
@@ -137,9 +135,9 @@ pub fn view_delete_index(req: &mut Request) -> IronResult<Response> {
         system.log.info("[api] deleted index", b!("index" => format!("{}", index_name)));
 
         // Delete aliases
-        let alias_names = indices.names.iter_index_aliases(index_ref).map(|n| n.to_string()).collect::<Vec<String>>();
+        let alias_names = cluster_metadata.names.iter_index_aliases(index_ref).map(|n| n.to_string()).collect::<Vec<String>>();
         for alias_name in alias_names {
-            let alias_deleted = indices.names.delete_alias(&alias_name, index_ref).unwrap();
+            let alias_deleted = cluster_metadata.names.delete_alias(&alias_name, index_ref).unwrap();
 
             // If this was the only index being referenced by the alias, the alias would be deleted
             if alias_deleted {
