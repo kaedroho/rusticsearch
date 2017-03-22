@@ -8,7 +8,7 @@ use uuid::Uuid;
 
 use index::Index;
 use index::metadata::IndexMetaData;
-use cluster::ClusterMetaData;
+use cluster::metadata::ClusterMetaData;
 
 
 pub struct System {
