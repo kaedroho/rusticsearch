@@ -7,14 +7,14 @@ use kite_rocksdb::RocksDBIndexStore;
 use uuid::Uuid;
 
 use index::Index;
-use index::metadata::IndexMetaData;
-use cluster::metadata::ClusterMetaData;
+use index::metadata::IndexMetadata;
+use cluster::metadata::ClusterMetadata;
 
 
 pub struct System {
     pub log: Logger,
     data_dir: PathBuf,
-    pub metadata: RwLock<ClusterMetaData>,
+    pub metadata: RwLock<ClusterMetadata>,
 }
 
 
@@ -23,7 +23,7 @@ impl System {
         System {
             log: log,
             data_dir: data_dir,
-            metadata: RwLock::new(ClusterMetaData::new()),
+            metadata: RwLock::new(ClusterMetadata::new()),
         }
     }
 
@@ -39,7 +39,7 @@ impl System {
         // Load metadata
         let mut metadata_path = path.to_path_buf();
         metadata_path.push("metadata.json");
-        let metadata = try!(IndexMetaData::load(metadata_path));
+        let metadata = try!(IndexMetadata::load(metadata_path));
 
         Ok(Index::new(id, name, metadata, store))
     }
@@ -62,7 +62,7 @@ impl System {
                                 self.log.info("[sys] loaded index", b!("index" => index_name));
                             }
                             Err(e) => {
-                                self.log.error("[sys] failed to open index", b!(
+                                self.log.error("[sys] load index failed", b!(
                                     "index" => index_name,
                                     "error" => e
                                 ));
@@ -72,7 +72,7 @@ impl System {
                 }
             }
             Err(error) => {
-                self.log.error("[sys] cannot open indices directory", b!(
+                self.log.error("[sys] could not open indices directory", b!(
                     "dir" => indices_dir.to_str().unwrap(),
                     "error" => format!("{}", error)
                 ));

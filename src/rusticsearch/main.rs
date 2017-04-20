@@ -66,9 +66,8 @@ fn main() {
                         });
 
                         if let Err(error) = result {
-                            system.log.error("[sys] maintenance task panicked", b!("index" => index.canonical_name(), "error" => format!("{:?}", error)));
+                            system.log.error("[sys] index maintenance task panicked", b!("index" => index.canonical_name(), "error" => format!("{:?}", error)));
                         }
-
                     }
                 }
 

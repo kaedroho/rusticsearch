@@ -13,7 +13,7 @@ use mapping::{Mapping, MappingProperty, FieldMapping};
 
 
 #[derive(Debug)]
-pub struct IndexMetaData {
+pub struct IndexMetadata {
     analyzers: HashMap<String, AnalyzerSpec>,
     tokenizers: HashMap<String, TokenizerSpec>,
     filters: HashMap<String, FilterSpec>,
@@ -21,9 +21,9 @@ pub struct IndexMetaData {
 }
 
 
-impl Default for IndexMetaData {
-    fn default() -> IndexMetaData {
-        let mut metadata = IndexMetaData {
+impl Default for IndexMetadata {
+    fn default() -> IndexMetadata {
+        let mut metadata = IndexMetadata {
             analyzers: HashMap::new(),
             tokenizers: HashMap::new(),
             filters: HashMap::new(),
@@ -52,7 +52,7 @@ impl Default for IndexMetaData {
 }
 
 
-impl IndexMetaData {
+impl IndexMetadata {
     // Tokenizer helpers
 
     pub fn insert_tokenizer(&mut self, name: String, tokenizer: TokenizerSpec) -> Option<TokenizerSpec> {
@@ -123,7 +123,7 @@ impl IndexMetaData {
 }
 
 
-impl ToJson for IndexMetaData {
+impl ToJson for IndexMetadata {
     fn to_json(&self) -> Result<serde_json::Value, serde_json::Error> {
         // Tokenizers
         let mut tokenizers_json = BTreeMap::new();

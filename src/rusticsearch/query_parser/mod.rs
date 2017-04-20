@@ -19,12 +19,12 @@ use serde_json::Value as Json;
 use kite::Query;
 use kite::schema::Schema;
 
-use index::metadata::IndexMetaData;
+use index::metadata::IndexMetadata;
 
 
 #[derive(Debug, Clone)]
 pub struct QueryBuildContext<'a> {
-    pub index_metadata: Option<&'a IndexMetaData>,
+    pub index_metadata: Option<&'a IndexMetadata>,
     score_required: bool,
 }
 
@@ -38,7 +38,7 @@ impl<'a> QueryBuildContext<'a> {
     }
 
     #[inline]
-    pub fn set_index_metadata(mut self, index_metadata: &'a IndexMetaData) -> QueryBuildContext<'a> {
+    pub fn set_index_metadata(mut self, index_metadata: &'a IndexMetadata) -> QueryBuildContext<'a> {
         self.index_metadata = Some(index_metadata);
         self
     }

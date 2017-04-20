@@ -7,20 +7,20 @@ use std::path::PathBuf;
 use kite_rocksdb::RocksDBIndexStore;
 use uuid::Uuid;
 
-use index::metadata::IndexMetaData;
+use index::metadata::IndexMetadata;
 
 
 #[derive(Debug)]
 pub struct Index {
     id: Uuid,
     canonical_name: String,
-    pub metadata: RwLock<IndexMetaData>,
+    pub metadata: RwLock<IndexMetadata>,
     pub store: RocksDBIndexStore,
 }
 
 
 impl Index {
-    pub fn new(id: Uuid, canonical_name: String, metadata: IndexMetaData, store: RocksDBIndexStore) -> Index {
+    pub fn new(id: Uuid, canonical_name: String, metadata: IndexMetadata, store: RocksDBIndexStore) -> Index {
         Index {
             id: id,
             canonical_name: canonical_name,

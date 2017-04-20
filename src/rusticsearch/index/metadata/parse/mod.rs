@@ -4,7 +4,7 @@ pub mod analysis_analyzer;
 
 use serde_json;
 
-use index::metadata::IndexMetaData;
+use index::metadata::IndexMetadata;
 use mapping::parse::{MappingParseError, parse as parse_mapping};
 
 use self::analysis_tokenizer::{TokenizerParseError, parse as parse_tokenizer};
@@ -13,7 +13,7 @@ use self::analysis_analyzer::{AnalyzerParseError, parse as parse_analyzer};
 
 
 #[derive(Debug, PartialEq)]
-pub enum IndexMetaDataParseError {
+pub enum IndexMetadataParseError {
     ExpectedObject,
     TokenizerParseError(String, TokenizerParseError),
     FilterParseError(String, FilterParseError),
@@ -22,37 +22,37 @@ pub enum IndexMetaDataParseError {
 }
 
 
-pub fn parse(metadata: &mut IndexMetaData, data: serde_json::Value) -> Result<(), IndexMetaDataParseError> {
+pub fn parse(metadata: &mut IndexMetadata, data: serde_json::Value) -> Result<(), IndexMetadataParseError> {
     let data = match data.as_object() {
         Some(object) => object,
         None => {
-            return Err(IndexMetaDataParseError::ExpectedObject);
+            return Err(IndexMetadataParseError::ExpectedObject);
         }
     };
 
     if let Some(settings) = data.get("settings") {
         let settings = match settings.as_object() {
             Some(object) => object,
-            None => return Err(IndexMetaDataParseError::ExpectedObject),
+            None => return Err(IndexMetadataParseError::ExpectedObject),
         };
 
         if let Some(analysis) = settings.get("analysis") {
             let analysis = match analysis.as_object() {
                 Some(object) => object,
-                None => return Err(IndexMetaDataParseError::ExpectedObject),
+                None => return Err(IndexMetadataParseError::ExpectedObject),
             };
 
             // Tokenisers
             if let Some(tokenizer_data) = analysis.get("tokenizer") {
                 let tokenizer_data = match tokenizer_data.as_object() {
                     Some(object) => object,
-                    None => return Err(IndexMetaDataParseError::ExpectedObject),
+                    None => return Err(IndexMetadataParseError::ExpectedObject),
                 };
 
                 for (name, data) in tokenizer_data {
                     let tokenizer = match parse_tokenizer(data) {
                         Ok(tokenizer) => tokenizer,
-                        Err(e) => return Err(IndexMetaDataParseError::TokenizerParseError(name.to_string(), e)),
+                        Err(e) => return Err(IndexMetadataParseError::TokenizerParseError(name.to_string(), e)),
                     };
 
                     metadata.insert_tokenizer(name.clone(), tokenizer);
@@ -63,13 +63,13 @@ pub fn parse(metadata: &mut IndexMetaData, data: serde_json::Value) -> Result<()
             if let Some(filter_data) = analysis.get("filter") {
                 let filter_data = match filter_data.as_object() {
                     Some(object) => object,
-                    None => return Err(IndexMetaDataParseError::ExpectedObject),
+                    None => return Err(IndexMetadataParseError::ExpectedObject),
                 };
 
                 for (name, data) in filter_data {
                     let filter = match parse_filter(data) {
                         Ok(filter) => filter,
-                        Err(e) => return Err(IndexMetaDataParseError::FilterParseError(name.to_string(), e)),
+                        Err(e) => return Err(IndexMetadataParseError::FilterParseError(name.to_string(), e)),
                     };
 
                     metadata.insert_filter(name.clone(), filter);
@@ -80,13 +80,13 @@ pub fn parse(metadata: &mut IndexMetaData, data: serde_json::Value) -> Result<()
             if let Some(analyzer_data) = analysis.get("analyzer") {
                 let analyzer_data = match analyzer_data.as_object() {
                     Some(object) => object,
-                    None => return Err(IndexMetaDataParseError::ExpectedObject),
+                    None => return Err(IndexMetadataParseError::ExpectedObject),
                 };
 
                 for (name, data) in analyzer_data {
                     let analyzer = match parse_analyzer(data, &metadata) {
                         Ok(analyzer) => analyzer,
-                        Err(e) => return Err(IndexMetaDataParseError::AnalyzerParseError(name.to_string(), e)),
+                        Err(e) => return Err(IndexMetadataParseError::AnalyzerParseError(name.to_string(), e)),
                     };
 
                     metadata.insert_analyzer(name.clone(), analyzer);
@@ -98,13 +98,13 @@ pub fn parse(metadata: &mut IndexMetaData, data: serde_json::Value) -> Result<()
     if let Some(mappings) = data.get("mappings") {
         let mappings = match mappings.as_object() {
             Some(object) => object,
-            None => return Err(IndexMetaDataParseError::ExpectedObject),
+            None => return Err(IndexMetadataParseError::ExpectedObject),
         };
 
         for (name, data) in mappings {
             let mapping_builder = match parse_mapping(data) {
                 Ok(mapping) => mapping,
-                Err(e) => return Err(IndexMetaDataParseError::MappingParseError(name.to_string(), e)),
+                Err(e) => return Err(IndexMetadataParseError::MappingParseError(name.to_string(), e)),
             };
             let mapping = mapping_builder.build(&metadata);
             metadata.mappings.insert(name.clone(), mapping);
@@ -124,15 +124,15 @@ mod tests {
     use analysis::filters::FilterSpec;
     use analysis::AnalyzerSpec;
     use mapping::parse::MappingParseError;
-    use index::metadata::IndexMetaData;
+    use index::metadata::IndexMetadata;
 
-    use super::{parse, IndexMetaDataParseError};
+    use super::{parse, IndexMetadataParseError};
     use super::analysis_tokenizer::TokenizerParseError;
     use super::analysis_filter::FilterParseError;
 
     #[test]
     fn test_default() {
-        let mut metadata = IndexMetaData::default();
+        let mut metadata = IndexMetadata::default();
         parse(&mut metadata, serde_json::from_str("
         {}
         ").unwrap()).expect("parse() returned an error");
@@ -168,7 +168,7 @@ mod tests {
 
     #[test]
     fn test_custom_analyser() {
-        let mut metadata = IndexMetaData::default();
+        let mut metadata = IndexMetadata::default();
         parse(&mut metadata, serde_json::from_str("
         {
             \"settings\": {
@@ -291,7 +291,7 @@ mod tests {
 
     #[test]
     fn test_custom_analyser_bad_tokenizer_type() {
-        let mut metadata = IndexMetaData::default();
+        let mut metadata = IndexMetadata::default();
         let error = parse(&mut metadata, serde_json::from_str("
         {
             \"settings\": {
@@ -306,12 +306,12 @@ mod tests {
         }
         ").unwrap()).err().expect("parse() was supposed to return an error, but didn't");
 
-        assert_eq!(error, IndexMetaDataParseError::TokenizerParseError("bad_tokenizer".to_string(), TokenizerParseError::UnrecognisedType("foo".to_string())));
+        assert_eq!(error, IndexMetadataParseError::TokenizerParseError("bad_tokenizer".to_string(), TokenizerParseError::UnrecognisedType("foo".to_string())));
     }
 
     #[test]
     fn test_custom_analyser_bad_filter_type() {
-        let mut metadata = IndexMetaData::default();
+        let mut metadata = IndexMetadata::default();
         let error = parse(&mut metadata, serde_json::from_str("
         {
             \"settings\": {
@@ -326,12 +326,12 @@ mod tests {
         }
         ").unwrap()).err().expect("parse() was supposed to return an error, but didn't");
 
-        assert_eq!(error, IndexMetaDataParseError::FilterParseError("bad_filter".to_string(), FilterParseError::UnrecognisedType("foo".to_string())));
+        assert_eq!(error, IndexMetadataParseError::FilterParseError("bad_filter".to_string(), FilterParseError::UnrecognisedType("foo".to_string())));
     }
 
     #[test]
     fn test_mapping() {
-        let mut metadata = IndexMetaData::default();
+        let mut metadata = IndexMetadata::default();
         parse(&mut metadata, json!({
             "mappings": {
                 "test_mapping": {
@@ -349,7 +349,7 @@ mod tests {
 
     #[test]
     fn test_mapping_error() {
-        let mut metadata = IndexMetaData::default();
+        let mut metadata = IndexMetadata::default();
         let error = parse(&mut metadata, json!({
             "mappings": {
                 "test_mapping": {
@@ -358,6 +358,6 @@ mod tests {
             }
         })).err().expect("parse() was supposed to return an error, but didn't");
 
-        assert_eq!(error, IndexMetaDataParseError::MappingParseError("test_mapping".to_string(), MappingParseError::UnrecognisedKeys(vec!["foo".to_string()])));
+        assert_eq!(error, IndexMetadataParseError::MappingParseError("test_mapping".to_string(), MappingParseError::UnrecognisedKeys(vec!["foo".to_string()])));
     }
 }

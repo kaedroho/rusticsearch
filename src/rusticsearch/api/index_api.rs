@@ -7,7 +7,7 @@ use kite_rocksdb::RocksDBIndexStore;
 use uuid::Uuid;
 
 use index::Index;
-use index::metadata::IndexMetaData;
+use index::metadata::IndexMetadata;
 use index::metadata::parse::parse as parse_index_metadata;
 
 use api::persistent;
@@ -61,7 +61,7 @@ pub fn view_put_index(req: &mut Request) -> IronResult<Response> {
         }
         None => {
             // Load metadata
-            let mut metadata = IndexMetaData::default();
+            let mut metadata = IndexMetadata::default();
             match json_from_request_body!(req).map(|data| parse_index_metadata(&mut metadata, data)) {
                 Some(Ok(())) | None => {}
                 Some(Err(_)) => {

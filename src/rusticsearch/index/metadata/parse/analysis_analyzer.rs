@@ -1,7 +1,7 @@
 use serde_json;
 
 use analysis::AnalyzerSpec;
-use index::metadata::IndexMetaData;
+use index::metadata::IndexMetadata;
 
 
 #[derive(Debug, PartialEq)]
@@ -16,7 +16,7 @@ pub enum AnalyzerParseError {
 }
 
 
-pub fn parse(json: &serde_json::Value, index_metadata: &IndexMetaData) -> Result<AnalyzerSpec, AnalyzerParseError> {
+pub fn parse(json: &serde_json::Value, index_metadata: &IndexMetadata) -> Result<AnalyzerSpec, AnalyzerParseError> {
     let data = try!(json.as_object().ok_or(AnalyzerParseError::ExpectedObject));
 
     // Get type

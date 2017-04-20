@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use mapping::{Mapping, MappingProperty, FieldMapping, NestedMapping, FieldType, get_standard_analyzer};
-use index::metadata::IndexMetaData;
+use index::metadata::IndexMetadata;
 
 
 #[derive(Debug, PartialEq)]
@@ -36,7 +36,7 @@ impl Default for FieldMappingBuilder {
 
 
 impl FieldMappingBuilder {
-    pub fn build(&self, index_metadata: &IndexMetaData) -> FieldMapping {
+    pub fn build(&self, index_metadata: &IndexMetadata) -> FieldMapping {
         let base_analyzer = match self.base_analyzer {
             Some(ref base_analyzer) => {
                 match index_metadata.analyzers().get(base_analyzer) {
@@ -111,7 +111,7 @@ impl Default for NestedMappingBuilder {
 
 
 impl NestedMappingBuilder {
-    pub fn build(&self, index_metadata: &IndexMetaData) -> NestedMapping {
+    pub fn build(&self, index_metadata: &IndexMetadata) -> NestedMapping {
         // Insert fields
         let mut properties = HashMap::new();
         for (field_name, builder) in self.properties.iter() {
@@ -146,7 +146,7 @@ pub struct MappingBuilder {
 
 
 impl MappingBuilder {
-    pub fn build(&self, index_metadata: &IndexMetaData) -> Mapping {
+    pub fn build(&self, index_metadata: &IndexMetadata) -> Mapping {
         // Insert fields
         let mut properties = HashMap::new();
         for (field_name, builder) in self.properties.iter() {
@@ -188,13 +188,13 @@ mod tests {
     use analysis::tokenizers::TokenizerSpec;
     use analysis::filters::FilterSpec;
     use mapping::{Mapping, MappingProperty, FieldMapping, FieldType, get_standard_analyzer};
-    use index::metadata::IndexMetaData;
+    use index::metadata::IndexMetadata;
 
     use super::{MappingBuilder, MappingPropertyBuilder, FieldMappingBuilder};
 
     #[test]
     fn test_build() {
-        let index_metadata = IndexMetaData::default();
+        let index_metadata = IndexMetadata::default();
         let builder = MappingBuilder {
             properties: hashmap! {
                 "title".to_string() => MappingPropertyBuilder::Field(
@@ -233,7 +233,7 @@ mod tests {
 
     #[test]
     fn test_build_no_fields() {
-        let index_metadata = IndexMetaData::default();
+        let index_metadata = IndexMetadata::default();
         let builder = MappingBuilder {
             properties: hashmap! {},
         };
@@ -255,7 +255,7 @@ mod tests {
 
     #[test]
     fn test_build_override_all_field() {
-        let index_metadata = IndexMetaData::default();
+        let index_metadata = IndexMetadata::default();
         let builder = MappingBuilder {
             properties: hashmap! {
                 "_all".to_string() => MappingPropertyBuilder::Field(
@@ -285,7 +285,7 @@ mod tests {
 
     #[test]
     fn test_build_field() {
-        let index_metadata = IndexMetaData::default();
+        let index_metadata = IndexMetadata::default();
         let builder = FieldMappingBuilder {
             field_type: FieldType::String,
             ..FieldMappingBuilder::default()
@@ -303,7 +303,7 @@ mod tests {
 
     #[test]
     fn test_build_field_types() {
-        let index_metadata = IndexMetaData::default();
+        let index_metadata = IndexMetadata::default();
         let builder = FieldMappingBuilder {
             field_type: FieldType::Integer,
             is_analyzed: false,
@@ -322,7 +322,7 @@ mod tests {
 
     #[test]
     fn test_build_field_stored() {
-        let index_metadata = IndexMetaData::default();
+        let index_metadata = IndexMetadata::default();
         let builder = FieldMappingBuilder {
             field_type: FieldType::String,
             is_stored: true,
@@ -342,7 +342,7 @@ mod tests {
 
     #[test]
     fn test_build_field_is_in_all() {
-        let index_metadata = IndexMetaData::default();
+        let index_metadata = IndexMetadata::default();
         let builder = FieldMappingBuilder {
             field_type: FieldType::String,
             is_in_all: false,
@@ -362,7 +362,7 @@ mod tests {
 
     #[test]
     fn test_build_field_boost() {
-        let index_metadata = IndexMetaData::default();
+        let index_metadata = IndexMetadata::default();
         let builder = FieldMappingBuilder {
             field_type: FieldType::String,
             boost: 2.0f64,
@@ -382,7 +382,7 @@ mod tests {
 
     #[test]
     fn test_build_field_analyzer_default() {
-        let index_metadata = IndexMetaData::default();
+        let index_metadata = IndexMetadata::default();
         let builder = FieldMappingBuilder {
             field_type: FieldType::String,
             ..FieldMappingBuilder::default()
@@ -409,7 +409,7 @@ mod tests {
 
     #[test]
     fn test_build_field_custom_base_analyzer() {
-        let mut index_metadata = IndexMetaData::default();
+        let mut index_metadata = IndexMetadata::default();
         index_metadata.insert_analyzer("my-analyzer".to_string(), build_test_analyzer());
 
         let builder = FieldMappingBuilder {
@@ -430,7 +430,7 @@ mod tests {
 
     #[test]
     fn test_build_field_custom_index_analyzer() {
-        let mut index_metadata = IndexMetaData::default();
+        let mut index_metadata = IndexMetadata::default();
         index_metadata.insert_analyzer("my-analyzer".to_string(), build_test_analyzer());
 
         let builder = FieldMappingBuilder {
@@ -451,7 +451,7 @@ mod tests {
 
     #[test]
     fn test_build_field_custom_search_analyzer() {
-        let mut index_metadata = IndexMetaData::default();
+        let mut index_metadata = IndexMetadata::default();
         index_metadata.insert_analyzer("my-analyzer".to_string(), build_test_analyzer());
 
         let builder = FieldMappingBuilder {

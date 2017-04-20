@@ -21,15 +21,15 @@ impl IndexRef {
 
 
 #[derive(Debug)]
-pub struct ClusterMetaData {
+pub struct ClusterMetadata {
     pub indices: HashMap<IndexRef, Index>,
     pub names: NameRegistry,
 }
 
 
-impl ClusterMetaData {
-    pub fn new() -> ClusterMetaData {
-        ClusterMetaData {
+impl ClusterMetadata {
+    pub fn new() -> ClusterMetadata {
+        ClusterMetadata {
             indices: HashMap::new(),
             names: NameRegistry::new(),
         }
