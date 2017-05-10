@@ -1,29 +1,24 @@
 use std::fs;
-use std::io::Read;
+use std::sync::Arc;
 
-use serde_json;
+use serde_json::Value;
 use serde_json::value::ToJson;
 use kite_rocksdb::RocksDBIndexStore;
 use uuid::Uuid;
+use rocket::State;
+use rocket_contrib::JSON;
 
+use system::System;
 use index::Index;
 use index::metadata::IndexMetadata;
 use index::metadata::parse::parse as parse_index_metadata;
 
-use api::persistent;
-use api::iron::prelude::*;
-use api::iron::status;
-use api::router::Router;
-use api::utils::json_response;
 
-
-pub fn view_get_index(req: &mut Request) -> IronResult<Response> {
-    let ref system = get_system!(req);
-    let ref index_name = read_path_parameter!(req, "index").unwrap_or("");
-
+#[get("/<index_name>")]
+pub fn get(index_name: &str, system: State<Arc<System>>) -> Option<JSON<Value>> {
     // Get index
     let cluster_metadata = system.metadata.read().unwrap();
-    let index = get_index_or_404!(cluster_metadata, *index_name);
+    let index = get_index_or_404!(cluster_metadata, index_name);
 
     // Serialise index metadata
     let json = {
@@ -31,21 +26,17 @@ pub fn view_get_index(req: &mut Request) -> IronResult<Response> {
         match index_metadata.to_json() {
             Ok(json) => json,
             Err(_) => {
-                return Ok(json_response(status::InternalServerError, json!({
-                    "message": "unable to serialise index metadata"
-                })));
+                return Some(JSON(json!({"message": "unable to serialise index metadata"})));  // TODO 500 error
             }
         }
     };
 
-    return Ok(json_response(status::Ok, json));
+    Some(JSON(json))
 }
 
 
-pub fn view_put_index(req: &mut Request) -> IronResult<Response> {
-    let ref system = get_system!(req);
-    let ref index_name = read_path_parameter!(req, "index").unwrap_or("");
-
+#[put("/<index_name>", data = "<data>")]
+pub fn put(index_name: &str, data: JSON<Value>, system: State<Arc<System>>) -> JSON<Value> {
     // Lock cluster metadata
     let mut cluster_metadata = system.metadata.write().unwrap();
 
@@ -57,16 +48,16 @@ pub fn view_put_index(req: &mut Request) -> IronResult<Response> {
             // Update existing index
             // TODO
 
-            system.log.info("[api] updated index", b!("index" => *index_name));
+            system.log.info("[api] updated index", b!("index" => index_name));
         }
         None => {
             // Load metadata
             let mut metadata = IndexMetadata::default();
-            match json_from_request_body!(req).map(|data| parse_index_metadata(&mut metadata, data)) {
-                Some(Ok(())) | None => {}
-                Some(Err(_)) => {
-                    // TODO: better error
-                    return Ok(json_response(status::BadRequest, json!({"message": "Couldn't parse index settings"})));
+
+            match parse_index_metadata(&mut metadata, data.into_inner()) {
+                Ok(()) => {}
+                Err(_) => {
+                    return JSON(json!({"message": "Couldn't parse index settings"}));  // TODO 400 error
                 }
             }
 
@@ -86,26 +77,24 @@ pub fn view_put_index(req: &mut Request) -> IronResult<Response> {
             // Register canonical name
             cluster_metadata.names.insert_canonical(index_name.clone().to_owned(), index_ref).unwrap();
 
-            system.log.info("[api] created index", b!("index" => *index_name));
+            system.log.info("[api] created index", b!("index" => index_name));
         }
     }
 
-    return Ok(json_response(status::Ok, json!({"acknowledged": true})));
+    JSON(json!({"acknowledged": true}))
 }
 
 
-pub fn view_delete_index(req: &mut Request) -> IronResult<Response> {
-    let ref system = get_system!(req);
-    let ref index_selector = read_path_parameter!(req, "index").unwrap_or("");
-
+#[delete("/<index_selector>")]
+pub fn delete(index_selector: &str, system: State<Arc<System>>) -> Option<JSON<Value>> {
     // Lock cluster metadata
     let mut cluster_metadata = system.metadata.write().unwrap();
 
     // Make sure the index exists
-    get_index_or_404!(cluster_metadata, *index_selector);
+    get_index_or_404!(cluster_metadata, index_selector);
 
     // Remove indices
-    for index_ref in cluster_metadata.names.find(*index_selector) {
+    for index_ref in cluster_metadata.names.find(index_selector) {
         // Get the index name
         let index_name = {
             if let Some(index) = cluster_metadata.indices.get(&index_ref) {
@@ -146,18 +135,17 @@ pub fn view_delete_index(req: &mut Request) -> IronResult<Response> {
         }
     }
 
-    return Ok(json_response(status::Ok, json!({"acknowledged": true})));
+    Some(JSON(json!({"acknowledged": true})))
 }
 
 
-pub fn view_post_refresh_index(_req: &mut Request) -> IronResult<Response> {
-    // let ref system = get_system!(req);
-    // let ref index_name = read_path_parameter!(req, "index").unwrap_or("");
-
+#[allow(unused_variables)]
+#[post("/<index_name>/_refresh")]
+pub fn refresh(index_name: &str) -> Option<JSON<Value>> {
     // Lock index array
     // TODO
     // let mut indices = system.indices.write().unwrap();
 
     // TODO: {"_shards":{"total":10,"successful":5,"failed":0}}
-    return Ok(json_response(status::Ok, json!({"acknowledged": true})));
+    Some(JSON(json!({"acknowledged": true})))
 }

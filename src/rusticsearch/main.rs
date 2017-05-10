@@ -1,8 +1,11 @@
+#![feature(plugin)]
+#![plugin(rocket_codegen)]
+
 extern crate kite;
 extern crate kite_rocksdb;
+extern crate rocket;
+extern crate rocket_contrib;
 extern crate chrono;
-#[macro_use]
-extern crate router;
 extern crate url;
 #[macro_use]
 extern crate log;
