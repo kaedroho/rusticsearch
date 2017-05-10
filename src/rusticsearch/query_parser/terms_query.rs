@@ -26,7 +26,7 @@ impl QueryBuilder for TermsQueryBuilder {
             });
         }
 
-        Query::new_disjunction(queries)
+        Query::Disjunction { queries: queries }
     }
 }
 

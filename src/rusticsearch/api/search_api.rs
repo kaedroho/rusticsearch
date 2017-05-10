@@ -50,7 +50,7 @@ pub fn view_count(req: &mut Request) -> IronResult<Response> {
         }
         None => {
             let mut collector = TotalCountCollector::new();
-            index_reader.search(&mut collector, &Query::new_all()).unwrap();
+            index_reader.search(&mut collector, &Query::all()).unwrap();
             collector.get_total_count()
         }
     };

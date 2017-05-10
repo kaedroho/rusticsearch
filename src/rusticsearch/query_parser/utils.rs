@@ -12,11 +12,11 @@ pub fn parse_string(json: &Json) -> Result<String, QueryParseError> {
 }
 
 
-pub fn parse_float(json: &Json) -> Result<f64, QueryParseError> {
+pub fn parse_float(json: &Json) -> Result<f32, QueryParseError> {
     match json {
         &Json::Number(ref number) => {
             match number.as_f64() {
-                Some(val) => Ok(val),
+                Some(val) => Ok(val as f32),
                 None => Err(QueryParseError::ExpectedFloat),
             }
         }
@@ -46,15 +46,15 @@ pub fn parse_operator(json: &Json) -> Result<Operator, QueryParseError> {
 }
 
 
-pub fn parse_field_and_boost(json: &Json) -> Result<(String, f64), QueryParseError> {
+pub fn parse_field_and_boost(json: &Json) -> Result<(String, f32), QueryParseError> {
     let string = try!(parse_string(json));
 
     let split = string.split('^').collect::<Vec<_>>();
     if split.len() == 1 {
-        return Ok((string.clone(), 1.0f64));
+        return Ok((string.clone(), 1.0f32));
     } else {
         let field_name = split[0].to_owned();
-        let boost: f64 = split[1].parse().unwrap_or(1.0f64);
+        let boost: f32 = split[1].parse().unwrap_or(1.0f32);
         return Ok((field_name, boost));
     }
 }

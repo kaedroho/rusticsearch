@@ -15,7 +15,7 @@ struct MatchQueryBuilder {
     field: String,
     query: String,
     operator: Operator,
-    boost: f64,
+    boost: f32,
 }
 
 
@@ -56,10 +56,10 @@ impl QueryBuilder for MatchQueryBuilder {
         // Combine the term queries
         let mut query = match self.operator {
             Operator::Or => {
-                Query::new_disjunction(sub_queries)
+                Query::Disjunction { queries: sub_queries }
             }
             Operator::And => {
-                Query::new_conjunction(sub_queries)
+                Query::Conjunction { queries: sub_queries }
             }
         };
 
@@ -82,7 +82,7 @@ pub fn parse(json: &Json) -> Result<Box<QueryBuilder>, QueryParseError> {
 
     // Get configuration
     let mut query = String::new();
-    let mut boost = 1.0f64;
+    let mut boost = 1.0f32;
     let mut operator = Operator::Or;
 
     match object.get(field_name).unwrap() {
@@ -226,7 +226,7 @@ mod tests {
         assert_eq!(query, Ok(Query::Term {
             field: foo_field,
             term: Term::from_string("bar"),
-            scorer: TermScorer::default_with_boost(2.0f64),
+            scorer: TermScorer::default_with_boost(2.0f32),
         }))
     }
 
@@ -247,7 +247,7 @@ mod tests {
         assert_eq!(query, Ok(Query::Term {
             field: foo_field,
             term: Term::from_string("bar"),
-            scorer: TermScorer::default_with_boost(2.0f64),
+            scorer: TermScorer::default_with_boost(2.0f32),
         }))
     }
 

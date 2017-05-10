@@ -21,7 +21,7 @@ impl QueryBuilder for AndQueryBuilder {
             queries.push(query.build(context, schema));
         }
 
-        Query::new_conjunction(queries)
+        Query::Conjunction { queries: queries }
     }
 }
 

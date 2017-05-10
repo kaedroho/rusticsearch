@@ -16,7 +16,7 @@ struct NotQueryBuilder {
 impl QueryBuilder for NotQueryBuilder {
     fn build(&self, context: &QueryBuildContext, schema: &Schema) -> Query {
         Query::Exclude {
-            query: Box::new(Query::new_all()),
+            query: Box::new(Query::all()),
             exclude: Box::new(self.query.build(&context.clone().no_score(), schema)),
         }
     }
@@ -55,7 +55,7 @@ mod tests {
         ").unwrap()).and_then(|builder| Ok(builder.build(&QueryBuildContext::new(), &schema)));
 
         assert_eq!(query, Ok(Query::Exclude {
-            query: Box::new(Query::new_all()),
+            query: Box::new(Query::all()),
             exclude: Box::new(Query::Term {
                 field: test_field,
                 term: Term::from_string("foo"),

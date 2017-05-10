@@ -1,7 +1,7 @@
 //! Parses "prefix" queries
 
 use serde_json::Value as Json;
-use kite::{Query, TermSelector, TermScorer};
+use kite::{Query, MultiTermSelector, TermScorer};
 use kite::schema::Schema;
 
 use query_parser::{QueryBuildContext, QueryParseError, QueryBuilder};
@@ -12,7 +12,7 @@ use query_parser::utils::parse_float;
 struct PrefixQueryBuilder {
     field: String,
     prefix: String,
-    boost: f64,
+    boost: f32,
 }
 
 
@@ -20,7 +20,7 @@ impl QueryBuilder for PrefixQueryBuilder {
     fn build(&self, _context: &QueryBuildContext, schema: &Schema) -> Query {
         let mut query = Query::MultiTerm {
             field: schema.get_field_by_name(&self.field).unwrap(),
-            term_selector: TermSelector::Prefix(self.prefix.clone()),
+            term_selector: MultiTermSelector::Prefix(self.prefix.clone()),
             scorer: TermScorer::default(),
         };
 
@@ -45,7 +45,7 @@ pub fn parse(json: &Json) -> Result<Box<QueryBuilder>, QueryParseError> {
 
     // Get configuration
     let mut value: Option<&Json> = None;
-    let mut boost = 1.0f64;
+    let mut boost = 1.0f32;
 
     match *object {
         Json::String(_) => value = Some(object),
@@ -89,7 +89,7 @@ pub fn parse(json: &Json) -> Result<Box<QueryBuilder>, QueryParseError> {
 mod tests {
     use serde_json;
 
-    use kite::{Query, TermSelector, TermScorer};
+    use kite::{Query, MultiTermSelector, TermScorer};
     use kite::schema::{Schema, FieldType, FIELD_INDEXED};
 
     use query_parser::{QueryBuildContext, QueryParseError};
@@ -111,7 +111,7 @@ mod tests {
 
         assert_eq!(query, Ok(Query::MultiTerm {
             field: foo_field,
-            term_selector: TermSelector::Prefix("bar".to_string()),
+            term_selector: MultiTermSelector::Prefix("bar".to_string()),
             scorer: TermScorer::default(),
         }));
     }
@@ -129,7 +129,7 @@ mod tests {
 
         assert_eq!(query, Ok(Query::MultiTerm {
             field: foo_field,
-            term_selector: TermSelector::Prefix("bar".to_string()),
+            term_selector: MultiTermSelector::Prefix("bar".to_string()),
             scorer: TermScorer::default(),
         }));
     }
@@ -149,7 +149,7 @@ mod tests {
 
         assert_eq!(query, Ok(Query::MultiTerm {
             field: foo_field,
-            term_selector: TermSelector::Prefix("bar".to_string()),
+            term_selector: MultiTermSelector::Prefix("bar".to_string()),
             scorer: TermScorer::default(),
         }));
     }
@@ -170,8 +170,8 @@ mod tests {
 
         assert_eq!(query, Ok(Query::MultiTerm {
             field: foo_field,
-            term_selector: TermSelector::Prefix("bar".to_string()),
-            scorer: TermScorer::default_with_boost(2.0f64),
+            term_selector: MultiTermSelector::Prefix("bar".to_string()),
+            scorer: TermScorer::default_with_boost(2.0f32),
         }));
     }
 
@@ -191,8 +191,8 @@ mod tests {
 
         assert_eq!(query, Ok(Query::MultiTerm {
             field: foo_field,
-            term_selector: TermSelector::Prefix("bar".to_string()),
-            scorer: TermScorer::default_with_boost(2.0f64),
+            term_selector: MultiTermSelector::Prefix("bar".to_string()),
+            scorer: TermScorer::default_with_boost(2.0f32),
         }));
     }
 

@@ -12,7 +12,7 @@ use query_parser::utils::{parse_float, json_value_to_term};
 struct TermQueryBuilder {
     field: String,
     term: Term,
-    boost: f64,
+    boost: f32,
 }
 
 
@@ -45,7 +45,7 @@ pub fn parse(json: &Json) -> Result<Box<QueryBuilder>, QueryParseError> {
 
     // Get configuration
     let mut term: Option<Term> = None;
-    let mut boost = 1.0f64;
+    let mut boost = 1.0f32;
 
     match *object {
         Json::Object(ref inner_object) => {
@@ -167,7 +167,7 @@ mod tests {
         assert_eq!(query, Ok(Query::Term {
             field: foo_field,
             term: Term::from_string("bar"),
-            scorer: TermScorer::default_with_boost(2.0f64),
+            scorer: TermScorer::default_with_boost(2.0f32),
         }));
     }
 
@@ -188,7 +188,7 @@ mod tests {
         assert_eq!(query, Ok(Query::Term {
             field: foo_field,
             term: Term::from_string("bar"),
-            scorer: TermScorer::default_with_boost(2.0f64),
+            scorer: TermScorer::default_with_boost(2.0f32),
         }));
     }
 

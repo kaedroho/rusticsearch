@@ -7,6 +7,7 @@ use serde_json;
 use serde_json::value::ToJson;
 use chrono::{DateTime, UTC};
 use kite::{Term, Token};
+use kite::term_vector::TermVector;
 use kite::document::FieldValue;
 use kite::similarity::SimilarityModel;
 use kite::schema::FieldRef;
@@ -161,7 +162,7 @@ impl FieldMapping {
         }
     }
 
-    pub fn process_value_for_index(&self, value: &serde_json::Value) -> Result<Option<Vec<Token>>, FieldValueError> {
+    pub fn process_value_for_index(&self, value: &serde_json::Value) -> Result<Option<TermVector>, FieldValueError> {
         if *value == serde_json::Value::Null {
             return Ok(None);
         }
@@ -174,12 +175,12 @@ impl FieldMapping {
                         let tokens = match self.index_analyzer() {
                             Some(index_analyzer) => {
                                 let token_stream = index_analyzer.initialise(string);
-                                token_stream.collect::<Vec<Token>>()
+                                token_stream.collect::<Vec<Token>>().into()
                             }
                             None => {
                                 vec![
                                     Token {term: Term::from_string(string), position: 1}
-                                ]
+                                ].into()
                             }
                         };
                         Ok(Some(tokens))
@@ -193,7 +194,7 @@ impl FieldMapping {
                         for item in array {
                             match *item {
                                 serde_json::Value::String(ref string) => {
-                                    if let Some(mut next_tokens) = self.process_value_for_index(&serde_json::Value::String(string.clone()))? {
+                                    if let Some(mut next_tokens) = self.process_value_for_index(&serde_json::Value::String(string.clone()))?.into::<Vec<Token>>() {
                                         // Increment token positions so they don't overlap with previous values
                                         for token in next_tokens.iter_mut() {
                                             token.position += last_token_position;
@@ -218,7 +219,7 @@ impl FieldMapping {
                             }
                         }
 
-                        Ok(Some(tokens))
+                        Ok(Some(tokens.into()))
                     }
                     _ => Err(FieldValueError),
                 }
@@ -227,14 +228,14 @@ impl FieldMapping {
                 match *value {
                     serde_json::Value::Number(ref num) => {
                         match num.as_i64() {
-                            Some(num) => Ok(Some(vec![Token{term: Term::from_integer(num), position: 1}])),
+                            Some(num) => Ok(Some(vec![Token{term: Term::from_integer(num), position: 1}].into())),
                             None => Err(FieldValueError),
                         }
                     }
                     _ => Err(FieldValueError),
                 }
             }
-            FieldType::Boolean => Ok(Some(vec![Token{term: Term::from_boolean(parse_boolean(&value)), position: 1}])),
+            FieldType::Boolean => Ok(Some(vec![Token{term: Term::from_boolean(parse_boolean(&value)), position: 1}].into())),
             FieldType::Date => {
                 match *value {
                     serde_json::Value::String(ref string) => {
@@ -246,7 +247,7 @@ impl FieldMapping {
                             }
                         };
 
-                        Ok(Some(vec![Token{term: Term::from_datetime(&date_parsed), position: 1}]))
+                        Ok(Some(vec![Token{term: Term::from_datetime(&date_parsed), position: 1}].into()))
                     }
                     serde_json::Value::Number(_) => {
                         // TODO needs to be interpreted as milliseconds since epoch

@@ -12,10 +12,10 @@ use query_parser::utils::{parse_string, parse_float, Operator, parse_operator, p
 
 #[derive(Debug)]
 struct MultiMatchQueryBuilder {
-    fields: Vec<(String, f64)>,
+    fields: Vec<(String, f32)>,
     query: String,
     operator: Operator,
-    boost: f64,
+    boost: f32,
 }
 
 
@@ -57,10 +57,10 @@ impl QueryBuilder for MultiMatchQueryBuilder {
 
             let mut field_query = match self.operator {
                 Operator::Or => {
-                    Query::new_disjunction(term_queries)
+                    Query::Disjunction { queries: term_queries }
                 }
                 Operator::And => {
-                    Query::new_conjunction(term_queries)
+                    Query::Conjunction { queries: term_queries }
                 }
             };
 
@@ -70,7 +70,7 @@ impl QueryBuilder for MultiMatchQueryBuilder {
             field_queries.push(field_query);
         }
 
-        let mut query = Query::new_disjunction_max(field_queries);
+        let mut query = Query::DisjunctionMax { queries: field_queries };
 
         // Add boost
         query.boost(self.boost);
@@ -86,7 +86,7 @@ pub fn parse(json: &Json) -> Result<Box<QueryBuilder>, QueryParseError> {
     // Get configuration
     let mut fields_with_boosts = Vec::new();
     let mut query = String::new();
-    let mut boost = 1.0f64;
+    let mut boost = 1.0f32;
     let mut operator = Operator::Or;
 
     let mut has_fields_key = false;
@@ -243,12 +243,12 @@ mod tests {
                 Query::Term {
                     field: bar_field,
                     term: Term::from_string("foo"),
-                    scorer: TermScorer::default_with_boost(2.0f64),
+                    scorer: TermScorer::default_with_boost(2.0f32),
                 },
                 Query::Term {
                     field: baz_field,
                     term: Term::from_string("foo"),
-                    scorer: TermScorer::default_with_boost(2.0f64),
+                    scorer: TermScorer::default_with_boost(2.0f32),
                 }
             ],
         }));
@@ -273,12 +273,12 @@ mod tests {
                 Query::Term {
                     field: bar_field,
                     term: Term::from_string("foo"),
-                    scorer: TermScorer::default_with_boost(2.0f64),
+                    scorer: TermScorer::default_with_boost(2.0f32),
                 },
                 Query::Term {
                     field: baz_field,
                     term: Term::from_string("foo"),
-                    scorer: TermScorer::default_with_boost(2.0f64),
+                    scorer: TermScorer::default_with_boost(2.0f32),
                 }
             ],
         }));
@@ -302,7 +302,7 @@ mod tests {
                 Query::Term {
                     field: bar_field,
                     term: Term::from_string("foo"),
-                    scorer: TermScorer::default_with_boost(2.0f64),
+                    scorer: TermScorer::default_with_boost(2.0f32),
                 },
                 Query::Term {
                     field: baz_field,
@@ -332,12 +332,12 @@ mod tests {
                 Query::Term {
                     field: bar_field,
                     term: Term::from_string("foo"),
-                    scorer: TermScorer::default_with_boost(4.0f64),
+                    scorer: TermScorer::default_with_boost(4.0f32),
                 },
                 Query::Term {
                     field: baz_field,
                     term: Term::from_string("foo"),
-                    scorer: TermScorer::default_with_boost(2.0f64),
+                    scorer: TermScorer::default_with_boost(2.0f32),
                 }
             ],
         }));

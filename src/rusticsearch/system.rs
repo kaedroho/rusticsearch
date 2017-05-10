@@ -3,7 +3,7 @@ use std::path::{Path, PathBuf};
 use std::fs;
 
 use slog::Logger;
-use kite_rocksdb::RocksDBIndexStore;
+use kite_rocksdb::RocksDBStore;
 use uuid::Uuid;
 
 use index::Index;
@@ -34,7 +34,7 @@ impl System {
     }
 
     fn load_index(&self, id: Uuid, name: String, path: &Path) -> Result<Index, String> {
-        let store = try!(RocksDBIndexStore::open(path));
+        let store = try!(RocksDBStore::open(path));
 
         // Load metadata
         let mut metadata_path = path.to_path_buf();

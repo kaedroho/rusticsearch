@@ -4,7 +4,7 @@ pub mod metadata;
 use std::sync::RwLock;
 use std::path::PathBuf;
 
-use kite_rocksdb::RocksDBIndexStore;
+use kite_rocksdb::RocksDBStore;
 use uuid::Uuid;
 
 use index::metadata::IndexMetadata;
@@ -15,12 +15,12 @@ pub struct Index {
     id: Uuid,
     canonical_name: String,
     pub metadata: RwLock<IndexMetadata>,
-    pub store: RocksDBIndexStore,
+    pub store: RocksDBStore,
 }
 
 
 impl Index {
-    pub fn new(id: Uuid, canonical_name: String, metadata: IndexMetadata, store: RocksDBIndexStore) -> Index {
+    pub fn new(id: Uuid, canonical_name: String, metadata: IndexMetadata, store: RocksDBStore) -> Index {
         Index {
             id: id,
             canonical_name: canonical_name,
