@@ -5,21 +5,24 @@ use serde_json;
 
 use document::DocumentSource;
 
-use api::persistent;
-use api::iron::prelude::*;
-use api::iron::status;
-use api::utils::{json_response};
+use std::sync::Arc;
+
+use serde_json::Value;
+use rocket::State;
+use rocket::Data;
+use rocket_contrib::JSON;
+
+use system::System;
 
 
-pub fn view_post_bulk(req: &mut Request) -> IronResult<Response> {
-    let ref system = get_system!(req);
-
+#[post("/_bulk", data = "<data>")]
+pub fn bulk(data: Data, system: State<Arc<System>>) -> Option<JSON<Value>> {
     // Lock cluster metedata
     let cluster_metadata = system.metadata.read().unwrap();
 
     // Load data from body
     let mut payload = String::new();
-    req.body.read_to_string(&mut payload).unwrap();
+    data.open().read_to_string(&mut payload).unwrap();
 
     let mut items = Vec::new();
 
@@ -34,7 +37,13 @@ pub fn view_post_bulk(req: &mut Request) -> IronResult<Response> {
         }
 
         // Parse action line
-        let action_json = parse_json!(&action_line.unwrap());
+        let action_json: Value = match serde_json::from_str(&action_line.unwrap()) {
+            Ok(data) => data,
+            Err(_) => {
+                // TODO: Don't stop the bulk upload here
+                return None;
+            }
+        };
 
         // Check action
         // Action should be an object with only one key, the key name indicates the action and
@@ -54,7 +63,13 @@ pub fn view_post_bulk(req: &mut Request) -> IronResult<Response> {
         match action_name.as_ref() {
             "index" => {
                 let doc_line = payload_lines.next();
-                let doc_json = parse_json!(&doc_line.unwrap());;
+                let doc_json: Value = match serde_json::from_str(&doc_line.unwrap()) {
+                    Ok(data) => data,
+                    Err(_) => {
+                        // TODO: Don't stop the bulk upload here
+                        return None;
+                    }
+                };
 
                 // Find index
                 let index = get_index_or_404!(cluster_metadata, doc_index);
@@ -65,7 +80,8 @@ pub fn view_post_bulk(req: &mut Request) -> IronResult<Response> {
                     let mapping = match index_metadata.mappings.get(doc_type) {
                         Some(mapping) => mapping,
                         None => {
-                            return Ok(json_response(status::NotFound, json!({"message": "Mapping not found"})));
+                            // TODO: Don't stop the bulk upload here
+                            return None;
                         }
                     };
 
@@ -91,9 +107,8 @@ pub fn view_post_bulk(req: &mut Request) -> IronResult<Response> {
         }
     }
 
-    return Ok(json_response(status::Ok,
-                            json!({
-                                "took": items.len(),
-                                "items": items,
-                            })));
+    Some(JSON(json!({
+        "took": items.len(),
+        "items": items,
+    })))
 }

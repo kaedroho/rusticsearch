@@ -1,55 +1,38 @@
-use std::io::Read;
 use std::collections::HashMap;
+use std::sync::Arc;
 
-use serde_json;
 use kite::schema::{FieldType, FieldFlags, FIELD_INDEXED, FIELD_STORED};
+use serde_json::Value;
+use rocket::State;
+use rocket_contrib::JSON;
 
+use system::System;
 use mapping::{self, MappingProperty};
 use mapping::parse::parse as parse_mapping;
 
-use api::persistent;
-use api::iron::prelude::*;
-use api::iron::status;
-use api::router::Router;
-use api::utils::json_response;
 
-
-pub fn view_put_mapping(req: &mut Request) -> IronResult<Response> {
-    let ref system = get_system!(req);
-    let ref index_name = read_path_parameter!(req, "index").unwrap_or("");
-    let ref mapping_name = read_path_parameter!(req, "mapping").unwrap_or("");
-
+#[put("/<index_name>/_mapping/<mapping_name>", data = "<data>")]
+pub fn put(index_name: &str, mapping_name: &str, data: JSON<Value>, system: State<Arc<System>>) -> Option<JSON<Value>> {
     // Lock cluster metadata
     let mut cluster_metadata = system.metadata.write().unwrap();
 
     // Get index
-    let mut index = get_index_or_404_mut!(cluster_metadata, *index_name);
+    let mut index = get_index_or_404_mut!(cluster_metadata, index_name);
 
-    // Load data from body
-    let data = json_from_request_body!(req);
-
-    let data = match data {
-        Some(data) => data,
-        None => {
-            // TODO: Better error
-            return Ok(json_response(status::BadRequest, json!({"acknowledged": false})));
-        }
-    };
-
-    let data = data.as_object().unwrap().get(*mapping_name).unwrap();
+    let data = data.as_object().unwrap().get(mapping_name).unwrap();
 
     // Insert mapping
     let mapping_builder = match parse_mapping(&data) {
         Ok(mapping_builder) => mapping_builder,
         Err(_) => {
             // TODO: Better error
-            return Ok(json_response(status::BadRequest, json!({"acknowledged": false})));
+            return Some(JSON(json!({"acknowledged": false})));  // TODO 400 error
         }
     };
     let mut index_metadata = index.metadata.write().unwrap();
     let mut mapping = mapping_builder.build(&index_metadata);
     debug!("{:#?}", mapping);
-    let is_updating = index_metadata.mappings.contains_key(*mapping_name);
+    let is_updating = index_metadata.mappings.contains_key(mapping_name);
 
     // Find list of new fields that need to be added to the store
     let new_fields = {
@@ -86,7 +69,7 @@ pub fn view_put_mapping(req: &mut Request) -> IronResult<Response> {
                     } else {
                         // Conflict!
                         // TODO: Better error
-                        return Ok(json_response(status::BadRequest, json!({"acknowledged": false})));
+                        return Some(JSON(json!({"acknowledged": false})));  // TODO 400 error
                     }
                 }
 
@@ -101,7 +84,7 @@ pub fn view_put_mapping(req: &mut Request) -> IronResult<Response> {
     for (field_name, (field_type, field_flags)) in new_fields {
         let indexed_yesno = if field_flags.contains(FIELD_INDEXED) { "yes" } else { "no" };
         let stored_yesno = if field_flags.contains(FIELD_STORED) { "yes" } else { "no" };
-        system.log.info("[api] adding field", b!("index" => *index_name, "field" => field_name, "type" => format!("{:?}", field_type), "indexed" => indexed_yesno, "stored" => stored_yesno));
+        system.log.info("[api] adding field", b!("index" => index_name, "field" => field_name, "type" => format!("{:?}", field_type), "indexed" => indexed_yesno, "stored" => stored_yesno));
 
         index.store.add_field(field_name, field_type, field_flags).unwrap();
     }
@@ -123,10 +106,10 @@ pub fn view_put_mapping(req: &mut Request) -> IronResult<Response> {
 
     if is_updating {
         // TODO: New mapping should be merged with existing one
-        system.log.info("[api] updated mapping", b!("index" => *index_name, "mapping" => *mapping_name));
+        system.log.info("[api] updated mapping", b!("index" => index_name, "mapping" => mapping_name));
     } else {
-        system.log.info("[api] created mapping", b!("index" => *index_name, "mapping" => *mapping_name));
+        system.log.info("[api] created mapping", b!("index" => index_name, "mapping" => mapping_name));
     }
 
-    return Ok(json_response(status::Ok, json!({"acknowledged": true})));
+    Some(JSON(json!({"acknowledged": true})))
 }
