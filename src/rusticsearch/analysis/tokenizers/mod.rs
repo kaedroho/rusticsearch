@@ -1,8 +1,7 @@
 pub mod standard;
 pub mod ngram;
 
-use serde_json;
-use serde_json::value::ToJson;
+use serde::{Serialize, Serializer};
 use kite::token::Token;
 
 use analysis::ngram_generator::Edge;
@@ -59,47 +58,48 @@ impl TokenizerSpec {
     }
 }
 
-
-impl ToJson for TokenizerSpec {
-    fn to_json(&self) -> Result<serde_json::Value, serde_json::Error> {
-        match *self {
+impl Serialize for TokenizerSpec {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        let json = match *self {
             TokenizerSpec::Standard => {
-                Ok(json!({
+                json!({
                     "type": "standard",
-                }))
+                })
             }
             TokenizerSpec::Lowercase => {
-                Ok(json!({
+                json!({
                     "type": "lowercase",
-                }))
+                })
             }
             TokenizerSpec::NGram{min_size, max_size, edge} => {
                 match edge {
                     Edge::Left => {
-                        Ok(json!({
+                        json!({
                             "type": "edgeNGram",
                             "side": "front",
                             "min_gram": min_size,
                             "max_gram": max_size,
-                        }))
+                        })
                     }
                     Edge::Right => {
-                        Ok(json!({
+                        json!({
                             "type": "edgeNGram",
                             "side": "back",
                             "min_gram": min_size,
                             "max_gram": max_size,
-                        }))
+                        })
                     }
                     Edge::Neither => {
-                        Ok(json!({
+                        json!({
                             "type": "ngram",
                             "min_gram": min_size,
                             "max_gram": max_size,
-                        }))
+                        })
                     }
                 }
             }
-        }
+        };
+
+        json.serialize(serializer)
     }
 }

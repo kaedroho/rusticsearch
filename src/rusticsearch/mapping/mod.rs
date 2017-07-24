@@ -3,8 +3,9 @@ pub mod parse;
 
 use std::collections::{HashMap, BTreeMap};
 
+use serde::{Serialize, Serializer};
 use serde_json;
-use serde_json::value::ToJson;
+//use serde_json::value::ToJson;
 use chrono::{DateTime, Utc};
 use kite::{Term, Token};
 use kite::term_vector::TermVector;
@@ -110,8 +111,8 @@ impl Default for FieldMapping {
 }
 
 
-impl ToJson for FieldMapping {
-    fn to_json(&self) -> Result<serde_json::Value, serde_json::Error> {
+impl Serialize for FieldMapping {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
         let index = match (self.is_indexed, &self.index_analyzer) {
             (false, &None) => "no",
             (true, &None) => "not_analyzed",
@@ -124,7 +125,7 @@ impl ToJson for FieldMapping {
             }
         };
 
-        Ok(json!({
+        let json = json!({
             "type": self.data_type.to_string(),
             "index": index,
             "store": self.is_stored,
@@ -133,7 +134,9 @@ impl ToJson for FieldMapping {
             // "search_analyzer"
             "boost": self.boost,
             "include_in_all": self.is_in_all
-        }))
+        });
+
+        json.serialize(serializer)
     }
 }
 
@@ -337,19 +340,21 @@ pub struct NestedMapping {
 }
 
 
-impl ToJson for NestedMapping {
-    fn to_json(&self) -> Result<serde_json::Value, serde_json::Error> {
+impl Serialize for NestedMapping {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
         let mut properties_json = BTreeMap::new();
 
         // TODO: Exclude "_all" field
         for (name, prop) in self.properties.iter() {
-            properties_json.insert(name.to_string(), try!(prop.to_json()));
+            properties_json.insert(name.to_string(), serde_json::to_value(&prop).unwrap());
         }
 
-        Ok(json!({
+        let json = json!({
             "type": "nested",
             "properties": properties_json,
-        }))
+        });
+
+        json.serialize(serializer)
     }
 }
 
@@ -361,11 +366,11 @@ pub enum MappingProperty {
 }
 
 
-impl ToJson for MappingProperty {
-    fn to_json(&self) -> Result<serde_json::Value, serde_json::Error> {
+impl Serialize for MappingProperty {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
         match *self {
-            MappingProperty::Field(ref field) => field.to_json(),
-            MappingProperty::NestedMapping(ref mapping) => mapping.to_json(),
+            MappingProperty::Field(ref field) => field.serialize(serializer),
+            MappingProperty::NestedMapping(ref mapping) => mapping.serialize(serializer),
         }
     }
 }
@@ -377,18 +382,20 @@ pub struct Mapping {
 }
 
 
-impl ToJson for Mapping {
-    fn to_json(&self) -> Result<serde_json::Value, serde_json::Error> {
+impl Serialize for Mapping {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
         let mut properties_json = BTreeMap::new();
 
         // TODO: Exclude "_all" field
         for (name, prop) in self.properties.iter() {
-            properties_json.insert(name.to_string(), try!(prop.to_json()));
+            properties_json.insert(name.to_string(), serde_json::to_value(&prop).unwrap());
         }
 
-        Ok(json!({
+        let json = json!({
             "properties": properties_json,
-        }))
+        });
+
+        json.serialize(serializer)
     }
 }
 

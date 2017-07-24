@@ -3,7 +3,6 @@ use std::io::{self, Read, Write};
 use std::fs::File;
 
 use serde_json;
-use serde_json::value::ToJson;
 use atomicwrites::{self, AtomicFile, AllowOverwrite};
 
 use index::metadata::IndexMetadata;
@@ -83,7 +82,7 @@ impl From<io::Error> for LoadIndexMetadataError {
 impl IndexMetadata {
     pub fn save<P: AsRef<Path>>(&self, path: P) -> Result<(), SaveIndexMetadataError> {
         // Encode to JSON
-        let s = format!("{}", try!(self.to_json()));
+        let s = format!("{}", try!(serde_json::to_value(self)));
 
         // Write to file
         let file = AtomicFile::new(path, AllowOverwrite);
