@@ -54,7 +54,7 @@ impl QueryBuilder for MatchQueryBuilder {
         }
 
         // Combine the term queries
-        let mut query = match self.operator {
+        let query = match self.operator {
             Operator::Or => {
                 Query::Disjunction { queries: sub_queries }
             }
@@ -64,9 +64,7 @@ impl QueryBuilder for MatchQueryBuilder {
         };
 
         // Add boost
-        query.boost(self.boost);
-
-        query
+        query.boost(self.boost)
     }
 }
 

@@ -1,7 +1,6 @@
-use std::collections::HashMap;
-
 use serde_json;
 use kite::Document;
+use fnv::FnvHashMap;
 
 use mapping::{Mapping, MappingProperty, FieldValueError};
 
@@ -28,8 +27,8 @@ pub enum PrepareDocumentError {
 
 impl<'a> DocumentSource<'a> {
     pub fn prepare(&self, mapping: &Mapping) -> Result<Document, PrepareDocumentError> {
-        let mut indexed_fields = HashMap::new();
-        let mut stored_fields = HashMap::new();
+        let mut indexed_fields = FnvHashMap::default();
+        let mut stored_fields = FnvHashMap::default();
         let mut all_field_strings: Vec<String> = Vec::new();
 
         for (field_name, field_value) in self.data {

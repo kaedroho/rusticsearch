@@ -16,12 +16,7 @@ struct MatchAllQueryBuilder {
 
 impl QueryBuilder for MatchAllQueryBuilder {
     fn build(&self, _context: &QueryBuildContext, _schema: &Schema) -> Query {
-        let mut query = Query::all();
-
-        // Add boost
-        query.boost(self.boost);
-
-        query
+        Query::all().boost(self.boost)
     }
 }
 

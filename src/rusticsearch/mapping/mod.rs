@@ -5,7 +5,7 @@ use std::collections::{HashMap, BTreeMap};
 
 use serde_json;
 use serde_json::value::ToJson;
-use chrono::{DateTime, UTC};
+use chrono::{DateTime, Utc};
 use kite::{Term, Token};
 use kite::term_vector::TermVector;
 use kite::document::FieldValue;
@@ -194,7 +194,9 @@ impl FieldMapping {
                         for item in array {
                             match *item {
                                 serde_json::Value::String(ref string) => {
-                                    if let Some(mut next_tokens) = self.process_value_for_index(&serde_json::Value::String(string.clone()))?.into::<Vec<Token>>() {
+                                    if let Some(next_tokens) = self.process_value_for_index(&serde_json::Value::String(string.clone()))? {
+                                        let mut next_tokens: Vec<Token> = next_tokens.into();
+
                                         // Increment token positions so they don't overlap with previous values
                                         for token in next_tokens.iter_mut() {
                                             token.position += last_token_position;
@@ -239,7 +241,7 @@ impl FieldMapping {
             FieldType::Date => {
                 match *value {
                     serde_json::Value::String(ref string) => {
-                        let date_parsed = match string.parse::<DateTime<UTC>>() {
+                        let date_parsed = match string.parse::<DateTime<Utc>>() {
                             Ok(date_parsed) => date_parsed,
                             Err(_) => {
                                 // TODO: Handle this properly
@@ -306,7 +308,7 @@ impl FieldMapping {
             FieldType::Date => {
                 match *value {
                     serde_json::Value::String(ref string) => {
-                        let date_parsed = match string.parse::<DateTime<UTC>>() {
+                        let date_parsed = match string.parse::<DateTime<Utc>>() {
                             Ok(date_parsed) => date_parsed,
                             Err(_) => {
                                 // TODO: Handle this properly

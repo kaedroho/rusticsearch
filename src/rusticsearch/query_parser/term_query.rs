@@ -18,16 +18,14 @@ struct TermQueryBuilder {
 
 impl QueryBuilder for TermQueryBuilder {
     fn build(&self, _context: &QueryBuildContext, schema: &Schema) -> Query {
-        let mut query = Query::Term {
+        let query = Query::Term {
             field: schema.get_field_by_name(&self.field).unwrap(),
             term: self.term.clone(),
             scorer: TermScorer::default(),
         };
 
         // Add boost
-        query.boost(self.boost);
-
-        query
+        query.boost(self.boost)
     }
 }
 

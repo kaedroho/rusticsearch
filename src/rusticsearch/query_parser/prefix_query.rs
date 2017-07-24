@@ -18,16 +18,14 @@ struct PrefixQueryBuilder {
 
 impl QueryBuilder for PrefixQueryBuilder {
     fn build(&self, _context: &QueryBuildContext, schema: &Schema) -> Query {
-        let mut query = Query::MultiTerm {
+        let query = Query::MultiTerm {
             field: schema.get_field_by_name(&self.field).unwrap(),
             term_selector: MultiTermSelector::Prefix(self.prefix.clone()),
             scorer: TermScorer::default(),
         };
 
         // Add boost
-        query.boost(self.boost);
-
-        query
+        query.boost(self.boost)
     }
 }
 

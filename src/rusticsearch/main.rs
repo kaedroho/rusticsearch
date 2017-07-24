@@ -16,6 +16,7 @@ extern crate uuid;
 #[macro_use]
 extern crate serde_json;
 extern crate atomicwrites;
+extern crate fnv;
 
 pub mod analysis;
 pub mod query_parser;

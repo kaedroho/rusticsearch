@@ -55,7 +55,7 @@ impl QueryBuilder for MultiMatchQueryBuilder {
                 });
             }
 
-            let mut field_query = match self.operator {
+            let field_query = match self.operator {
                 Operator::Or => {
                     Query::Disjunction { queries: term_queries }
                 }
@@ -65,17 +65,15 @@ impl QueryBuilder for MultiMatchQueryBuilder {
             };
 
             // Add boost
-            field_query.boost(field_boost);
+            let field_query = field_query.boost(field_boost);
 
             field_queries.push(field_query);
         }
 
-        let mut query = Query::DisjunctionMax { queries: field_queries };
+        let query = Query::DisjunctionMax { queries: field_queries };
 
         // Add boost
-        query.boost(self.boost);
-
-        query
+        query.boost(self.boost)
     }
 }
 
