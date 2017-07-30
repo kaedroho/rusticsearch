@@ -10,18 +10,13 @@ use query_parser::utils::parse_float;
 
 #[derive(Debug)]
 struct MatchAllQueryBuilder {
-    boost: f64,
+    boost: f32,
 }
 
 
 impl QueryBuilder for MatchAllQueryBuilder {
     fn build(&self, _context: &QueryBuildContext, _schema: &Schema) -> Query {
-        let mut query = Query::new_all();
-
-        // Add boost
-        query.boost(self.boost);
-
-        query
+        Query::all().boost(self.boost)
     }
 }
 
@@ -30,7 +25,7 @@ pub fn parse(json: &Json) -> Result<Box<QueryBuilder>, QueryParseError> {
     let object = try!(json.as_object().ok_or(QueryParseError::ExpectedObject));
 
     // Get configuration
-    let mut boost = 1.0f64;
+    let mut boost = 1.0f32;
 
     for (key, value) in object.iter() {
         match &key[..] {
@@ -67,7 +62,7 @@ mod tests {
         }
         ").unwrap()).and_then(|builder| Ok(builder.build(&QueryBuildContext::new(), &schema)));
 
-        assert_eq!(query, Ok(Query::All {score: 1.0f64}))
+        assert_eq!(query, Ok(Query::All {score: 1.0f32}))
     }
 
     #[test]
@@ -80,7 +75,7 @@ mod tests {
         }
         ").unwrap()).and_then(|builder| Ok(builder.build(&QueryBuildContext::new(), &schema)));
 
-        assert_eq!(query, Ok(Query::All {score: 2.0f64}))
+        assert_eq!(query, Ok(Query::All {score: 2.0f32}))
     }
 
     #[test]
@@ -93,7 +88,7 @@ mod tests {
         }
         ").unwrap()).and_then(|builder| Ok(builder.build(&QueryBuildContext::new(), &schema)));
 
-        assert_eq!(query, Ok(Query::All {score: 2.0f64}))
+        assert_eq!(query, Ok(Query::All {score: 2.0f32}))
     }
 
     #[test]

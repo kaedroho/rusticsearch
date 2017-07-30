@@ -18,7 +18,7 @@ impl QueryBuilder for FilteredQueryBuilder {
     fn build(&self, context: &QueryBuildContext, schema: &Schema) -> Query {
         let query = match self.query {
             Some(ref query) => query.build(context, schema),
-            None => Query::new_all(),
+            None => Query::all(),
         };
 
         Query::Filter {
@@ -122,7 +122,7 @@ mod tests {
         ").unwrap()).and_then(|builder| Ok(builder.build(&QueryBuildContext::new(), &schema)));
 
         assert_eq!(query, Ok(Query::Filter {
-            query: Box::new(Query::new_all()),
+            query: Box::new(Query::all()),
             filter: Box::new(Query::Term {
                 field: the_field,
                 term: Term::from_string("filter"),

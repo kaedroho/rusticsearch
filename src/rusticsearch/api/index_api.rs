@@ -2,8 +2,7 @@ use std::fs;
 use std::io::Read;
 
 use serde_json;
-use serde_json::value::ToJson;
-use kite_rocksdb::RocksDBIndexStore;
+use kite_rocksdb::RocksDBStore;
 use uuid::Uuid;
 
 use index::Index;
@@ -27,8 +26,7 @@ pub fn view_get_index(req: &mut Request) -> IronResult<Response> {
 
     // Serialise index metadata
     let json = {
-        let index_metadata = index.metadata.read().unwrap();
-        match index_metadata.to_json() {
+        match serde_json::to_value(&index.metadata) {
             Ok(json) => json,
             Err(_) => {
                 return Ok(json_response(status::InternalServerError, json!({
@@ -73,7 +71,7 @@ pub fn view_put_index(req: &mut Request) -> IronResult<Response> {
             // Create index
             let mut indices_dir = system.get_indices_dir();
             indices_dir.push(index_name);
-            let index = Index::new(Uuid::new_v4(), index_name.clone().to_owned(), metadata, RocksDBIndexStore::create(indices_dir).unwrap());
+            let index = Index::new(Uuid::new_v4(), index_name.clone().to_owned(), metadata, RocksDBStore::create(indices_dir).unwrap());
             index.metadata.read().unwrap().save(index.metadata_path()).unwrap();
             let index_ref = cluster_metadata.insert_index(index);
 

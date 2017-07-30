@@ -21,7 +21,7 @@ impl QueryBuilder for OrQueryBuilder {
             queries.push(query.build(context, schema));
         }
 
-        Query::new_disjunction(queries)
+        Query::Disjunction { queries: queries }
     }
 }
 

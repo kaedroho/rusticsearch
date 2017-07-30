@@ -3,8 +3,8 @@ pub mod file;
 
 use std::collections::{HashMap, BTreeMap};
 
+use serde::{Serialize, Serializer};
 use serde_json;
-use serde_json::value::ToJson;
 
 use analysis::AnalyzerSpec;
 use analysis::tokenizers::TokenizerSpec;
@@ -123,27 +123,27 @@ impl IndexMetadata {
 }
 
 
-impl ToJson for IndexMetadata {
-    fn to_json(&self) -> Result<serde_json::Value, serde_json::Error> {
+impl Serialize for IndexMetadata {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
         // Tokenizers
         let mut tokenizers_json = BTreeMap::new();
         for (name, tokenizer) in self.tokenizers.iter() {
-            tokenizers_json.insert(name.to_string(), try!(tokenizer.to_json()));
+            tokenizers_json.insert(name.to_string(), serde_json::to_value(&tokenizer).unwrap());
         }
 
         // Filters
         let mut filters_json = BTreeMap::new();
         for (name, filter) in self.filters.iter() {
-            filters_json.insert(name.to_string(), try!(filter.to_json()));
+            filters_json.insert(name.to_string(), serde_json::to_value(&filter).unwrap());
         }
 
         // Mappings
         let mut mappings_json = BTreeMap::new();
         for (name, mapping) in self.mappings.iter() {
-            mappings_json.insert(name.to_string(), try!(mapping.to_json()));
+            mappings_json.insert(name.to_string(), serde_json::to_value(&mapping).unwrap());
         }
 
-        Ok(json!({
+        let json = json!({
             "settings": {
                 "analysis": {
                     "tokenizers": tokenizers_json,
@@ -152,6 +152,8 @@ impl ToJson for IndexMetadata {
                 },
             },
             "mappings": mappings_json,
-        }))
+        });
+
+        json.serialize(serializer)
     }
 }

@@ -3,10 +3,12 @@ pub mod parse;
 
 use std::collections::{HashMap, BTreeMap};
 
+use serde::{Serialize, Serializer};
 use serde_json;
-use serde_json::value::ToJson;
-use chrono::{DateTime, UTC};
+//use serde_json::value::ToJson;
+use chrono::{DateTime, Utc};
 use kite::{Term, Token};
+use kite::term_vector::TermVector;
 use kite::document::FieldValue;
 use kite::similarity::SimilarityModel;
 use kite::schema::FieldRef;
@@ -109,8 +111,8 @@ impl Default for FieldMapping {
 }
 
 
-impl ToJson for FieldMapping {
-    fn to_json(&self) -> Result<serde_json::Value, serde_json::Error> {
+impl Serialize for FieldMapping {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
         let index = match (self.is_indexed, &self.index_analyzer) {
             (false, &None) => "no",
             (true, &None) => "not_analyzed",
@@ -123,7 +125,7 @@ impl ToJson for FieldMapping {
             }
         };
 
-        Ok(json!({
+        let json = json!({
             "type": self.data_type.to_string(),
             "index": index,
             "store": self.is_stored,
@@ -132,7 +134,9 @@ impl ToJson for FieldMapping {
             // "search_analyzer"
             "boost": self.boost,
             "include_in_all": self.is_in_all
-        }))
+        });
+
+        json.serialize(serializer)
     }
 }
 
@@ -161,7 +165,7 @@ impl FieldMapping {
         }
     }
 
-    pub fn process_value_for_index(&self, value: &serde_json::Value) -> Result<Option<Vec<Token>>, FieldValueError> {
+    pub fn process_value_for_index(&self, value: &serde_json::Value) -> Result<Option<TermVector>, FieldValueError> {
         if *value == serde_json::Value::Null {
             return Ok(None);
         }
@@ -174,12 +178,12 @@ impl FieldMapping {
                         let tokens = match self.index_analyzer() {
                             Some(index_analyzer) => {
                                 let token_stream = index_analyzer.initialise(string);
-                                token_stream.collect::<Vec<Token>>()
+                                token_stream.collect::<Vec<Token>>().into()
                             }
                             None => {
                                 vec![
                                     Token {term: Term::from_string(string), position: 1}
-                                ]
+                                ].into()
                             }
                         };
                         Ok(Some(tokens))
@@ -193,7 +197,9 @@ impl FieldMapping {
                         for item in array {
                             match *item {
                                 serde_json::Value::String(ref string) => {
-                                    if let Some(mut next_tokens) = self.process_value_for_index(&serde_json::Value::String(string.clone()))? {
+                                    if let Some(next_tokens) = self.process_value_for_index(&serde_json::Value::String(string.clone()))? {
+                                        let mut next_tokens: Vec<Token> = next_tokens.into();
+
                                         // Increment token positions so they don't overlap with previous values
                                         for token in next_tokens.iter_mut() {
                                             token.position += last_token_position;
@@ -218,7 +224,7 @@ impl FieldMapping {
                             }
                         }
 
-                        Ok(Some(tokens))
+                        Ok(Some(tokens.into()))
                     }
                     _ => Err(FieldValueError),
                 }
@@ -227,18 +233,18 @@ impl FieldMapping {
                 match *value {
                     serde_json::Value::Number(ref num) => {
                         match num.as_i64() {
-                            Some(num) => Ok(Some(vec![Token{term: Term::from_integer(num), position: 1}])),
+                            Some(num) => Ok(Some(vec![Token{term: Term::from_integer(num), position: 1}].into())),
                             None => Err(FieldValueError),
                         }
                     }
                     _ => Err(FieldValueError),
                 }
             }
-            FieldType::Boolean => Ok(Some(vec![Token{term: Term::from_boolean(parse_boolean(&value)), position: 1}])),
+            FieldType::Boolean => Ok(Some(vec![Token{term: Term::from_boolean(parse_boolean(&value)), position: 1}].into())),
             FieldType::Date => {
                 match *value {
                     serde_json::Value::String(ref string) => {
-                        let date_parsed = match string.parse::<DateTime<UTC>>() {
+                        let date_parsed = match string.parse::<DateTime<Utc>>() {
                             Ok(date_parsed) => date_parsed,
                             Err(_) => {
                                 // TODO: Handle this properly
@@ -246,7 +252,7 @@ impl FieldMapping {
                             }
                         };
 
-                        Ok(Some(vec![Token{term: Term::from_datetime(&date_parsed), position: 1}]))
+                        Ok(Some(vec![Token{term: Term::from_datetime(&date_parsed), position: 1}].into()))
                     }
                     serde_json::Value::Number(_) => {
                         // TODO needs to be interpreted as milliseconds since epoch
@@ -305,7 +311,7 @@ impl FieldMapping {
             FieldType::Date => {
                 match *value {
                     serde_json::Value::String(ref string) => {
-                        let date_parsed = match string.parse::<DateTime<UTC>>() {
+                        let date_parsed = match string.parse::<DateTime<Utc>>() {
                             Ok(date_parsed) => date_parsed,
                             Err(_) => {
                                 // TODO: Handle this properly
@@ -334,19 +340,21 @@ pub struct NestedMapping {
 }
 
 
-impl ToJson for NestedMapping {
-    fn to_json(&self) -> Result<serde_json::Value, serde_json::Error> {
+impl Serialize for NestedMapping {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
         let mut properties_json = BTreeMap::new();
 
         // TODO: Exclude "_all" field
         for (name, prop) in self.properties.iter() {
-            properties_json.insert(name.to_string(), try!(prop.to_json()));
+            properties_json.insert(name.to_string(), serde_json::to_value(&prop).unwrap());
         }
 
-        Ok(json!({
+        let json = json!({
             "type": "nested",
             "properties": properties_json,
-        }))
+        });
+
+        json.serialize(serializer)
     }
 }
 
@@ -358,11 +366,11 @@ pub enum MappingProperty {
 }
 
 
-impl ToJson for MappingProperty {
-    fn to_json(&self) -> Result<serde_json::Value, serde_json::Error> {
+impl Serialize for MappingProperty {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
         match *self {
-            MappingProperty::Field(ref field) => field.to_json(),
-            MappingProperty::NestedMapping(ref mapping) => mapping.to_json(),
+            MappingProperty::Field(ref field) => field.serialize(serializer),
+            MappingProperty::NestedMapping(ref mapping) => mapping.serialize(serializer),
         }
     }
 }
@@ -374,18 +382,20 @@ pub struct Mapping {
 }
 
 
-impl ToJson for Mapping {
-    fn to_json(&self) -> Result<serde_json::Value, serde_json::Error> {
+impl Serialize for Mapping {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
         let mut properties_json = BTreeMap::new();
 
         // TODO: Exclude "_all" field
         for (name, prop) in self.properties.iter() {
-            properties_json.insert(name.to_string(), try!(prop.to_json()));
+            properties_json.insert(name.to_string(), serde_json::to_value(&prop).unwrap());
         }
 
-        Ok(json!({
+        let json = json!({
             "properties": properties_json,
-        }))
+        });
+
+        json.serialize(serializer)
     }
 }
 
