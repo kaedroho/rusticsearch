@@ -54,12 +54,18 @@ impl QueryBuilder for MatchQueryBuilder {
         }
 
         // Combine the term queries
-        let query = match self.operator {
-            Operator::Or => {
-                Query::Disjunction { queries: sub_queries }
-            }
-            Operator::And => {
-                Query::Conjunction { queries: sub_queries }
+        let query = match sub_queries.len() {
+            0 => Query::None,
+            1 => sub_queries.pop().unwrap(),
+            _ => {
+                match self.operator {
+                    Operator::Or => {
+                        Query::Disjunction { queries: sub_queries }
+                    }
+                    Operator::And => {
+                        Query::Conjunction { queries: sub_queries }
+                    }
+                }
             }
         };
 

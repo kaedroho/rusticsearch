@@ -55,12 +55,19 @@ impl QueryBuilder for MultiMatchQueryBuilder {
                 });
             }
 
-            let field_query = match self.operator {
-                Operator::Or => {
-                    Query::Disjunction { queries: term_queries }
-                }
-                Operator::And => {
-                    Query::Conjunction { queries: term_queries }
+            // Combine the term queries
+            let field_query = match term_queries.len() {
+                0 => Query::None,
+                1 => term_queries.pop().unwrap(),
+                _ => {
+                    match self.operator {
+                        Operator::Or => {
+                            Query::Disjunction { queries: term_queries }
+                        }
+                        Operator::And => {
+                            Query::Conjunction { queries: term_queries }
+                        }
+                    }
                 }
             };
 
@@ -70,7 +77,13 @@ impl QueryBuilder for MultiMatchQueryBuilder {
             field_queries.push(field_query);
         }
 
-        let query = Query::DisjunctionMax { queries: field_queries };
+        let query = match field_queries.len() {
+            0 => Query::None,
+            1 => field_queries.pop().unwrap(),
+            _ => {
+                Query::DisjunctionMax { queries: field_queries }
+            }
+        };
 
         // Add boost
         query.boost(self.boost)
