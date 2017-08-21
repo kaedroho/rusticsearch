@@ -10,7 +10,6 @@ license = "Apache-2.0"
 
 [[bin]]
 name = "rusticsearch"
-path = "src/rusticsearch/main.rs"
 
 [dependencies]
 kite = "0.2.1"
