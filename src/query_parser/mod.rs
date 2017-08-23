@@ -12,6 +12,7 @@ pub mod prefix_query;
 pub mod and_query;
 pub mod or_query;
 pub mod not_query;
+pub mod constant_score_query;
 
 use std::fmt::Debug;
 
@@ -87,6 +88,7 @@ fn get_query_parser(query_name: &str) -> Option<fn(&Json) -> Result<Box<QueryBui
         "and" => Some(and_query::parse),
         "or" => Some(or_query::parse),
         "not" => Some(not_query::parse),
+        "constant_score" => Some(constant_score_query::parse),
         _ => None
     }
 }
