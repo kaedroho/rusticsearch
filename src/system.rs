@@ -34,12 +34,12 @@ impl System {
     }
 
     fn load_index(&self, id: Uuid, name: String, path: &Path) -> Result<Index, String> {
-        let store = try!(RocksDBStore::open(path));
+        let store = RocksDBStore::open(path)?;
 
         // Load metadata
         let mut metadata_path = path.to_path_buf();
         metadata_path.push("metadata.json");
-        let metadata = try!(IndexMetadata::load(metadata_path));
+        let metadata = IndexMetadata::load(metadata_path)?;
 
         Ok(Index::new(id, name, metadata, store))
     }

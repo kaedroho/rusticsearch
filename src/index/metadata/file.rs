@@ -82,24 +82,24 @@ impl From<io::Error> for LoadIndexMetadataError {
 impl IndexMetadata {
     pub fn save<P: AsRef<Path>>(&self, path: P) -> Result<(), SaveIndexMetadataError> {
         // Encode to JSON
-        let s = format!("{}", try!(serde_json::to_value(self)));
+        let s = format!("{}", serde_json::to_value(self)?);
 
         // Write to file
         let file = AtomicFile::new(path, AllowOverwrite);
-        try!(file.write(|f| {
+        file.write(|f| {
             f.write_all(s.as_bytes())
-        }));
+        })?;
 
         Ok(())
     }
 
     pub fn load<P: AsRef<Path>>(path: P) -> Result<IndexMetadata, LoadIndexMetadataError> {
-        let mut file = try!(File::open(path));
+        let mut file = File::open(path)?;
         let mut s = String::new();
-        try!(file.read_to_string(&mut s));
+        file.read_to_string(&mut s)?;
 
         let mut metadata = IndexMetadata::default();
-        try!(parse(&mut metadata, try!(serde_json::from_str(&s))));
+        parse(&mut metadata, serde_json::from_str(&s)?)?;
 
         Ok(metadata)
     }

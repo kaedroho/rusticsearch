@@ -17,11 +17,11 @@ pub enum AnalyzerParseError {
 
 
 pub fn parse(json: &serde_json::Value, index_metadata: &IndexMetadata) -> Result<AnalyzerSpec, AnalyzerParseError> {
-    let data = try!(json.as_object().ok_or(AnalyzerParseError::ExpectedObject));
+    let data = json.as_object().ok_or(AnalyzerParseError::ExpectedObject)?;
 
     // Get type
-    let analyzer_type_json = try!(data.get("type").ok_or(AnalyzerParseError::ExpectedKey("type".to_string())));
-    let analyzer_type = try!(analyzer_type_json.as_str().ok_or(AnalyzerParseError::ExpectedString));
+    let analyzer_type_json = data.get("type").ok_or(AnalyzerParseError::ExpectedKey("type".to_string()))?;
+    let analyzer_type = analyzer_type_json.as_str().ok_or(AnalyzerParseError::ExpectedString)?;
 
     match analyzer_type {
         "custom" => {

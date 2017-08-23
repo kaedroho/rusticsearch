@@ -28,11 +28,11 @@ impl QueryBuilder for OrQueryBuilder {
 
 
 pub fn parse(json: &Json) -> Result<Box<QueryBuilder>, QueryParseError> {
-    let filters = try!(json.as_array().ok_or(QueryParseError::ExpectedArray));
+    let filters = json.as_array().ok_or(QueryParseError::ExpectedArray)?;
 
     let mut queries = Vec::new();
     for filter in filters.iter() {
-        queries.push(try!(parse_query(filter)));
+        queries.push(parse_query(filter)?);
     }
 
     Ok(Box::new(OrQueryBuilder {

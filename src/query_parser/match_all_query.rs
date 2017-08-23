@@ -22,7 +22,7 @@ impl QueryBuilder for MatchAllQueryBuilder {
 
 
 pub fn parse(json: &Json) -> Result<Box<QueryBuilder>, QueryParseError> {
-    let object = try!(json.as_object().ok_or(QueryParseError::ExpectedObject));
+    let object = json.as_object().ok_or(QueryParseError::ExpectedObject)?;
 
     // Get configuration
     let mut boost = 1.0f32;
@@ -30,7 +30,7 @@ pub fn parse(json: &Json) -> Result<Box<QueryBuilder>, QueryParseError> {
     for (key, value) in object.iter() {
         match &key[..] {
             "boost" => {
-                boost = try!(parse_float(value));
+                boost = parse_float(value)?;
             }
             _ => return Err(QueryParseError::UnrecognisedKey(key.clone()))
         }

@@ -47,7 +47,7 @@ pub fn parse_operator(json: &Json) -> Result<Operator, QueryParseError> {
 
 
 pub fn parse_field_and_boost(json: &Json) -> Result<(String, f32), QueryParseError> {
-    let string = try!(parse_string(json));
+    let string = parse_string(json)?;
 
     let split = string.split('^').collect::<Vec<_>>();
     if split.len() == 1 {

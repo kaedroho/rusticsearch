@@ -31,7 +31,7 @@ impl QueryBuilder for TermQueryBuilder {
 
 
 pub fn parse(json: &Json) -> Result<Box<QueryBuilder>, QueryParseError> {
-    let object = try!(json.as_object().ok_or(QueryParseError::ExpectedObject));
+    let object = json.as_object().ok_or(QueryParseError::ExpectedObject)?;
 
     let field_name = if object.len() == 1 {
         object.keys().collect::<Vec<_>>()[0]
@@ -57,7 +57,7 @@ pub fn parse(json: &Json) -> Result<Box<QueryBuilder>, QueryParseError> {
                         }
                     }
                     "boost" => {
-                        boost = try!(parse_float(val));
+                        boost = parse_float(val)?;
                     }
                     _ => return Err(QueryParseError::UnrecognisedKey(key.clone()))
                 }

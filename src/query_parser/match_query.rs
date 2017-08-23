@@ -76,7 +76,7 @@ impl QueryBuilder for MatchQueryBuilder {
 
 
 pub fn parse(json: &Json) -> Result<Box<QueryBuilder>, QueryParseError> {
-    let object = try!(json.as_object().ok_or(QueryParseError::ExpectedObject));
+    let object = json.as_object().ok_or(QueryParseError::ExpectedObject)?;
 
     let field_name = if object.len() == 1 {
         object.keys().collect::<Vec<_>>()[0]
@@ -90,7 +90,7 @@ pub fn parse(json: &Json) -> Result<Box<QueryBuilder>, QueryParseError> {
     let mut operator = Operator::Or;
 
     match object.get(field_name).unwrap() {
-        s @ &Json::String(_) => query = try!(parse_string(s)),
+        s @ &Json::String(_) => query = parse_string(s)?,
         &Json::Object(ref inner_object) => {
             let mut has_query_key = false;
 
@@ -98,13 +98,13 @@ pub fn parse(json: &Json) -> Result<Box<QueryBuilder>, QueryParseError> {
                 match key.as_ref() {
                     "query" => {
                         has_query_key = true;
-                        query = try!(parse_string(value));
+                        query = parse_string(value)?;
                     }
                     "boost" => {
-                        boost = try!(parse_float(value));
+                        boost = parse_float(value)?;
                     }
                     "operator" => {
-                        operator = try!(parse_operator(value))
+                        operator = parse_operator(value)?;
                     }
                     _ => return Err(QueryParseError::UnrecognisedKey(key.clone()))
                 }

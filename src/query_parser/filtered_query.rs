@@ -30,7 +30,7 @@ impl QueryBuilder for FilteredQueryBuilder {
 
 
 pub fn parse(json: &Json) -> Result<Box<QueryBuilder>, QueryParseError> {
-    let object = try!(json.as_object().ok_or(QueryParseError::ExpectedObject));
+    let object = json.as_object().ok_or(QueryParseError::ExpectedObject)?;
 
     let mut query = None;
 
@@ -40,11 +40,11 @@ pub fn parse(json: &Json) -> Result<Box<QueryBuilder>, QueryParseError> {
     for (key, value) in object.iter() {
         match key.as_ref() {
             "query" => {
-                query = Some(try!(parse_query(value)));
+                query = Some(parse_query(value)?);
             }
             "filter" => {
                 has_filter_key = true;
-                filter = Some(try!(parse_query(value)));
+                filter = Some(parse_query(value)?);
             }
             _ => return Err(QueryParseError::UnrecognisedKey(key.clone()))
         }

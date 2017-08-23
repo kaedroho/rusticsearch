@@ -5,7 +5,7 @@ impl Index {
     /// Run a maintenance task on the index
     /// This must be run periodically by a background thread. It is not currently thread-safe
     pub fn run_maintenance_task(&self) -> Result<(), String> {
-        let segment_stats = try!(self.store.get_segment_statistics());
+        let segment_stats = self.store.get_segment_statistics()?;
 
         // TODO: Deactivate segments with 100% deletions
         // TODO: Vacuum segments with many deletions
@@ -75,8 +75,8 @@ impl Index {
         }
 
         // Merge segments
-        try!(self.store.merge_segments(&segment_ids));
-        try!(self.store.purge_segments(&segment_ids));
+        self.store.merge_segments(&segment_ids)?;
+        self.store.purge_segments(&segment_ids)?;
 
         Ok(())
     }

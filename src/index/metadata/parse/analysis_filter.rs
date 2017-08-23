@@ -16,11 +16,11 @@ pub enum FilterParseError {
 
 
 pub fn parse(json: &serde_json::Value) -> Result<FilterSpec, FilterParseError> {
-    let data = try!(json.as_object().ok_or(FilterParseError::ExpectedObject));
+    let data = json.as_object().ok_or(FilterParseError::ExpectedObject)?;
 
     // Get type
-    let filter_type_json = try!(data.get("type").ok_or(FilterParseError::ExpectedKey("type".to_string())));
-    let filter_type = try!(filter_type_json.as_str().ok_or(FilterParseError::ExpectedString));
+    let filter_type_json = data.get("type").ok_or(FilterParseError::ExpectedKey("type".to_string()))?;
+    let filter_type = filter_type_json.as_str().ok_or(FilterParseError::ExpectedString)?;
 
     match filter_type {
         "asciifolding" => {

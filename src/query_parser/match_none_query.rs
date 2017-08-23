@@ -19,7 +19,7 @@ impl QueryBuilder for MatchNoneQueryBuilder {
 
 
 pub fn parse(json: &Json) -> Result<Box<QueryBuilder>, QueryParseError> {
-    let object = try!(json.as_object().ok_or(QueryParseError::ExpectedObject));
+    let object = json.as_object().ok_or(QueryParseError::ExpectedObject)?;
 
     // Get configuration
     for (key, _value) in object.iter() {

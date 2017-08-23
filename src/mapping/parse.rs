@@ -85,7 +85,7 @@ fn parse_field_type(field_type_str: &str) -> Result<FieldType, FieldMappingParse
 
 
 fn parse_field(json: &serde_json::Value) -> Result<FieldMappingBuilder, FieldMappingParseError> {
-    let field_object = try!(json.as_object().ok_or(FieldMappingParseError::ExpectedObject));
+    let field_object = json.as_object().ok_or(FieldMappingParseError::ExpectedObject)?;
     let mut mapping_builder = FieldMappingBuilder::default();
 
     // Check for unrecognised keys
@@ -107,9 +107,9 @@ fn parse_field(json: &serde_json::Value) -> Result<FieldMappingBuilder, FieldMap
     }
 
     // Field type
-    let field_type_json = try!(field_object.get("type").ok_or(FieldMappingParseError::ExpectedKey("type".to_string())));
-    let field_type_str = try!(field_type_json.as_str().ok_or(FieldMappingParseError::ExpectedString));
-    mapping_builder.field_type = try!(parse_field_type(field_type_str));
+    let field_type_json = field_object.get("type").ok_or(FieldMappingParseError::ExpectedKey("type".to_string()))?;
+    let field_type_str = field_type_json.as_str().ok_or(FieldMappingParseError::ExpectedString)?;
+    mapping_builder.field_type = parse_field_type(field_type_str)?;
 
     // Non-string fields cannot be analyzed
     if mapping_builder.field_type != FieldType::String {
@@ -118,7 +118,7 @@ fn parse_field(json: &serde_json::Value) -> Result<FieldMappingBuilder, FieldMap
 
     // "index" setting
     if let Some(index_json) = field_object.get("index") {
-        let index_str = try!(index_json.as_str().ok_or(FieldMappingParseError::ExpectedString));
+        let index_str = index_json.as_str().ok_or(FieldMappingParseError::ExpectedString)?;
 
         match index_str {
             "no" => {
@@ -146,12 +146,12 @@ fn parse_field(json: &serde_json::Value) -> Result<FieldMappingBuilder, FieldMap
 
     // "store" setting
     if let Some(store_json) = field_object.get("store") {
-        mapping_builder.is_stored = try!(parse_boolean(store_json));
+        mapping_builder.is_stored = parse_boolean(store_json)?;
     }
 
     // Analyzers
     if let Some(analyzer_json) = field_object.get("analyzer") {
-        let analyzer_str = try!(analyzer_json.as_str().ok_or(FieldMappingParseError::ExpectedString));
+        let analyzer_str = analyzer_json.as_str().ok_or(FieldMappingParseError::ExpectedString)?;
         mapping_builder.base_analyzer = Some(analyzer_str.to_string());
 
         if mapping_builder.field_type != FieldType::String {
@@ -164,7 +164,7 @@ fn parse_field(json: &serde_json::Value) -> Result<FieldMappingBuilder, FieldMap
     }
 
     if let Some(index_analyzer_json) = field_object.get("index_analyzer") {
-        let index_analyzer_str = try!(index_analyzer_json.as_str().ok_or(FieldMappingParseError::ExpectedString));
+        let index_analyzer_str = index_analyzer_json.as_str().ok_or(FieldMappingParseError::ExpectedString)?;
         mapping_builder.index_analyzer = Some(index_analyzer_str.to_string());
 
         if mapping_builder.field_type != FieldType::String {
@@ -177,7 +177,7 @@ fn parse_field(json: &serde_json::Value) -> Result<FieldMappingBuilder, FieldMap
     }
 
     if let Some(search_analyzer_json) = field_object.get("search_analyzer") {
-        let search_analyzer_str = try!(search_analyzer_json.as_str().ok_or(FieldMappingParseError::ExpectedString));
+        let search_analyzer_str = search_analyzer_json.as_str().ok_or(FieldMappingParseError::ExpectedString)?;
         mapping_builder.search_analyzer = Some(search_analyzer_str.to_string());
 
         if mapping_builder.field_type != FieldType::String {
@@ -191,7 +191,7 @@ fn parse_field(json: &serde_json::Value) -> Result<FieldMappingBuilder, FieldMap
 
     // Boost
     if let Some(boost_json) = field_object.get("boost") {
-        let boost_num = try!(parse_float(boost_json));
+        let boost_num = parse_float(boost_json)?;
         mapping_builder.boost = boost_num;
 
         if !mapping_builder.is_indexed {
@@ -205,7 +205,7 @@ fn parse_field(json: &serde_json::Value) -> Result<FieldMappingBuilder, FieldMap
 
     // "include_in_all" setting
     if let Some(include_in_all_json) = field_object.get("include_in_all") {
-        let include_in_all = try!(parse_boolean(include_in_all_json));
+        let include_in_all = parse_boolean(include_in_all_json)?;
         mapping_builder.is_in_all = include_in_all;
     }
 
@@ -214,7 +214,7 @@ fn parse_field(json: &serde_json::Value) -> Result<FieldMappingBuilder, FieldMap
 
 
 fn parse_nested_mapping(json: &serde_json::Value) -> Result<NestedMappingBuilder, MappingParseError> {
-    let mapping_object = try!(json.as_object().ok_or(MappingParseError::ExpectedObject));
+    let mapping_object = json.as_object().ok_or(MappingParseError::ExpectedObject)?;
 
     // Check for unrecognised keys
     let provided_keys = mapping_object.keys().cloned().collect::<BTreeSet<String>>();
@@ -229,12 +229,12 @@ fn parse_nested_mapping(json: &serde_json::Value) -> Result<NestedMappingBuilder
     }
 
     // Parse properties
-    let properties_json = try!(mapping_object.get("properties").ok_or(MappingParseError::ExpectedKey("properties".to_string())));
-    let properties_object = try!(properties_json.as_object().ok_or(MappingParseError::ExpectedObject));
+    let properties_json = mapping_object.get("properties").ok_or(MappingParseError::ExpectedKey("properties".to_string()))?;
+    let properties_object = properties_json.as_object().ok_or(MappingParseError::ExpectedObject)?;
     let mut properties = HashMap::new();
 
     for (prop_name, prop_json) in properties_object {
-        let prop_object = try!(prop_json.as_object().ok_or(MappingParseError::FieldMappingParseError(prop_name.to_string(), FieldMappingParseError::ExpectedObject)));
+        let prop_object = prop_json.as_object().ok_or(MappingParseError::FieldMappingParseError(prop_name.to_string(), FieldMappingParseError::ExpectedObject))?;
 
         if prop_object.get("type") == Some(&serde_json::Value::String("nested".to_string())) {
             // Property is a nested mapping
@@ -266,7 +266,7 @@ fn parse_nested_mapping(json: &serde_json::Value) -> Result<NestedMappingBuilder
 
 
 pub fn parse(json: &serde_json::Value) -> Result<MappingBuilder, MappingParseError> {
-    let mapping_object = try!(json.as_object().ok_or(MappingParseError::ExpectedObject));
+    let mapping_object = json.as_object().ok_or(MappingParseError::ExpectedObject)?;
 
     // Check for unrecognised keys
     let provided_keys = mapping_object.keys().cloned().collect::<BTreeSet<String>>();
@@ -280,12 +280,12 @@ pub fn parse(json: &serde_json::Value) -> Result<MappingBuilder, MappingParseErr
     }
 
     // Parse properties
-    let properties_json = try!(mapping_object.get("properties").ok_or(MappingParseError::ExpectedKey("properties".to_string())));
-    let properties_object = try!(properties_json.as_object().ok_or(MappingParseError::ExpectedObject));
+    let properties_json = mapping_object.get("properties").ok_or(MappingParseError::ExpectedKey("properties".to_string()))?;
+    let properties_object = properties_json.as_object().ok_or(MappingParseError::ExpectedObject)?;
     let mut properties = HashMap::new();
 
     for (prop_name, prop_json) in properties_object {
-        let prop_object = try!(prop_json.as_object().ok_or(MappingParseError::FieldMappingParseError(prop_name.to_string(), FieldMappingParseError::ExpectedObject)));
+        let prop_object = prop_json.as_object().ok_or(MappingParseError::FieldMappingParseError(prop_name.to_string(), FieldMappingParseError::ExpectedObject))?;
 
         if prop_object.get("type") == Some(&serde_json::Value::String("nested".to_string())) {
             // Property is a nested mapping

@@ -25,7 +25,7 @@ impl QueryBuilder for NotQueryBuilder {
 
 pub fn parse(json: &Json) -> Result<Box<QueryBuilder>, QueryParseError> {
     Ok(Box::new(NotQueryBuilder {
-        query: try!(parse_query(json)),
+        query: parse_query(json)?,
     }))
 }
 

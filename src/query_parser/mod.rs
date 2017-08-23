@@ -95,7 +95,7 @@ fn get_query_parser(query_name: &str) -> Option<fn(&Json) -> Result<Box<QueryBui
 
 
 pub fn parse(json: &Json) -> Result<Box<QueryBuilder>, QueryParseError> {
-    let object = try!(json.as_object().ok_or(QueryParseError::ExpectedObject));
+    let object = json.as_object().ok_or(QueryParseError::ExpectedObject)?;
 
     let query_type = if object.len() == 1 {
         object.keys().collect::<Vec<_>>()[0]

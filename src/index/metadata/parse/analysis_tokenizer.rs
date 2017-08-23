@@ -16,11 +16,11 @@ pub enum TokenizerParseError {
 
 
 pub fn parse(json: &serde_json::Value) -> Result<TokenizerSpec, TokenizerParseError> {
-    let data = try!(json.as_object().ok_or(TokenizerParseError::ExpectedObject));
+    let data = json.as_object().ok_or(TokenizerParseError::ExpectedObject)?;
 
     // Get type
-    let tokenizer_type_json = try!(data.get("type").ok_or(TokenizerParseError::ExpectedKey("type".to_string())));
-    let tokenizer_type = try!(tokenizer_type_json.as_str().ok_or(TokenizerParseError::ExpectedString));
+    let tokenizer_type_json = data.get("type").ok_or(TokenizerParseError::ExpectedKey("type".to_string()))?;
+    let tokenizer_type = tokenizer_type_json.as_str().ok_or(TokenizerParseError::ExpectedString)?;
 
     match tokenizer_type {
         "standard" => {

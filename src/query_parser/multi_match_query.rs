@@ -92,7 +92,7 @@ impl QueryBuilder for MultiMatchQueryBuilder {
 
 
 pub fn parse(json: &Json) -> Result<Box<QueryBuilder>, QueryParseError> {
-    let object = try!(json.as_object().ok_or(QueryParseError::ExpectedObject));
+    let object = json.as_object().ok_or(QueryParseError::ExpectedObject)?;
 
     // Get configuration
     let mut fields_with_boosts = Vec::new();
@@ -111,7 +111,7 @@ pub fn parse(json: &Json) -> Result<Box<QueryBuilder>, QueryParseError> {
                 match *val {
                     Json::Array(ref array) => {
                         for field in array.iter() {
-                            fields_with_boosts.push(try!(parse_field_and_boost(field)));
+                            fields_with_boosts.push(parse_field_and_boost(field)?);
                         }
                     }
                     _ => return Err(QueryParseError::ExpectedArray)
@@ -119,13 +119,13 @@ pub fn parse(json: &Json) -> Result<Box<QueryBuilder>, QueryParseError> {
             }
             "query" => {
                 has_query_key = true;
-                query = try!(parse_string(val));
+                query = parse_string(val)?;
             }
             "boost" => {
-                boost = try!(parse_float(val));
+                boost = parse_float(val)?;
             }
             "operator" => {
-                operator = try!(parse_operator(val))
+                operator = parse_operator(val)?;
             }
             _ => return Err(QueryParseError::UnrecognisedKey(key.clone()))
         }
