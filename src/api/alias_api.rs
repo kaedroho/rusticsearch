@@ -82,10 +82,10 @@ pub fn view_put_alias(req: &mut Request) -> IronResult<Response> {
     let index_refs = cluster_metadata.names.find(*index_selector);
     match cluster_metadata.names.insert_or_replace_alias(alias_name.to_string(), index_refs) {
         Ok(true) => {
-            system.log.info("created alias", b!("index" => *index_selector, "alias" => *alias_name));
+            info!(system.log, "created alias"; "index" => *index_selector, "alias" => *alias_name);
         }
         Ok(false) => {
-            system.log.info("updated alias", b!("index" => *index_selector, "alias" => *alias_name));
+            info!(system.log, "updated alias"; "index" => *index_selector, "alias" => *alias_name);
         }
         Err(_) => {
             // TODO

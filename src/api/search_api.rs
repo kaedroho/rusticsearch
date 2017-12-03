@@ -31,7 +31,7 @@ pub fn view_count(req: &mut Request) -> IronResult<Response> {
         Some(query_json) => {
             // Parse query
             let query = parse_query(query_json.as_object().unwrap().get("query").unwrap());
-            debug!("{:#?}", query);
+            //debug!("{:#?}", query);
 
             match query {
                 Ok(query) => {
@@ -73,7 +73,7 @@ pub fn view_search(req: &mut Request) -> IronResult<Response> {
         Some(query_json) => {
             // Parse query
             let query = parse_query(query_json.as_object().unwrap().get("query").unwrap());
-            debug!("{:#?}", query);
+            //debug!("{:#?}", query);
 
             match query {
                 Ok(query) => {
@@ -96,7 +96,7 @@ pub fn view_search(req: &mut Request) -> IronResult<Response> {
                                         let field_ref = match index_reader.schema().get_field_by_name(field_name) {
                                             Some(field_ref) => field_ref,
                                             None => {
-                                                warn!("unknown field {:?}", field_name);
+                                                warn!(system.log, "unknown field {:?}", field_name);
                                                 continue;
                                             }
                                         };
@@ -112,7 +112,7 @@ pub fn view_search(req: &mut Request) -> IronResult<Response> {
                                 // track_scores
                                 // stats
                                 // suggest_field
-                                _ => warn!("unrecognised GET parameter {:?}", key),
+                                _ => warn!(system.log, "unrecognised GET parameter {:?}", key),
                             }
                         }
                     }

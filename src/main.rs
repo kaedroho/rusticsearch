@@ -5,10 +5,9 @@ extern crate chrono;
 extern crate router;
 extern crate url;
 #[macro_use]
-extern crate log;
-#[macro_use(o, b)]
 extern crate slog;
 extern crate slog_term;
+extern crate slog_async;
 #[macro_use]
 extern crate maplit;
 extern crate unicode_segmentation;
@@ -27,7 +26,6 @@ pub mod index;
 pub mod cluster;
 pub mod system;
 mod api;
-mod logger;
 
 use std::path::Path;
 use std::sync::Arc;
@@ -35,7 +33,7 @@ use std::thread;
 use std::time::Duration;
 use std::panic;
 
-use slog::Logger;
+use slog::Drain;
 
 use system::System;
 
@@ -44,16 +42,17 @@ const VERSION: &'static str = env!("CARGO_PKG_VERSION");
 
 
 fn main() {
-    let log = Logger::new_root(o!());
-    log.set_drain(slog_term::async_stderr());
+    // Setup logging
+    let decorator = slog_term::TermDecorator::new().build();
+    let drain = slog_term::CompactFormat::new(decorator).build().fuse();
+    let drain = slog_async::Async::new(drain).build().fuse();
+    let log = slog::Logger::root(drain, o!());
 
-    log.info("starting rusticsearch", b!("version" => VERSION));
-
-    logger::init().unwrap();
+    info!(log, "starting rusticsearch"; "version" => VERSION);
 
     let system = Arc::new(System::new(log, Path::new("data/").to_path_buf()));
 
-    system.log.info("loading indices", b!());
+    info!(system.log, "loading indices");
     system.load_indices();
 
     {
@@ -68,7 +67,7 @@ fn main() {
                         });
 
                         if let Err(error) = result {
-                            system.log.error("index maintenance task panicked", b!("index" => index.canonical_name(), "error" => format!("{:?}", error)));
+                            error!(system.log, "index maintenance task panicked"; "index" => index.canonical_name(), "error" => format!("{:?}", error));
                         }
                     }
                 }
@@ -78,6 +77,6 @@ fn main() {
         });
     }
 
-    system.log.info("starting api server", b!());
+    info!(system.log, "starting api server");
     api::api_main(system);
 }

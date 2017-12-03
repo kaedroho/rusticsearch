@@ -408,14 +408,14 @@ fn parse_boolean(json: &serde_json::Value) -> bool {
                 "yes" => true,
                 "no" => false,
                 _ => {
-                    warn!("bad boolean value {:?}", s);
+                    // warn!("bad boolean value {:?}", s);
                     false
                 }
            }
         }
         _ => {
             // TODO: Raise error
-            warn!("bad boolean value {:?}", json);
+            // warn!("bad boolean value {:?}", json);
             false
         }
     }

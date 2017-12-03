@@ -86,7 +86,7 @@ pub fn view_post_bulk(req: &mut Request) -> IronResult<Response> {
                 items.push(item);
             }
             _ => {
-                warn!("Unrecognised action! {}", action_name);
+                warn!(system.log, "unrecognised action! {}", action_name);
             }
         }
     }

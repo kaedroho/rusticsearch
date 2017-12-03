@@ -59,23 +59,17 @@ impl System {
                                 let index_ref = cluster_metadata.insert_index(index);
                                 cluster_metadata.names.insert_canonical(index_name.clone(), index_ref).unwrap();
 
-                                self.log.info("loaded index", b!("index" => index_name));
+                                info!(self.log, "loaded index"; "index" => index_name);
                             }
                             Err(e) => {
-                                self.log.error("load index failed", b!(
-                                    "index" => index_name,
-                                    "error" => e
-                                ));
+                                error!(self.log, "load index failed"; "index" => index_name, "error" => e);
                             }
                         }
                     }
                 }
             }
             Err(error) => {
-                self.log.error("could not open indices directory", b!(
-                    "dir" => indices_dir.to_str().unwrap(),
-                    "error" => format!("{}", error)
-                ));
+                error!(self.log, "could not open indices directory"; "dir" => indices_dir.to_str().unwrap(), "error" => format!("{}", error));
             }
         }
     }
