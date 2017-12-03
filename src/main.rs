@@ -1,9 +1,9 @@
 extern crate kite;
 extern crate kite_rocksdb;
 extern crate chrono;
-#[macro_use]
-extern crate router;
-extern crate url;
+extern crate hyper;
+extern crate futures;
+extern crate tokio_core;
 #[macro_use]
 extern crate slog;
 extern crate slog_term;
@@ -25,7 +25,7 @@ pub mod document;
 pub mod index;
 pub mod cluster;
 pub mod system;
-mod api;
+mod server;
 
 use std::path::Path;
 use std::sync::Arc;
@@ -78,5 +78,5 @@ fn main() {
     }
 
     info!(system.log, "starting api server");
-    api::api_main(system);
+    server::main(system);
 }
