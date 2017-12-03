@@ -318,8 +318,6 @@ pub fn parse(json: &serde_json::Value) -> Result<MappingBuilder, MappingParseErr
 
 #[cfg(test)]
 mod tests {
-    use serde_json;
-
     use mapping::FieldType;
     use mapping::build::{FieldMappingBuilder, NestedMappingBuilder, MappingPropertyBuilder, MappingBuilder};
 
@@ -327,15 +325,15 @@ mod tests {
 
     #[test]
     fn test_parse() {
-        let mapping = parse(&serde_json::from_str("
-        {
-            \"properties\": {
-                \"myfield\": {
-                    \"type\": \"string\"
+        let mapping = parse(&json!(
+            {
+                "properties": {
+                    "myfield": {
+                        "type": "string"
+                    }
                 }
             }
-        }
-        ").unwrap());
+        ));
 
         assert_eq!(mapping, Ok(MappingBuilder {
             properties: hashmap! {
@@ -351,20 +349,20 @@ mod tests {
 
     #[test]
     fn test_parse_nested() {
-        let mapping = parse(&serde_json::from_str("
-        {
-            \"properties\": {
-                \"myfield\": {
-                    \"type\": \"nested\",
-                    \"properties\": {
-                        \"foo\": {
-                            \"type\": \"string\"
+        let mapping = parse(&json!(
+            {
+                "properties": {
+                    "myfield": {
+                        "type": "nested",
+                        "properties": {
+                            "foo": {
+                                "type": "string"
+                            }
                         }
                     }
                 }
             }
-        }
-        ").unwrap());
+        ));
 
         assert_eq!(mapping, Ok(MappingBuilder {
             properties: hashmap! {
@@ -386,25 +384,25 @@ mod tests {
 
     #[test]
     fn test_parse_nested_nested() {
-        let mapping = parse(&serde_json::from_str("
-        {
-            \"properties\": {
-                \"myfield\": {
-                    \"type\": \"nested\",
-                    \"properties\": {
-                        \"mynestedfield\": {
-                            \"type\": \"nested\",
-                            \"properties\": {
-                                \"foo\": {
-                                    \"type\": \"string\"
+        let mapping = parse(&json!(
+            {
+                "properties": {
+                    "myfield": {
+                        "type": "nested",
+                        "properties": {
+                            "mynestedfield": {
+                                "type": "nested",
+                                "properties": {
+                                    "foo": {
+                                        "type": "string"
+                                    }
                                 }
                             }
                         }
                     }
                 }
             }
-        }
-        ").unwrap());
+        ));
 
         assert_eq!(mapping, Ok(MappingBuilder {
             properties: hashmap! {
@@ -432,23 +430,20 @@ mod tests {
 
     #[test]
     fn test_parse_field_error() {
-        let mapping = parse(&serde_json::from_str("
-        {
-            \"properties\": {
-                \"myfield\": {
+        let mapping = parse(&json!(
+            {
+                "properties": {
+                    "myfield": {}
                 }
             }
-        }
-        ").unwrap());
+        ));
 
         assert_eq!(mapping, Err(MappingParseError::FieldMappingParseError("myfield".to_string(), FieldMappingParseError::ExpectedKey("type".to_string()))));
     }
 
     #[test]
     fn test_parse_empty() {
-        let mapping = parse(&serde_json::from_str("
-        {}
-        ").unwrap());
+        let mapping = parse(&json!({}));
 
         assert_eq!(mapping, Err(MappingParseError::ExpectedKey("properties".to_string())));
     }
@@ -456,34 +451,28 @@ mod tests {
     #[test]
     fn test_parse_bad_type() {
         // Array
-        let mapping = parse(&serde_json::from_str("
-        [\"foo\"]
-        ").unwrap());
+        let mapping = parse(&json!(["foo"]));
 
         assert_eq!(mapping, Err(MappingParseError::ExpectedObject));
 
         // String
-        let mapping = parse(&serde_json::from_str("
-        \"foo\"
-        ").unwrap());
+        let mapping = parse(&json!("foo"));
 
         assert_eq!(mapping, Err(MappingParseError::ExpectedObject));
 
         // Number
-        let mapping = parse(&serde_json::from_str("
-        123
-        ").unwrap());
+        let mapping = parse(&json!(123));
 
         assert_eq!(mapping, Err(MappingParseError::ExpectedObject));
     }
 
     #[test]
     fn test_parse_empty_properties() {
-        let mapping = parse(&serde_json::from_str("
-        {
-            \"properties\": {}
-        }
-        ").unwrap());
+        let mapping = parse(&json!(
+            {
+                "properties": {}
+            }
+        ));
 
         assert_eq!(mapping, Ok(MappingBuilder {
             properties: hashmap! {},
@@ -492,13 +481,13 @@ mod tests {
 
     #[test]
     fn test_parse_unrecognised_key() {
-        let mapping = parse(&serde_json::from_str("
-        {
-            \"properties\": {},
-            \"foo\": \"bar\",
-            \"baz\": \"quux\"
-        }
-        ").unwrap());
+        let mapping = parse(&json!(
+            {
+                "properties": {},
+                "foo": "bar",
+                "baz": "quux"
+            }
+        ));
 
         assert_eq!(mapping, Err(MappingParseError::UnrecognisedKeys(vec!["baz".to_string(), "foo".to_string()])));
     }
@@ -506,29 +495,29 @@ mod tests {
     #[test]
     fn test_parse_bad_type_properties() {
         // Array
-        let mapping = parse(&serde_json::from_str("
-        {
-            \"properties\": [\"foo\"]
-        }
-        ").unwrap());
+        let mapping = parse(&json!(
+            {
+                "properties": ["foo"]
+            }
+        ));
 
         assert_eq!(mapping, Err(MappingParseError::ExpectedObject));
 
         // String
-        let mapping = parse(&serde_json::from_str("
-        {
-            \"properties\": \"foo\"
-        }
-        ").unwrap());
+        let mapping = parse(&json!(
+            {
+                "properties": "foo"
+            }
+        ));
 
         assert_eq!(mapping, Err(MappingParseError::ExpectedObject));
 
         // Number
-        let mapping = parse(&serde_json::from_str("
-        {
-            \"properties\": 123
-        }
-        ").unwrap());
+        let mapping = parse(&json!(
+            {
+                "properties": 123
+            }
+        ));
 
         assert_eq!(mapping, Err(MappingParseError::ExpectedObject));
     }
@@ -536,11 +525,11 @@ mod tests {
     #[test]
     fn test_parse_field_types() {
         // String
-        let mapping = parse_field(&serde_json::from_str("
-        {
-            \"type\": \"string\"
-        }
-        ").unwrap());
+        let mapping = parse_field(&json!(
+            {
+                "type": "string"
+            }
+        ));
 
         assert_eq!(mapping, Ok(FieldMappingBuilder {
             field_type: FieldType::String,
@@ -549,11 +538,11 @@ mod tests {
         }));
 
         // Integer
-        let mapping = parse_field(&serde_json::from_str("
-        {
-            \"type\": \"integer\"
-        }
-        ").unwrap());
+        let mapping = parse_field(&json!(
+            {
+                "type": "integer"
+            }
+        ));
 
         assert_eq!(mapping, Ok(FieldMappingBuilder {
             field_type: FieldType::Integer,
@@ -562,11 +551,11 @@ mod tests {
         }));
 
         // Boolean
-        let mapping = parse_field(&serde_json::from_str("
-        {
-            \"type\": \"boolean\"
-        }
-        ").unwrap());
+        let mapping = parse_field(&json!(
+            {
+                "type": "boolean"
+            }
+        ));
 
         assert_eq!(mapping, Ok(FieldMappingBuilder {
             field_type: FieldType::Boolean,
@@ -575,11 +564,11 @@ mod tests {
         }));
 
         // Date
-        let mapping = parse_field(&serde_json::from_str("
-        {
-            \"type\": \"date\"
-        }
-        ").unwrap());
+        let mapping = parse_field(&json!(
+            {
+                "type": "date"
+            }
+        ));
 
         assert_eq!(mapping, Ok(FieldMappingBuilder {
             field_type: FieldType::Date,
@@ -590,56 +579,53 @@ mod tests {
 
     #[test]
     fn test_parse_field_no_type() {
-        let mapping = parse_field(&serde_json::from_str("
-        {
-        }
-        ").unwrap());
+        let mapping = parse_field(&json!({}));
 
         assert_eq!(mapping, Err(FieldMappingParseError::ExpectedKey("type".to_string())));
     }
 
     #[test]
     fn test_parse_field_unrecognised_type() {
-        let mapping = parse_field(&serde_json::from_str("
-        {
-            \"type\": \"foo\"
-        }
-        ").unwrap());
+        let mapping = parse_field(&json!(
+            {
+                "type": "foo"
+            }
+        ));
 
         assert_eq!(mapping, Err(FieldMappingParseError::UnrecognisedFieldType("foo".to_string())));
     }
 
     #[test]
     fn test_parse_field_type_not_string() {
-        let mapping = parse_field(&serde_json::from_str("
-        {
-            \"type\": 123
-        }
-        ").unwrap());
+        let mapping = parse_field(&json!(
+            {
+                "type": 123
+            }
+        ));
 
         assert_eq!(mapping, Err(FieldMappingParseError::ExpectedString));
     }
 
     #[test]
     fn test_parse_field_unrecognised_key() {
-        let mapping = parse_field(&serde_json::from_str("
-        {
-            \"type\": \"string\",
-            \"foo\": \"bar\",
-            \"baz\": \"quux\"
-        }
-        ").unwrap());
+        let mapping = parse_field(&json!(
+            {
+                "type": "string",
+                "foo": "bar",
+                "baz": "quux"
+            }
+        ));
 
         assert_eq!(mapping, Err(FieldMappingParseError::UnrecognisedKeys(vec!["baz".to_string(), "foo".to_string()])));
     }
 
     #[test]
     fn test_parse_index_default() {
-        let mapping = parse_field(&serde_json::from_str("
-        {
-            \"type\": \"string\"
-        }
-        ").unwrap());
+        let mapping = parse_field(&json!(
+            {
+                "type": "string"
+            }
+        ));
 
         assert_eq!(mapping, Ok(FieldMappingBuilder {
             field_type: FieldType::String,
@@ -651,12 +637,12 @@ mod tests {
 
     #[test]
     fn test_parse_index_no() {
-        let mapping = parse_field(&serde_json::from_str("
-        {
-            \"type\": \"string\",
-            \"index\": \"no\"
-        }
-        ").unwrap());
+        let mapping = parse_field(&json!(
+            {
+                "type": "string",
+                "index": "no"
+            }
+        ));
 
         assert_eq!(mapping, Ok(FieldMappingBuilder {
             field_type: FieldType::String,
@@ -668,12 +654,12 @@ mod tests {
 
     #[test]
     fn test_parse_index_not_analyzed() {
-        let mapping = parse_field(&serde_json::from_str("
-        {
-            \"type\": \"string\",
-            \"index\": \"not_analyzed\"
-        }
-        ").unwrap());
+        let mapping = parse_field(&json!(
+            {
+                "type": "string",
+                "index": "not_analyzed"
+            }
+        ));
 
         assert_eq!(mapping, Ok(FieldMappingBuilder {
             field_type: FieldType::String,
@@ -685,12 +671,12 @@ mod tests {
 
     #[test]
     fn test_parse_index_analyzed() {
-        let mapping = parse_field(&serde_json::from_str("
-        {
-            \"type\": \"string\",
-            \"index\": \"analyzed\"
-        }
-        ").unwrap());
+        let mapping = parse_field(&json!(
+            {
+                "type": "string",
+                "index": "analyzed"
+            }
+        ));
 
         assert_eq!(mapping, Ok(FieldMappingBuilder {
             field_type: FieldType::String,
@@ -702,35 +688,35 @@ mod tests {
 
     #[test]
     fn test_parse_index_analyzed_on_non_string_type() {
-        let mapping = parse_field(&serde_json::from_str("
-        {
-            \"type\": \"integer\",
-            \"index\": \"analyzed\"
-        }
-        ").unwrap());
+        let mapping = parse_field(&json!(
+            {
+                "type": "integer",
+                "index": "analyzed"
+            }
+        ));
 
         assert_eq!(mapping, Err(FieldMappingParseError::IndexAnalyzedOnlyAllowedOnStringType));
     }
 
     #[test]
     fn test_parse_index_unrecognised_value() {
-        let mapping = parse_field(&serde_json::from_str("
-        {
-            \"type\": \"string\",
-            \"index\": \"foo\"
-        }
-        ").unwrap());
+        let mapping = parse_field(&json!(
+            {
+                "type": "string",
+                "index": "foo"
+            }
+        ));
 
         assert_eq!(mapping, Err(FieldMappingParseError::UnrecognisedIndexSetting("foo".to_string())));
     }
 
     #[test]
     fn test_parse_store_default() {
-        let mapping = parse_field(&serde_json::from_str("
-        {
-            \"type\": \"string\"
-        }
-        ").unwrap());
+        let mapping = parse_field(&json!(
+            {
+                "type": "string"
+            }
+        ));
 
         assert_eq!(mapping, Ok(FieldMappingBuilder {
             field_type: FieldType::String,
@@ -741,12 +727,12 @@ mod tests {
 
     #[test]
     fn test_parse_store_yes() {
-        let mapping = parse_field(&serde_json::from_str("
-        {
-            \"type\": \"string\",
-            \"store\": \"yes\"
-        }
-        ").unwrap());
+        let mapping = parse_field(&json!(
+            {
+                "type": "string",
+                "store": "yes"
+            }
+        ));
 
         assert_eq!(mapping, Ok(FieldMappingBuilder {
             field_type: FieldType::String,
@@ -757,12 +743,12 @@ mod tests {
 
     #[test]
     fn test_parse_store_true() {
-        let mapping = parse_field(&serde_json::from_str("
-        {
-            \"type\": \"string\",
-            \"store\": true
-        }
-        ").unwrap());
+        let mapping = parse_field(&json!(
+            {
+                "type": "string",
+                "store": true
+            }
+        ));
 
         assert_eq!(mapping, Ok(FieldMappingBuilder {
             field_type: FieldType::String,
@@ -773,23 +759,23 @@ mod tests {
 
     #[test]
     fn test_parse_store_non_boolean() {
-        let mapping = parse_field(&serde_json::from_str("
-        {
-            \"type\": \"string\",
-            \"store\": \"foo\"
-        }
-        ").unwrap());
+        let mapping = parse_field(&json!(
+            {
+                "type": "string",
+                "store": "foo"
+            }
+        ));
 
         assert_eq!(mapping, Err(FieldMappingParseError::ExpectedBoolean));
     }
 
     #[test]
     fn test_parse_analyzer_default() {
-        let mapping = parse_field(&serde_json::from_str("
-        {
-            \"type\": \"string\"
-        }
-        ").unwrap());
+        let mapping = parse_field(&json!(
+            {
+                "type": "string"
+            }
+        ));
 
         assert_eq!(mapping, Ok(FieldMappingBuilder {
             field_type: FieldType::String,
@@ -802,12 +788,12 @@ mod tests {
 
     #[test]
     fn test_parse_analyzer() {
-        let mapping = parse_field(&serde_json::from_str("
-        {
-            \"type\": \"string\",
-            \"analyzer\": \"foo\"
-        }
-        ").unwrap());
+        let mapping = parse_field(&json!(
+            {
+                "type": "string",
+                "analyzer": "foo"
+            }
+        ));
 
         assert_eq!(mapping, Ok(FieldMappingBuilder {
             field_type: FieldType::String,
@@ -820,12 +806,12 @@ mod tests {
 
     #[test]
     fn test_parse_index_analyzer() {
-        let mapping = parse_field(&serde_json::from_str("
-        {
-            \"type\": \"string\",
-            \"index_analyzer\": \"foo\"
-        }
-        ").unwrap());
+        let mapping = parse_field(&json!(
+            {
+                "type": "string",
+                "index_analyzer": "foo"
+            }
+        ));
 
         assert_eq!(mapping, Ok(FieldMappingBuilder {
             field_type: FieldType::String,
@@ -838,12 +824,12 @@ mod tests {
 
     #[test]
     fn test_parse_search_analyzer() {
-        let mapping = parse_field(&serde_json::from_str("
-        {
-            \"type\": \"string\",
-            \"search_analyzer\": \"foo\"
-        }
-        ").unwrap());
+        let mapping = parse_field(&json!(
+            {
+                "type": "string",
+                "search_analyzer": "foo"
+            }
+        ));
 
         assert_eq!(mapping, Ok(FieldMappingBuilder {
             field_type: FieldType::String,
@@ -856,36 +842,36 @@ mod tests {
 
     #[test]
     fn test_parse_analyzer_on_integer_field() {
-        let mapping = parse_field(&serde_json::from_str("
-        {
-            \"type\": \"integer\",
-            \"analyzer\": \"foo\"
-        }
-        ").unwrap());
+        let mapping = parse_field(&json!(
+            {
+                "type": "integer",
+                "analyzer": "foo"
+            }
+        ));
 
         assert_eq!(mapping, Err(FieldMappingParseError::AnalyzersOnlyAllowedOnStringType));
     }
 
     #[test]
     fn test_parse_analyzer_on_non_analyzed_field() {
-        let mapping = parse_field(&serde_json::from_str("
-        {
-            \"type\": \"string\",
-            \"index\": \"not_analyzed\",
-            \"analyzer\": \"foo\"
-        }
-        ").unwrap());
+        let mapping = parse_field(&json!(
+            {
+                "type": "string",
+                "index": "not_analyzed",
+                "analyzer": "foo"
+            }
+        ));
 
         assert_eq!(mapping, Err(FieldMappingParseError::AnalyzersOnlyAllowedOnAnalyzedFields));
     }
 
     #[test]
     fn test_parse_boost_default() {
-        let mapping = parse_field(&serde_json::from_str("
-        {
-            \"type\": \"string\"
-        }
-        ").unwrap());
+        let mapping = parse_field(&json!(
+            {
+                "type": "string"
+            }
+        ));
 
         assert_eq!(mapping, Ok(FieldMappingBuilder {
             field_type: FieldType::String,
@@ -896,12 +882,12 @@ mod tests {
 
     #[test]
     fn test_parse_boost_float() {
-        let mapping = parse_field(&serde_json::from_str("
-        {
-            \"type\": \"string\",
-            \"boost\": 2.0
-        }
-        ").unwrap());
+        let mapping = parse_field(&json!(
+            {
+                "type": "string",
+                "boost": 2.0
+            }
+        ));
 
         assert_eq!(mapping, Ok(FieldMappingBuilder {
             field_type: FieldType::String,
@@ -912,12 +898,12 @@ mod tests {
 
     #[test]
     fn test_parse_boost_integer() {
-        let mapping = parse_field(&serde_json::from_str("
-        {
-            \"type\": \"string\",
-            \"boost\": 2
-        }
-        ").unwrap());
+        let mapping = parse_field(&json!(
+            {
+                "type": "string",
+                "boost": 2
+            }
+        ));
 
         assert_eq!(mapping, Ok(FieldMappingBuilder {
             field_type: FieldType::String,
@@ -928,36 +914,36 @@ mod tests {
 
     #[test]
     fn test_parse_boost_non_indexed_field() {
-        let mapping = parse_field(&serde_json::from_str("
-        {
-            \"type\": \"string\",
-            \"index\": \"no\",
-            \"boost\": 2.0
-        }
-        ").unwrap());
+        let mapping = parse_field(&json!(
+            {
+                "type": "string",
+                "index": "no",
+                "boost": 2.0
+            }
+        ));
 
         assert_eq!(mapping, Err(FieldMappingParseError::BoostOnlyAllowedOnIndexedFields));
     }
 
     #[test]
     fn test_parse_boost_negative() {
-        let mapping = parse_field(&serde_json::from_str("
-        {
-            \"type\": \"string\",
-            \"boost\": -2.0
-        }
-        ").unwrap());
+        let mapping = parse_field(&json!(
+            {
+                "type": "string",
+                "boost": -2.0
+            }
+        ));
 
         assert_eq!(mapping, Err(FieldMappingParseError::BoostMustBePositive));
     }
 
     #[test]
     fn test_include_in_all_default() {
-        let mapping = parse_field(&serde_json::from_str("
-        {
-            \"type\": \"string\"
-        }
-        ").unwrap());
+        let mapping = parse_field(&json!(
+            {
+                "type": "string"
+            }
+        ));
 
         assert_eq!(mapping, Ok(FieldMappingBuilder {
             field_type: FieldType::String,
@@ -968,12 +954,12 @@ mod tests {
 
     #[test]
     fn test_include_in_all_no() {
-        let mapping = parse_field(&serde_json::from_str("
-        {
-            \"type\": \"string\",
-            \"include_in_all\": \"no\"
-        }
-        ").unwrap());
+        let mapping = parse_field(&json!(
+            {
+                "type": "string",
+                "include_in_all": "no"
+            }
+        ));
 
         assert_eq!(mapping, Ok(FieldMappingBuilder {
             field_type: FieldType::String,
@@ -984,12 +970,12 @@ mod tests {
 
     #[test]
     fn test_include_in_all_false() {
-        let mapping = parse_field(&serde_json::from_str("
-        {
-            \"type\": \"string\",
-            \"include_in_all\": false
-        }
-        ").unwrap());
+        let mapping = parse_field(&json!(
+            {
+                "type": "string",
+                "include_in_all": false
+            }
+        ));
 
         assert_eq!(mapping, Ok(FieldMappingBuilder {
             field_type: FieldType::String,
@@ -1000,12 +986,12 @@ mod tests {
 
     #[test]
     fn test_include_in_all_non_string_type() {
-        let mapping = parse_field(&serde_json::from_str("
-        {
-            \"type\": \"integer\",
-            \"include_in_all\": \"yes\"
-        }
-        ").unwrap());
+        let mapping = parse_field(&json!(
+            {
+                "type": "integer",
+                "include_in_all": "yes"
+            }
+        ));
 
         assert_eq!(mapping, Ok(FieldMappingBuilder {
             field_type: FieldType::Integer,
