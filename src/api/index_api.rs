@@ -55,7 +55,7 @@ pub fn view_put_index(req: &mut Request) -> IronResult<Response> {
             // Update existing index
             // TODO
 
-            system.log.info("[api] updated index", b!("index" => *index_name));
+            system.log.info("updated index", b!("index" => *index_name));
         }
         None => {
             // Load metadata
@@ -78,13 +78,13 @@ pub fn view_put_index(req: &mut Request) -> IronResult<Response> {
             // If there's an alias with the new indexes name, delete it.
             let alias_deleted = cluster_metadata.names.delete_alias_whole(index_name).unwrap();
             if alias_deleted {
-                 system.log.info("[api] deleted alias", b!("alias" => format!("{}", index_name), "reason" => "replaced by index"));
+                 system.log.info("deleted alias", b!("alias" => format!("{}", index_name), "reason" => "replaced by index"));
             }
 
             // Register canonical name
             cluster_metadata.names.insert_canonical(index_name.clone().to_owned(), index_ref).unwrap();
 
-            system.log.info("[api] created index", b!("index" => *index_name));
+            system.log.info("created index", b!("index" => *index_name));
         }
     }
 
@@ -126,11 +126,11 @@ pub fn view_delete_index(req: &mut Request) -> IronResult<Response> {
         match fs::remove_dir_all(&indices_dir) {
             Ok(()) => {},
             Err(e) => {
-                system.log.warn("[api] failed to delete index data", b!("index" => format!("{}", index_name), "error" => format!("{}", e)));
+                system.log.warn("failed to delete index data", b!("index" => format!("{}", index_name), "error" => format!("{}", e)));
             }
         }
 
-        system.log.info("[api] deleted index", b!("index" => format!("{}", index_name)));
+        system.log.info("deleted index", b!("index" => format!("{}", index_name)));
 
         // Delete aliases
         let alias_names = cluster_metadata.names.iter_index_aliases(index_ref).map(|n| n.to_string()).collect::<Vec<String>>();
@@ -139,7 +139,7 @@ pub fn view_delete_index(req: &mut Request) -> IronResult<Response> {
 
             // If this was the only index being referenced by the alias, the alias would be deleted
             if alias_deleted {
-                 system.log.info("[api] deleted alias", b!("alias" => format!("{}", alias_name), "reason" => "no indices left"));
+                 system.log.info("deleted alias", b!("alias" => format!("{}", alias_name), "reason" => "no indices left"));
             }
         }
     }

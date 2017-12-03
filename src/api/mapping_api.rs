@@ -101,7 +101,7 @@ pub fn view_put_mapping(req: &mut Request) -> IronResult<Response> {
     for (field_name, (field_type, field_flags)) in new_fields {
         let indexed_yesno = if field_flags.contains(FIELD_INDEXED) { "yes" } else { "no" };
         let stored_yesno = if field_flags.contains(FIELD_STORED) { "yes" } else { "no" };
-        system.log.info("[api] adding field", b!("index" => *index_name, "field" => field_name, "type" => format!("{:?}", field_type), "indexed" => indexed_yesno, "stored" => stored_yesno));
+        system.log.info("adding field", b!("index" => *index_name, "field" => field_name, "type" => format!("{:?}", field_type), "indexed" => indexed_yesno, "stored" => stored_yesno));
 
         index.store.add_field(field_name, field_type, field_flags).unwrap();
     }
@@ -123,9 +123,9 @@ pub fn view_put_mapping(req: &mut Request) -> IronResult<Response> {
 
     if is_updating {
         // TODO: New mapping should be merged with existing one
-        system.log.info("[api] updated mapping", b!("index" => *index_name, "mapping" => *mapping_name));
+        system.log.info("updated mapping", b!("index" => *index_name, "mapping" => *mapping_name));
     } else {
-        system.log.info("[api] created mapping", b!("index" => *index_name, "mapping" => *mapping_name));
+        system.log.info("created mapping", b!("index" => *index_name, "mapping" => *mapping_name));
     }
 
     return Ok(json_response(status::Ok, json!({"acknowledged": true})));

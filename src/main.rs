@@ -47,13 +47,13 @@ fn main() {
     let log = Logger::new_root(o!());
     log.set_drain(slog_term::async_stderr());
 
-    log.info("[sys] starting rusticsearch", b!("version" => VERSION));
+    log.info("starting rusticsearch", b!("version" => VERSION));
 
     logger::init().unwrap();
 
     let system = Arc::new(System::new(log, Path::new("data/").to_path_buf()));
 
-    system.log.info("[sys] loading indices", b!());
+    system.log.info("loading indices", b!());
     system.load_indices();
 
     {
@@ -68,7 +68,7 @@ fn main() {
                         });
 
                         if let Err(error) = result {
-                            system.log.error("[sys] index maintenance task panicked", b!("index" => index.canonical_name(), "error" => format!("{:?}", error)));
+                            system.log.error("index maintenance task panicked", b!("index" => index.canonical_name(), "error" => format!("{:?}", error)));
                         }
                     }
                 }
@@ -78,6 +78,6 @@ fn main() {
         });
     }
 
-    system.log.info("[sys] starting api server", b!());
+    system.log.info("starting api server", b!());
     api::api_main(system);
 }
