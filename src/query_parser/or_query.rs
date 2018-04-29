@@ -1,8 +1,8 @@
 //! Parses "or" queries
 
 use serde_json::Value as Json;
-use kite::Query;
-use kite::schema::Schema;
+use search::Query;
+use search::schema::Schema;
 
 use query_parser::{QueryBuildContext, QueryParseError, QueryBuilder, parse as parse_query};
 
@@ -45,8 +45,8 @@ pub fn parse(json: &Json) -> Result<Box<QueryBuilder>, QueryParseError> {
 mod tests {
     use serde_json;
 
-    use kite::{Term, Query, TermScorer};
-    use kite::schema::{Schema, FieldType, FIELD_INDEXED};
+    use search::{Term, Query, TermScorer};
+    use search::schema::{Schema, FieldType, FIELD_INDEXED};
 
     use query_parser::{QueryBuildContext, QueryParseError};
 

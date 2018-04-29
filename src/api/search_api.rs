@@ -3,10 +3,10 @@ use std::collections::BTreeMap;
 
 use serde_json;
 use url::form_urlencoded;
-use kite::document::DocRef;
-use kite::query::Query;
-use kite::collectors::top_score::TopScoreCollector;
-use kite::collectors::total_count::TotalCountCollector;
+use search::document::DocId;
+use search::query::Query;
+use search::collectors::top_score::TopScoreCollector;
+use search::collectors::total_count::TotalCountCollector;
 
 use query_parser::{QueryBuildContext, parse as parse_query};
 
@@ -127,7 +127,7 @@ pub fn view_search(req: &mut Request) -> IronResult<Response> {
                         let mut field_values = BTreeMap::new();
 
                         for &(ref field_name, field_ref) in fields.iter() {
-                            let value = match index_reader.read_stored_field(field_ref, DocRef::from_u64(doc_match.doc_id())) {
+                            let value = match index_reader.read_stored_field(field_ref, DocId::from_u64(doc_match.doc_id())) {
                                 Ok(Some(value)) => vec![value],
                                 Ok(None) => vec![],
                                 Err(_) => vec![],
@@ -138,7 +138,7 @@ pub fn view_search(req: &mut Request) -> IronResult<Response> {
 
                         hits.push(json!({
                             "_score": doc_match.score().unwrap(),
-                            "fields": field_values,
+                            "fields": "FIXME",
                         }));
                     }
 

@@ -4,7 +4,7 @@ pub mod metadata;
 use std::sync::RwLock;
 use std::path::PathBuf;
 
-use kite_rocksdb::RocksDBStore;
+use search::backends::rocksdb::RocksDBStore;
 use uuid::Uuid;
 
 use index::metadata::IndexMetadata;

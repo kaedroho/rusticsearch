@@ -1,8 +1,8 @@
 //! Parses "multi_match" queries
 
 use serde_json::Value as Json;
-use kite::{Term, Token, Query, TermScorer};
-use kite::schema::Schema;
+use search::{Term, Token, Query, TermScorer};
+use search::schema::Schema;
 
 use mapping::FieldSearchOptions;
 
@@ -152,8 +152,8 @@ pub fn parse(json: &Json) -> Result<Box<QueryBuilder>, QueryParseError> {
 mod tests {
     use serde_json;
 
-    use kite::{Term, Query, TermScorer};
-    use kite::schema::{Schema, FieldType, FIELD_INDEXED};
+    use search::{Term, Query, TermScorer};
+    use search::schema::{Schema, FieldType, FIELD_INDEXED};
 
     use query_parser::{QueryBuildContext, QueryParseError};
 

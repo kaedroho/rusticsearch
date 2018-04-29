@@ -14,7 +14,7 @@ pub mod lucene_asciifold;
 pub mod tokenizers;
 pub mod filters;
 
-use kite::token::Token;
+use search::token::Token;
 
 use analysis::tokenizers::TokenizerSpec;
 use analysis::filters::FilterSpec;
@@ -27,10 +27,10 @@ use analysis::filters::FilterSpec;
 /// # Examples
 ///
 /// ```
-/// use kite::{Term, Token};
-/// use kite::analysis::tokenizers::TokenizerSpec;
-/// use kite::analysis::filters::FilterSpec;
-/// use kite::analysis::AnalyzerSpec;
+/// use search::{Term, Token};
+/// use search::analysis::tokenizers::TokenizerSpec;
+/// use search::analysis::filters::FilterSpec;
+/// use search::analysis::AnalyzerSpec;
 ///
 /// // Define an analyzer that splits words and converts them into lowercase
 /// let analyzer = AnalyzerSpec {

@@ -1,8 +1,8 @@
 //! Parses "prefix" queries
 
 use serde_json::Value as Json;
-use kite::{Query, MultiTermSelector, TermScorer};
-use kite::schema::Schema;
+use search::{Query, MultiTermSelector, TermScorer};
+use search::schema::Schema;
 
 use query_parser::{QueryBuildContext, QueryParseError, QueryBuilder};
 use query_parser::utils::parse_float;
@@ -87,8 +87,8 @@ pub fn parse(json: &Json) -> Result<Box<QueryBuilder>, QueryParseError> {
 mod tests {
     use serde_json;
 
-    use kite::{Query, MultiTermSelector, TermScorer};
-    use kite::schema::{Schema, FieldType, FIELD_INDEXED};
+    use search::{Query, MultiTermSelector, TermScorer};
+    use search::schema::{Schema, FieldType, FIELD_INDEXED};
 
     use query_parser::{QueryBuildContext, QueryParseError};
 

@@ -3,7 +3,7 @@ use std::path::{Path, PathBuf};
 use std::fs;
 
 use slog::Logger;
-use kite_rocksdb::RocksDBStore;
+use search::backends::rocksdb::RocksDBStore;
 use uuid::Uuid;
 
 use index::Index;

@@ -2,7 +2,7 @@
 
 use std::str;
 
-use kite::{Term, Token};
+use search::{Term, Token};
 
 
 pub struct LowercaseFilter<'a> {
@@ -44,7 +44,7 @@ impl<'a> Iterator for LowercaseFilter<'a> {
 
 #[cfg(test)]
 mod tests {
-    use kite::{Term, Token};
+    use search::{Term, Token};
 
     use super::LowercaseFilter;
 

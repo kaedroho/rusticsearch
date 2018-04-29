@@ -5,7 +5,7 @@
 
 use std::str;
 
-use kite::{Term, Token};
+use search::{Term, Token};
 
 use analysis::lucene_asciifold::fold_to_ascii;
 
@@ -48,7 +48,7 @@ impl<'a> Iterator for ASCIIFoldingFilter<'a> {
 
 #[cfg(test)]
 mod tests {
-    use kite::{Term, Token};
+    use search::{Term, Token};
 
     use super::ASCIIFoldingFilter;
 

@@ -2,7 +2,7 @@ pub mod standard;
 pub mod ngram;
 
 use serde::{Serialize, Serializer};
-use kite::token::Token;
+use search::token::Token;
 
 use analysis::ngram_generator::Edge;
 use analysis::filters::lowercase::LowercaseFilter;
@@ -17,8 +17,8 @@ use analysis::tokenizers::ngram::NGramTokenizer;
 /// # Examples
 ///
 /// ```
-/// use kite::{Term, Token};
-/// use kite::analysis::tokenizers::TokenizerSpec;
+/// use search::{Term, Token};
+/// use search::analysis::tokenizers::TokenizerSpec;
 ///
 /// let standard_tokenizer = TokenizerSpec::Standard;
 /// let token_stream = standard_tokenizer.initialise("Hello, world!");

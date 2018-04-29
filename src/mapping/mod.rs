@@ -7,11 +7,11 @@ use serde::{Serialize, Serializer};
 use serde_json;
 //use serde_json::value::ToJson;
 use chrono::{DateTime, Utc};
-use kite::{Term, Token};
-use kite::term_vector::TermVector;
-use kite::document::FieldValue;
-use kite::similarity::SimilarityModel;
-use kite::schema::FieldRef;
+use search::{Term, Token};
+use search::term_vector::TermVector;
+use search::document::FieldValue;
+use search::similarity::SimilarityModel;
+use search::schema::FieldId;
 
 use analysis::AnalyzerSpec;
 use analysis::tokenizers::TokenizerSpec;
@@ -85,7 +85,7 @@ pub struct FieldValueError;
 #[derive(Debug, PartialEq)]
 pub struct FieldMapping {
     pub data_type: FieldType,
-    pub index_ref: Option<FieldRef>,
+    pub index_ref: Option<FieldId>,
     pub is_indexed: bool,
     pub is_stored: bool,
     pub is_in_all: bool,

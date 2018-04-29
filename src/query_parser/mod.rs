@@ -17,8 +17,8 @@ pub mod constant_score_query;
 use std::fmt::Debug;
 
 use serde_json::Value as Json;
-use kite::Query;
-use kite::schema::Schema;
+use search::Query;
+use search::schema::Schema;
 
 use index::metadata::IndexMetadata;
 

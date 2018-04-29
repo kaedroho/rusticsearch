@@ -2,7 +2,7 @@ use std::fs;
 use std::io::Read;
 
 use serde_json;
-use kite_rocksdb::RocksDBStore;
+use search::backends::rocksdb::RocksDBStore;
 use uuid::Uuid;
 
 use index::Index;

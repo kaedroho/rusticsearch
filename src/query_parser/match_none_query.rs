@@ -1,8 +1,8 @@
 //! Parses "match_none" queries
 
 use serde_json::Value as Json;
-use kite::Query;
-use kite::schema::Schema;
+use search::Query;
+use search::schema::Schema;
 
 use query_parser::{QueryBuildContext, QueryParseError, QueryBuilder};
 
@@ -36,8 +36,8 @@ pub fn parse(json: &Json) -> Result<Box<QueryBuilder>, QueryParseError> {
 mod tests {
     use serde_json;
 
-    use kite::Query;
-    use kite::schema::Schema;
+    use search::Query;
+    use search::schema::Schema;
 
     use query_parser::{QueryBuildContext, QueryParseError};
 

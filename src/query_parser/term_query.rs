@@ -1,8 +1,8 @@
 //! Parses "term" queries
 
 use serde_json::Value as Json;
-use kite::{Term, Query, TermScorer};
-use kite::schema::Schema;
+use search::{Term, Query, TermScorer};
+use search::schema::Schema;
 
 use query_parser::{QueryBuildContext, QueryParseError, QueryBuilder};
 use query_parser::utils::{parse_float, json_value_to_term};
@@ -83,8 +83,8 @@ pub fn parse(json: &Json) -> Result<Box<QueryBuilder>, QueryParseError> {
 mod tests {
     use serde_json;
 
-    use kite::{Term, Query, TermScorer};
-    use kite::schema::{Schema, FieldType, FIELD_INDEXED};
+    use search::{Term, Query, TermScorer};
+    use search::schema::{Schema, FieldType, FIELD_INDEXED};
 
     use query_parser::{QueryBuildContext, QueryParseError};
 

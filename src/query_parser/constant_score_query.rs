@@ -1,8 +1,8 @@
 //! Parses "constant_score" queries
 
 use serde_json::Value as Json;
-use kite::Query;
-use kite::schema::Schema;
+use search::Query;
+use search::schema::Schema;
 
 use query_parser::{QueryBuildContext, QueryParseError, QueryBuilder, parse as parse_query};
 use query_parser::utils::parse_float;
@@ -51,8 +51,8 @@ pub fn parse(json: &Json) -> Result<Box<QueryBuilder>, QueryParseError> {
 
 #[cfg(test)]
 mod tests {
-    use kite::{Term, Query, TermScorer};
-    use kite::schema::{Schema, FieldType, FIELD_INDEXED};
+    use search::{Term, Query, TermScorer};
+    use search::schema::{Schema, FieldType, FIELD_INDEXED};
 
     use query_parser::{QueryBuildContext, QueryParseError};
 

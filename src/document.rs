@@ -1,5 +1,5 @@
 use serde_json;
-use kite::Document;
+use search::Document;
 use fnv::FnvHashMap;
 
 use mapping::{Mapping, MappingProperty, FieldValueError};

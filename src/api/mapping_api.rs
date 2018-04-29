@@ -2,7 +2,7 @@ use std::io::Read;
 use std::collections::HashMap;
 
 use serde_json;
-use kite::schema::{FieldType, FieldFlags, FIELD_INDEXED, FIELD_STORED};
+use search::schema::{FieldType, FieldFlags, FIELD_INDEXED, FIELD_STORED};
 
 use mapping::{self, MappingProperty};
 use mapping::parse::parse as parse_mapping;
@@ -78,7 +78,7 @@ pub fn view_put_mapping(req: &mut Request) -> IronResult<Response> {
 
                 // Check if this field already exists
                 if let Some(field_ref) = schema.get_field_by_name(&name) {
-                    let field_info = schema.get(&field_ref).expect("get_field_by_name returned an invalid FieldRef");
+                    let field_info = schema.get(&field_ref).expect("get_field_by_name returned an invalid FieldId");
 
                     // Field already exists. Check for conflicting type or flags, otherwise ignore.
                     if field_info.field_type == field_type && field_info.field_flags == field_flags {

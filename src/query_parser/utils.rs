@@ -1,5 +1,5 @@
 use serde_json::Value as Json;
-use kite::term::Term;
+use search::term::Term;
 
 use query_parser::QueryParseError;
 

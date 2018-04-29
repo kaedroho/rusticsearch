@@ -3,7 +3,7 @@ pub mod ngram;
 pub mod asciifolding;
 
 use serde::{Serialize, Serializer};
-use kite::Token;
+use search::Token;
 
 use analysis::ngram_generator::Edge;
 use analysis::filters::lowercase::LowercaseFilter;
@@ -18,9 +18,9 @@ use analysis::filters::asciifolding::ASCIIFoldingFilter;
 /// # Examples
 ///
 /// ```
-/// use kite::{Term, Token};
-/// use kite::analysis::tokenizers::TokenizerSpec;
-/// use kite::analysis::filters::FilterSpec;
+/// use search::{Term, Token};
+/// use search::analysis::tokenizers::TokenizerSpec;
+/// use search::analysis::filters::FilterSpec;
 ///
 /// let standard_tokenizer = TokenizerSpec::Standard;
 /// let token_stream = standard_tokenizer.initialise("Hello, WORLD!");
