@@ -51,7 +51,8 @@ fn get_router() -> Router {
             delete "/:index" => index_api::view_delete_index,
             post "/:index/_refresh" => index_api::view_post_refresh_index,
             put "/:index/_mapping/:mapping" => mapping_api::view_put_mapping,
-            post "/_bulk" => bulk_api::view_post_bulk)
+            post "/_bulk" => bulk_api::view_post_bulk,
+            post "/:index/_bulk" => bulk_api::view_post_index_bulk)
 }
 
 
