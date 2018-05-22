@@ -28,7 +28,7 @@ use self::segment_manager::SegmentManager;
 use self::term_dictionary::TermDictionaryManager;
 use self::document_index::DocumentIndexManager;
 
-fn merge_keys(key: &[u8], existing_val: Option<&[u8]>, operands: &mut MergeOperands) -> Vec<u8> {
+fn merge_keys(key: &[u8], existing_val: Option<&[u8]>, operands: &mut MergeOperands) -> Option<Vec<u8>> {
     match key[0] {
         b'd' | b'x' => {
             // Sequence of two byte document ids
@@ -57,7 +57,7 @@ fn merge_keys(key: &[u8], existing_val: Option<&[u8]>, operands: &mut MergeOpera
                 }
             }
 
-            new_val
+            Some(new_val)
         }
         b's' => {
             // Statistic
@@ -73,11 +73,11 @@ fn merge_keys(key: &[u8], existing_val: Option<&[u8]>, operands: &mut MergeOpera
 
             let mut buf = [0; 8];
             LittleEndian::write_i64(&mut buf, value);
-            buf.iter().cloned().collect()
+            Some(buf.iter().cloned().collect())
         }
         _ => {
             // Unrecognised key, fallback to emulating a put operation (by taking the last value)
-            operands.last().unwrap().iter().cloned().collect()
+            Some(operands.last().unwrap().iter().cloned().collect())
         }
     }
 }
@@ -116,7 +116,7 @@ pub struct RocksDBStore {
 impl RocksDBStore {
     pub fn create<P: AsRef<Path>>(path: P) -> Result<RocksDBStore, String> {
         let mut opts = Options::default();
-        opts.set_merge_operator("merge operator", merge_keys);
+        opts.set_merge_operator("merge operator", merge_keys, None);
         opts.create_if_missing(true);
         let db = try!(DB::open(&opts, path));
 
@@ -148,7 +148,7 @@ impl RocksDBStore {
 
     pub fn open<P: AsRef<Path>>(path: P) -> Result<RocksDBStore, String> {
         let mut opts = Options::default();
-        opts.set_merge_operator("merge operator", merge_keys);
+        opts.set_merge_operator("merge operator", merge_keys, None);
         let db = try!(DB::open(&opts, path));
 
         let schema = match try!(db.get(b".schema")) {
