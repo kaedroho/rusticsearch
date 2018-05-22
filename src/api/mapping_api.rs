@@ -23,7 +23,7 @@ pub fn view_put_mapping(req: &mut Request) -> IronResult<Response> {
     let mut cluster_metadata = system.metadata.write().unwrap();
 
     // Get index
-    let mut index = get_index_or_404_mut!(cluster_metadata, *index_name);
+    let index = get_index_or_404_mut!(cluster_metadata, *index_name);
 
     // Load data from body
     let data = json_from_request_body!(req);

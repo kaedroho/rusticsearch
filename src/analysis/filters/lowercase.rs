@@ -55,7 +55,7 @@ mod tests {
             Token { term: Term::from_string("SMASH"), position: 2 }
         ];
 
-        let token_filter = LowercaseFilter::new(Box::new(tokens.drain((..))));
+        let token_filter = LowercaseFilter::new(Box::new(tokens.drain(..)));
         let tokens = token_filter.collect::<Vec<Token>>();
 
         assert_eq!(tokens, vec![
@@ -72,7 +72,7 @@ mod tests {
             Token { term: Term::from_string("Test"), position: 3 }
         ];
 
-        let token_filter = LowercaseFilter::new(Box::new(tokens.drain((..))));
+        let token_filter = LowercaseFilter::new(Box::new(tokens.drain(..)));
         let tokens = token_filter.collect::<Vec<Token>>();
 
         assert_eq!(tokens, vec![

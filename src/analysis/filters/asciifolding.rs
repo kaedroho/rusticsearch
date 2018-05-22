@@ -58,7 +58,7 @@ mod tests {
             Token { term: Term::from_string("Ĥéllø"), position: 1 },
         ];
 
-        let token_filter = ASCIIFoldingFilter::new(Box::new(tokens.drain((..))));
+        let token_filter = ASCIIFoldingFilter::new(Box::new(tokens.drain(..)));
         let tokens = token_filter.collect::<Vec<Token>>();
 
         assert_eq!(tokens, vec![
@@ -73,7 +73,7 @@ mod tests {
             Token { term: Term::from_string("ハチ公"), position: 2 },
         ];
 
-        let token_filter = ASCIIFoldingFilter::new(Box::new(tokens.drain((..))));
+        let token_filter = ASCIIFoldingFilter::new(Box::new(tokens.drain(..)));
         let tokens = token_filter.collect::<Vec<Token>>();
 
         assert_eq!(tokens, vec![

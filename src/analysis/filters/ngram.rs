@@ -74,7 +74,7 @@ mod tests {
             Token { term: Term::from_string("hello"), position: 1 },
         ];
 
-        let token_filter = NGramFilter::new(Box::new(tokens.drain((..))), 2, 3, Edge::Neither);
+        let token_filter = NGramFilter::new(Box::new(tokens.drain(..)), 2, 3, Edge::Neither);
         let tokens = token_filter.collect::<Vec<Token>>();
 
         assert_eq!(tokens, vec![
@@ -95,7 +95,7 @@ mod tests {
             Token { term: Term::from_string("world"), position: 2 }
         ];
 
-        let token_filter = NGramFilter::new(Box::new(tokens.drain((..))), 2, 3, Edge::Left);
+        let token_filter = NGramFilter::new(Box::new(tokens.drain(..)), 2, 3, Edge::Left);
         let tokens = token_filter.collect::<Vec<Token>>();
 
         assert_eq!(tokens, vec![
@@ -112,7 +112,7 @@ mod tests {
             Token { term: Term::from_string("hello"), position: 1 },
         ];
 
-        let token_filter = NGramFilter::new(Box::new(tokens.drain((..))), 2, 1000, Edge::Left);
+        let token_filter = NGramFilter::new(Box::new(tokens.drain(..)), 2, 1000, Edge::Left);
         let tokens = token_filter.collect::<Vec<Token>>();
 
         assert_eq!(tokens, vec![
@@ -130,7 +130,7 @@ mod tests {
             Token { term: Term::from_string("world"), position: 2 }
         ];
 
-        let token_filter = NGramFilter::new(Box::new(tokens.drain((..))), 2, 3, Edge::Right);
+        let token_filter = NGramFilter::new(Box::new(tokens.drain(..)), 2, 3, Edge::Right);
         let tokens = token_filter.collect::<Vec<Token>>();
 
         assert_eq!(tokens, vec![
