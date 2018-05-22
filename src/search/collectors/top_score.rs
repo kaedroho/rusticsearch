@@ -111,7 +111,7 @@ impl Collector for TopScoreCollector {
 
 #[cfg(test)]
 mod tests {
-    use collectors::{Collector, DocumentMatch};
+    use search::collectors::{Collector, DocumentMatch};
     use super::TopScoreCollector;
 
     #[test]

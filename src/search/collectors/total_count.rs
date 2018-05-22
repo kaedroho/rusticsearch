@@ -29,7 +29,7 @@ impl Collector for TotalCountCollector {
 
 #[cfg(test)]
 mod tests {
-    use collectors::{Collector, DocumentMatch};
+    use search::collectors::{Collector, DocumentMatch};
     use super::TotalCountCollector;
 
     #[test]
