@@ -26,7 +26,7 @@ impl TermDictionaryManager {
     /// Generates a new term dictionary
     pub fn new(db: &DB) -> Result<TermDictionaryManager, rocksdb::Error> {
         // TODO: Raise error if .next_term_id already exists
-        // Next term ref
+        // Next term id
         try!(db.put(b".next_term_id", b"1"));
 
         Ok(TermDictionaryManager {
@@ -97,7 +97,7 @@ impl TermDictionaryManager {
         let next_term_id = self.next_term_id.fetch_add(1, Ordering::SeqCst) as u32;
         try!(db.put(b".next_term_id", (next_term_id + 1).to_string().as_bytes()));
 
-        // Create term ref
+        // Create term id
         let term_id = TermId(next_term_id);
 
         // Get write lock

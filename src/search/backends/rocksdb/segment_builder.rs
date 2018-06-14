@@ -65,7 +65,7 @@ impl SegmentBuilder {
                 let frequency = positions.len();
                 field_token_count += frequency;
 
-                // Get term ref
+                // Get term id
                 let term_id = self.get_term_id(term);
 
                 // Term frequency
