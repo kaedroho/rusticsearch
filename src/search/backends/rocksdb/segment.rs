@@ -40,8 +40,8 @@ impl<'a> Segment for RocksDBSegment<'a> {
         Ok(val.map(|v| v.to_vec()))
     }
 
-    fn load_term_directory(&self, field_id: FieldId, term_id: TermId) -> Result<Option<RoaringBitmap>, String> {
-        let kb = KeyBuilder::segment_dir_list(self.id, field_id.0, term_id.0);
+    fn load_postings_list(&self, field_id: FieldId, term_id: TermId) -> Result<Option<RoaringBitmap>, String> {
+        let kb = KeyBuilder::segment_postings_list(self.id, field_id.0, term_id.0);
         let doc_id_set = try!(self.reader.snapshot.get(&kb.key())).map(|doc_id_set| RoaringBitmap::deserialize_from(Cursor::new(&doc_id_set[..])).unwrap());
         Ok(doc_id_set)
     }

@@ -14,7 +14,7 @@ pub struct SegmentBuilder {
     current_doc: u16,
     pub term_dictionary: HashMap<Term, TermId>,
     current_term_id: u32,
-    pub term_directories: FnvHashMap<(FieldId, TermId), RoaringBitmap>,
+    pub postings_lists: FnvHashMap<(FieldId, TermId), RoaringBitmap>,
     pub statistics: FnvHashMap<Vec<u8>, i64>,
     pub stored_field_values: FnvHashMap<(FieldId, u16, Vec<u8>), Vec<u8>>,
 }
@@ -31,7 +31,7 @@ impl SegmentBuilder {
             current_doc: 0,
             term_dictionary: HashMap::new(),
             current_term_id: 0,
-            term_directories: FnvHashMap::default(),
+            postings_lists: FnvHashMap::default(),
             statistics: FnvHashMap::default(),
             stored_field_values: FnvHashMap::default(),
         }
@@ -72,8 +72,8 @@ impl SegmentBuilder {
                 let term_frequency = term_frequencies.entry(term_id).or_insert(0);
                 *term_frequency += frequency;
 
-                // Write directory list
-                self.term_directories.entry((*field_id, term_id)).or_insert_with(RoaringBitmap::new).insert(doc_id as u32);
+                // Write postings list
+                self.postings_lists.entry((*field_id, term_id)).or_insert_with(RoaringBitmap::new).insert(doc_id as u32);
 
                 // Write term frequency
                 // 1 is by far the most common frequency. At search time, we interpret a missing
@@ -145,8 +145,8 @@ impl Segment for SegmentBuilder {
         Ok(self.stored_field_values.get(&(field_id, doc_local_id, value_type.to_vec())).cloned())
     }
 
-    fn load_term_directory(&self, field_id: FieldId, term_id: TermId) -> Result<Option<RoaringBitmap>, String> {
-        Ok(self.term_directories.get(&(field_id, term_id)).cloned())
+    fn load_postings_list(&self, field_id: FieldId, term_id: TermId) -> Result<Option<RoaringBitmap>, String> {
+        Ok(self.postings_lists.get(&(field_id, term_id)).cloned())
     }
 
     fn load_deletion_list(&self) -> Result<Option<RoaringBitmap>, String> {

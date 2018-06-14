@@ -32,7 +32,7 @@ fn merge_keys(key: &[u8], existing_val: Option<&[u8]>, operands: &mut MergeOpera
     match key[0] {
         b'd' | b'x' => {
             // Sequence of two byte document ids
-            // d = directory
+            // d = postings list
             // x = deletion list
 
             // Allocate vec for new Value
@@ -245,17 +245,17 @@ impl RocksDBStore {
             term_dictionary_map.insert(*current_term_id, new_term_id);
         }
 
-        // Write term directories
-        for (&(field_id, term_id), term_directory) in builder.term_directories.iter() {
+        // Write postings lists
+        for (&(field_id, term_id), postings) in builder.postings_lists.iter() {
             let new_term_id = term_dictionary_map.get(&term_id).expect("TermId not in term_dictionary_map");
 
             // Serialise
-            let mut term_directory_bytes = Vec::new();
-            term_directory.serialize_into(&mut term_directory_bytes).unwrap();
+            let mut postings_bytes = Vec::new();
+            postings.serialize_into(&mut postings_bytes).unwrap();
 
             // Write
-            let kb = KeyBuilder::segment_dir_list(segment, field_id.0, new_term_id.0);
-            try!(write_batch.put(&kb.key(), &term_directory_bytes));
+            let kb = KeyBuilder::segment_postings_list(segment, field_id.0, new_term_id.0);
+            try!(write_batch.put(&kb.key(), &postings_bytes));
         }
 
         // Write stored fields

@@ -21,8 +21,8 @@ fn run_boolean_query<S: Segment>(boolean_query: &Vec<BooleanQueryOp>, is_negated
             BooleanQueryOp::PushEmpty => {
                 stack.push(RoaringBitmap::new());
             }
-            BooleanQueryOp::PushTermDirectory(field_id, term_id) => {
-                match try!(segment.load_term_directory(field_id, term_id)) {
+            BooleanQueryOp::PushPostingsList(field_id, term_id) => {
+                match try!(segment.load_postings_list(field_id, term_id)) {
                     Some(doc_id_set) => stack.push(doc_id_set),
                     None => stack.push(RoaringBitmap::new()),
                 }
@@ -84,9 +84,9 @@ fn score_doc<S: Segment, R: StatisticsReader>(doc_id: u16, score_function: &Vec<
             ScoreFunctionOp::Literal(val) => stack.push(val),
             ScoreFunctionOp::TermScorer(field_id, term_id, ref scorer) => {
                 // TODO: Check this isn't really slow
-                match try!(segment.load_term_directory(field_id, term_id)) {
-                    Some(term_directory) => {
-                        if term_directory.contains(doc_id as u32) {
+                match try!(segment.load_postings_list(field_id, term_id)) {
+                    Some(postings) => {
+                        if postings.contains(doc_id as u32) {
                             // Read field length
                             // TODO: we only need this for BM25
                             let field_length_raw = try!(segment.load_stored_field_value_raw(doc_id, field_id, b"len"));

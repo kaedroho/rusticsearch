@@ -43,13 +43,13 @@ impl RocksDBStore {
         write_options.disable_wal(true);
 
         // Merge the term directories
-        // The term directory keys are ordered to be most convenient for retrieving all the segments
+        // The postings lists keys are ordered to be most convenient for retrieving all the segments
         // of for a term/field combination in one go (field/term/segment). So we don't end up pulling
         // in a lot of unwanted data, we firstly iterate the keys, it they one of the source segments
         // looking for then we load them and append them to our new segment.
 
-        /// Converts term directory key strings "d1/2/3" into tuples of 3 i32s (1, 2, 3)
-        fn parse_term_directory_key(key: &[u8]) -> (u32, u32, u32) {
+        /// Converts postings list key strings "d1/2/3" into tuples of 3 i32s (1, 2, 3)
+        fn parse_postings_list_key(key: &[u8]) -> (u32, u32, u32) {
             let mut nums_iter = key[1..].split(|b| *b == b'/').map(|s| str::from_utf8(s).unwrap().parse::<u32>().unwrap());
             (nums_iter.next().unwrap(), nums_iter.next().unwrap(), nums_iter.next().unwrap())
         }
@@ -67,16 +67,16 @@ impl RocksDBStore {
                 break;
             }
 
-            let (field, term, segment) = parse_term_directory_key(&k);
+            let (field, term, segment) = parse_postings_list_key(&k);
 
             if source_segments_btree.contains(&segment) {
                 if current_td_key != Some((field, term)) {
-                    // Finished current term directory. Write it to the DB and start the next one
+                    // Finished current postings list. Write it to the DB and start the next one
                     if let Some((field, term)) = current_td_key {
                         let mut current_td_vec = Vec::new();
                         current_td.serialize_into(&mut current_td_vec).unwrap();
 
-                        let kb = KeyBuilder::segment_dir_list(dest_segment, field, term);
+                        let kb = KeyBuilder::segment_postings_list(dest_segment, field, term);
                         try!(self.db.put_opt(&kb.key(), &current_td_vec, &write_options));
                         current_td.clear();
                     }
@@ -84,7 +84,7 @@ impl RocksDBStore {
                     current_td_key = Some((field, term));
                 }
 
-                // Merge term directory into the new one (and remap the doc ids)
+                // Merge postings list into the new one (and remap the doc ids)
                 let bitmap = RoaringBitmap::deserialize_from(Cursor::new(iter.value().unwrap())).unwrap();
                 for doc_id in bitmap.iter() {
                     let doc_id = DocId(SegmentId(segment), doc_id as u16);
@@ -96,12 +96,12 @@ impl RocksDBStore {
             iter.next();
         }
 
-        // All done, write the last term directory
+        // All done, write the last postings list
         if let Some((field, term)) = current_td_key {
             let mut current_td_vec = Vec::new();
             current_td.serialize_into(&mut current_td_vec).unwrap();
 
-            let kb = KeyBuilder::segment_dir_list(dest_segment, field, term);
+            let kb = KeyBuilder::segment_postings_list(dest_segment, field, term);
             try!(self.db.put_opt(&kb.key(), &current_td_vec, &write_options));
             current_td.clear();
         }
@@ -298,8 +298,8 @@ impl RocksDBStore {
 
         // Purge term directories
 
-        /// Converts term directory key strings "d1/2/3" into tuples of 3 i32s (1, 2, 3)
-        fn parse_term_directory_key(key: &[u8]) -> (u32, u32, u32) {
+        /// Converts postings list key strings "d1/2/3" into tuples of 3 i32s (1, 2, 3)
+        fn parse_postings_list_key(key: &[u8]) -> (u32, u32, u32) {
             let mut nums_iter = key[1..].split(|b| *b == b'/').map(|s| str::from_utf8(s).unwrap().parse::<u32>().unwrap());
             (nums_iter.next().unwrap(), nums_iter.next().unwrap(), nums_iter.next().unwrap())
         }
@@ -314,7 +314,7 @@ impl RocksDBStore {
                 break;
             }
 
-            let (_, _, segment) = parse_term_directory_key(&k);
+            let (_, _, segment) = parse_postings_list_key(&k);
 
             if segments_btree.contains(&segment) {
                 try!(self.db.delete(&k));

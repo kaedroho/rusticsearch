@@ -57,7 +57,7 @@ impl KeyBuilder {
         kb
     }
 
-    pub fn segment_dir_list(segment: u32, field_id: u32, term_id: u32) -> KeyBuilder {
+    pub fn segment_postings_list(segment: u32, field_id: u32, term_id: u32) -> KeyBuilder {
         let mut kb = KeyBuilder::new();
         kb.push_char(b'd');
         kb.push_string(field_id.to_string().as_bytes());
