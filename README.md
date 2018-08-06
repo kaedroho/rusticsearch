@@ -1,5 +1,7 @@
 # Rusticsearch
 
+**Not actively developed. Please check out [toshi](https://github.com/hntd187/toshi) instead!**
+
 Lightweight Elasticsearch compatible search server.
 
 ## Why?
